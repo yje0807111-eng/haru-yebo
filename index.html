@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#FFD93B">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="하루 예보">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>하루 예보</title>
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+<div id="app">
+  <!-- 🐶 다루 -->
+  <section class="view on" data-v="home">
+    <div class="yard" id="yard">
+      <div class="sky" id="sky"></div>
+      <div class="bubble" id="bubble" hidden><div class="text"></div><div class="btns"></div></div>
+      <img class="pet" id="pet" alt="팻" draggable="false">
+      <div class="ground"></div>
+    </div>
+    <div class="homeinfo" id="homeInfo"></div>
+    <div class="talk" id="talk">
+      <button class="mode" id="modeBtn" aria-label="대화/검색 바꾸기">♥</button>
+      <input id="t" placeholder="다루에게 말 걸기…" autocomplete="off" enterkeyhint="send">
+      <button class="mic" id="micBtn" aria-label="말로 하기">🎤</button>
+      <button class="send" id="sendBtn" aria-label="보내기">➤</button>
+    </div>
+  </section>
+
+  <!-- 📒 주소록 -->
+  <section class="view" data-v="people">
+    <header><h2>📒 주소록</h2><button class="btn small" id="pAdd">➕ 추가</button></header>
+    <div class="card" id="pAsk"></div>
+    <div class="row"><input id="pQ" placeholder="🔍 이름·번호 찾기"></div>
+    <div class="row"><input id="pCode" placeholder="🔗 받은 초대 코드 붙여 넣기"><button class="btn small" id="pJoin">연결</button></div>
+    <div id="pList"></div>
+  </section>
+
+  <!-- 🛡️ 지킴이 -->
+  <section class="view" data-v="safe">
+    <header><h2>🛡️ 지킴이</h2></header>
+    <div id="safeBox"></div>
+  </section>
+
+  <!-- ⏰ 시간 -->
+  <section class="view" data-v="time">
+    <header><h2>⏰ 시간 · 알람 · 생일</h2></header>
+    <div id="timeBox"></div>
+  </section>
+
+  <!-- ⚙️ 설정 -->
+  <section class="view" data-v="set">
+    <header><h2>⚙️ 설정</h2><button class="btn" id="setSave" disabled>💾 저장</button></header>
+    <div id="setBox"></div>
+  </section>
+
+  <nav class="tabs" id="tabs">
+    <button data-go="home" class="on">🐶<span id="tabPet">다루</span></button>
+    <button data-go="people">📒<span>주소록</span></button>
+    <button data-go="safe">🛡️<span>지킴이</span></button>
+    <button data-go="time">⏰<span>시간</span></button>
+    <button data-go="set">⚙️<span>설정</span></button>
+  </nav>
+</div>
+<input type="file" id="vcfFile" accept=".vcf,text/vcard,text/x-vcard" hidden>
+<script src="lib/alarm.js"></script>
+<script src="lib/commands.js"></script>
+<script src="lib/nostr.bundle.js"></script>
+<script src="chars/dog/manifest.js"></script>
+<script src="core.js"></script>
+<script src="people.js"></script>
+<script src="safe.js"></script>
+<script src="timeset.js"></script>
+</body>
+</html>
