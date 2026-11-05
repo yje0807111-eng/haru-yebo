@@ -79,6 +79,7 @@ function decide() {
   const a = petAct(), mv = [0, 0.5, 1, 1.5, 2.1][a];
   if (r < Math.min(0.93, 0.45 * mv)) { P.target = rnd(0.08, 0.92); P.speed = r < (a >= 4 ? 0.6 : 0.12 * mv) ? 0.32 : 0.1; P.mode = P.speed > 0.2 ? 'run' : 'walk'; setPose(P.mode); P.until = performance.now() + 15000; return; }
   setPose(pick(['idle', 'gaze', 'sit', 'joy', 'up', 'lie', 'stretch', 'wink', 'laugh']));
+  if (!night && Math.random() < [0, 0.04, 0.08, 0.14, 0.22][a] && Date.now() - (window._lastBark || 0) > 40000) { window._lastBark = Date.now(); setPose('bark'); fx('shake'); cry(Math.random() < 0.5); }   // 가끔 혼자 짖기
   P.mode = 'idle'; P.until = performance.now() + (a >= 4 ? rnd(600, 1800) : a === 3 ? rnd(1500, 4000) : rnd(3000, 8000));
 }
 let frameT = 0;
@@ -144,6 +145,7 @@ bubble.addEventListener('click', e => { if (!e.target.closest('button')) hideBub
 
 // ── 명령 (PC 와 같은 말)
 function doCommand(id) {
+  if (['home', 'free', 'run'].includes(id) && window.Native && Native.petAction) Native.petAction(id);   // 바탕화면 팻: 홈 = 말창 위로, 놀아·자유·뛰어 = 내려오기
   const now = performance.now(); P.target = null; P.until = now + 5000;
   const c = COMMANDS.find(x => x.id === id), line = c ? pick(c.say) : '';
   const map = { sleep: 'sleep', sit: 'sit', lie: 'lie', playdead: 'bang', stand: 'joy', wait: 'sit', no: 'sad', quiet: 'shy', jump: 'jump', down: 'joy', climb: 'jump', paw: 'paw', spin: 'fun',
@@ -153,6 +155,7 @@ function doCommand(id) {
     setPose(id === 'roll' ? 'roll' : id === 'crawl' ? 'crawl' : 'run'); P.until = now + 15000;
   } else setPose(map[id] || 'joy');
   if (id === 'quiet') quietUntil = Date.now() + 24 * 3600e3;
+  if ((id === 'quiet' || id === 'bark' || id === 'speak' || id === 'call') && window.Native && Native.floatConfig) setTimeout(() => Native.floatConfig(), 100);
   if (id === 'bark' || id === 'speak' || id === 'call') { quietUntil = 0; cry(false); setTimeout(() => cry(false), 900); }
   if (['jump', 'joy', 'good'].includes(id)) fx('hop');
   if (id === 'sleep') P.until = now + 25000;

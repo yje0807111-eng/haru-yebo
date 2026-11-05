@@ -51,6 +51,8 @@ public class FloatPetPlugin extends Plugin {
             .putString("name", call.getString("name", "다루"))
             .putBoolean("on", call.getBoolean("on", true))
             .putInt("act", call.getInt("act", 2))
+            .putBoolean("cries", call.getBoolean("cries", true))
+            .putFloat("vol", call.getFloat("vol", 0.5f))
             .apply();
         FloatPetService.reload();
         call.resolve();

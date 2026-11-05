@@ -254,7 +254,7 @@ public class FloatPetService extends Service {
                     case MotionEvent.ACTION_MOVE:
                         float dx = e.getRawX() - sx, dy = e.getRawY() - sy;
                         if (Math.abs(dx) + Math.abs(dy) > dp(8)) moved = true;
-                        if (moved) { p.x = ox + (int) dx; p.y = oy + (int) dy; wm.updateViewLayout(v, p); if (isPet) { px = tx = p.x; } }
+                        if (moved) { p.x = ox + (int) dx; p.y = oy + (int) dy; wm.updateViewLayout(v, p); if (isPet) { px = tx = p.x; if (homeMode) homeMode = false; } else if (homeMode && pet != null) { lp.y = homeY(); lp.x = Math.max(blp.x, Math.min(blp.x + blp.width - lp.width, lp.x)); px = tx = lp.x; wm.updateViewLayout(pet, lp); } }
                         return true;
                     case MotionEvent.ACTION_UP:
                     case MotionEvent.ACTION_CANCEL:
@@ -298,13 +298,29 @@ public class FloatPetService extends Service {
     };
     Bitmap pick(Bitmap[] a, long seed) { Bitmap b = a[(int) (Math.random() * a.length)]; return b != null ? b : a[0]; }
     long restMs() { return act >= 4 ? 700 + (long) (Math.random() * 1500) : act == 3 ? 1500 + (long) (Math.random() * 3000) : act == 2 ? 4000 + (long) (Math.random() * 6000) : act == 1 ? 9000 + (long) (Math.random() * 12000) : 3600000; }
+    long lastBark = 0;
+    void maybeBark(long now) {
+        SharedPreferences sp = getSharedPreferences("pet", 0);
+        if (!sp.getBoolean("cries", true) || act <= 0) return;
+        int hr = java.util.Calendar.getInstance().get(java.util.Calendar.HOUR_OF_DAY);
+        if (hr >= 23 || hr < 7) return;
+        long gap = act >= 4 ? 45000 : act == 3 ? 90000 : act == 2 ? 180000 : 360000;   // 최소 간격
+        if (now - lastBark < gap) return;
+        double p = act >= 4 ? 0.35 : act == 3 ? 0.22 : act == 2 ? 0.12 : 0.05;
+        if (Math.random() > p) return;
+        lastBark = now;
+        bark(Math.random() < 0.5, sp.getFloat("vol", 0.5f));
+        Bitmap b = load("소리.webp"); if (b != null && pet != null) { pet.setScaleX(1); pet.setImageBitmap(b); }
+    }
     void decide(long now) {
         if (act <= 0) { nextDecide = now + 60000; return; }
+        maybeBark(now);
         double r = Math.random();
         double moveP = act >= 4 ? 0.92 : act == 3 ? 0.75 : act == 2 ? 0.45 : 0.2;
         if (r < moveP) {
             int w = lp.width > 0 ? lp.width : dp(120);
-            tx = (float) (Math.random() * Math.max(1, sw() - w));
+            if (homeMode && blp != null) { int bw = blp.width > 0 ? blp.width : sw(); tx = blp.x + (float) (Math.random() * Math.max(1, bw - w)); }
+            else tx = (float) (Math.random() * Math.max(1, sw() - w));
             running = act >= 3 ? Math.random() < (act >= 4 ? 0.7 : 0.45) : Math.random() < 0.15;
             moving = true;
         } else { pet.setImageBitmap(pick(idle, now)); nextDecide = now + restMs(); }
@@ -436,8 +452,26 @@ public class FloatPetService extends Service {
     }
     long lastPoseAt = 0, poseUntil = 0;
     Bitmap[] poseFrames = null; int poseFps = 8, poseFi = 0; long poseLast = 0;
+    boolean homeMode = false;
+    int homeY() { return blp != null ? blp.y - lp.height + dp(10) : lp.y; }
+    void goHome() {
+        if (pet == null || blp == null) return;
+        homeMode = true; moving = false; poseFrames = null;
+        int w = lp.width > 0 ? lp.width : dp(120);
+        px = tx = Math.max(blp.x, Math.min(blp.x + (blp.width > 0 ? blp.width : sw()) - w, (int) px));
+        lp.x = (int) px; lp.y = homeY(); wm.updateViewLayout(pet, lp);
+        Bitmap b = load("기쁨.webp"); if (b != null) { pet.setScaleX(1); pet.setImageBitmap(b); }
+        nextDecide = System.currentTimeMillis() + 3000;
+    }
+    void leaveHome() {
+        if (!homeMode) return;
+        homeMode = false;
+        lp.y = getSharedPreferences("pet", 0).getInt("y", sh() - dp(330)); wm.updateViewLayout(pet, lp);
+    }
     void showPose(String file, String action, int ms) {
         if (pet == null) return;
+        if ("home".equals(action)) { goHome(); return; }
+        if ("free".equals(action) || "run".equals(action)) leaveHome();
         lastPoseAt = System.currentTimeMillis(); poseFrames = null;
         if ("run".equals(action) || "walk".equals(action)) { int w = lp.width > 0 ? lp.width : dp(120); tx = (float) (Math.random() * Math.max(1, sw() - w)); if (Math.abs(tx - px) < dp(80)) tx = px > sw() / 2f ? dp(10) : sw() - w - dp(10); running = "run".equals(action); moving = true; return; }
         Bitmap b = file == null ? null : load(file);
