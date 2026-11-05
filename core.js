@@ -341,7 +341,9 @@ async function shareText(title, text, url) {
 function shareApp() { return shareText('하루 예보', '🐶 하루 예보 — 내 휴대폰 속 강아지 친구 (무료)\n가족 안부·119 지킴이·알람·생일 챙기기\n여기서 받아요 👉', GET_URL); }
 
 // ── 시작
-function homeInfo() { const g = S.mood.date === today() ? `오늘 마음: ${S.mood.today}` : ''; $('#homeInfo').textContent = g; $('#sky').textContent = new Date().toLocaleDateString('ko-KR', { month: 'long', day: 'numeric', weekday: 'short' }); }
+function homeInfo() { const g = S.mood.date === today() ? `오늘 마음: ${S.mood.today}` : ''; $('#homeInfo').textContent = g; $('#sky').textContent = new Date().toLocaleDateString('ko-KR', { month: 'long', day: 'numeric', weekday: 'short' }) + (window.APPVER ? ' · ' + window.APPVER : ''); }
+// 지금 몇 판인지 날짜 옆에 (앱 파일이면 "11판", 인터넷 웹앱이면 "웹")
+fetch('version.json').then(r => r.json()).then(v => { window.APPVER = (window.Capacitor && Capacitor.isNativePlatform && Capacitor.isNativePlatform()) ? v.build + '판' : '웹'; homeInfo(); }).catch(() => {});
 function boot() {
   setBuddyName(bn()); $('#tabPet').textContent = bn(); setSmode(false);
   setPose('idle'); requestAnimationFrame(tick);
