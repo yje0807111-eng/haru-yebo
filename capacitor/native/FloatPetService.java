@@ -288,7 +288,9 @@ public class FloatPetService extends Service {
                             pet.setScaleX(-dir);  // 그림은 왼쪽을 봄 → 오른쪽으로 갈 땐 뒤집기
                         }
                         lp.x = (int) px; wm.updateViewLayout(pet, lp);
-                    } else if (now > nextDecide) decide(now);
+                    } else if (poseFrames != null && now < poseUntil) {
+                        if (now - poseLast > 1000 / poseFps) { poseLast = now; poseFi = (poseFi + 1) % poseFrames.length; if (poseFrames[poseFi] != null) pet.setImageBitmap(poseFrames[poseFi]); }
+                    } else if (now > nextDecide) { poseFrames = null; decide(now); }
                 }
             } catch (Exception e) { Log.e("HaruPet", "tick", e); }
             h.postDelayed(this, 40);
@@ -416,8 +418,9 @@ public class FloatPetService extends Service {
             wm.updateViewLayout(bub, bubLp);
             h.removeCallbacks(hideBub);
             h.postDelayed(hideBub, ms);
-            moving = false; nextDecide = System.currentTimeMillis() + Math.min(ms, 8000);
-            if (pet != null && idle != null && idle[2] != null && !text.startsWith("💭")) pet.setImageBitmap(idle[2]);
+            long nowB = System.currentTimeMillis();
+            if (!moving) nextDecide = Math.max(nextDecide, nowB + Math.min(ms, 8000));
+            if (nowB - lastPoseAt > 1500 && !moving && pet != null && idle != null && idle[2] != null && !text.startsWith("💭") && !text.startsWith("👂")) pet.setImageBitmap(idle[2]);
         } catch (Exception e) { Log.e("HaruPet", "bubble", e); }
     }
     android.media.MediaPlayer mp;
@@ -431,12 +434,23 @@ public class FloatPetService extends Service {
             mp.setVolume(vol, vol); mp.prepare(); mp.start();
         } catch (Exception e) { Log.e("HaruPet", "bark", e); }
     }
+    long lastPoseAt = 0, poseUntil = 0;
+    Bitmap[] poseFrames = null; int poseFps = 8, poseFi = 0; long poseLast = 0;
     void showPose(String file, String action, int ms) {
         if (pet == null) return;
+        lastPoseAt = System.currentTimeMillis(); poseFrames = null;
         if ("run".equals(action) || "walk".equals(action)) { int w = lp.width > 0 ? lp.width : dp(120); tx = (float) (Math.random() * Math.max(1, sw() - w)); if (Math.abs(tx - px) < dp(80)) tx = px > sw() / 2f ? dp(10) : sw() - w - dp(10); running = "run".equals(action); moving = true; return; }
         Bitmap b = file == null ? null : load(file);
-        if (b != null) { moving = false; pet.setScaleX(1); pet.setImageBitmap(b); nextDecide = System.currentTimeMillis() + ms; }
+        if (b != null) { moving = false; pet.setScaleX(1); pet.setImageBitmap(b); nextDecide = System.currentTimeMillis() + ms; poseUntil = nextDecide; }
     }
+    void showFrames(String[] files, int fps, int ms) {
+        if (pet == null || files == null || files.length == 0) return;
+        Bitmap[] f = new Bitmap[files.length]; for (int i = 0; i < files.length; i++) f[i] = load(files[i]);
+        lastPoseAt = System.currentTimeMillis(); moving = false; pet.setScaleX(1);
+        poseFrames = f; poseFps = Math.max(2, fps); poseFi = 0; poseUntil = lastPoseAt + ms; nextDecide = poseUntil;
+        if (f[0] != null) pet.setImageBitmap(f[0]);
+    }
+    static void framesStatic(String[] files, int fps, int ms) { if (me != null) me.h.post(() -> me.showFrames(files, fps, ms)); }
     static void barkStatic(boolean happy, float vol) { if (me != null) me.h.post(() -> me.bark(happy, vol)); }
     static void poseStatic(String file, String action, int ms) { if (me != null) me.h.post(() -> me.showPose(file, action, ms)); }
 

@@ -110,6 +110,15 @@ public class FloatPetPlugin extends Plugin {
     @PluginMethod
     public void bark(PluginCall call) { FloatPetService.barkStatic(call.getBoolean("happy", false), call.getFloat("vol", 0.6f)); call.resolve(); }
     @PluginMethod
+    public void frames(PluginCall call) {
+        try {
+            com.getcapacitor.JSArray a = call.getArray("files");
+            String[] f = new String[a.length()]; for (int i = 0; i < a.length(); i++) f[i] = a.getString(i);
+            FloatPetService.framesStatic(f, call.getInt("fps", 8), call.getInt("ms", 5000));
+        } catch (Exception e) { }
+        call.resolve();
+    }
+    @PluginMethod
     public void pose(PluginCall call) { FloatPetService.poseStatic(call.getString("file", null), call.getString("action", ""), call.getInt("ms", 4000)); call.resolve(); }
     @PluginMethod
     public void ack(PluginCall call) { FloatPetService.ack = true; call.resolve(); }

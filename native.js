@@ -85,7 +85,7 @@
     const _cry = window.cry;
     window.cry = cry = function (happy, loud) { if (document.hidden) { if (!loud && (S.talk.cries === false)) return; FP.bark({ happy: !!happy, vol: loud ? 1 : Math.max(0.3, S.talk.volume) }).catch(() => {}); } else _cry(happy, loud); };
     const _setPose = window.setPose;
-    window.setPose = setPose = function (p) { _setPose(p); if (document.hidden) { if (p === 'run' || p === 'walk') FP.pose({ action: p }).catch(() => {}); else { const f = (pet.getAttribute('src') || '').split('/').pop(); if (f) FP.pose({ file: decodeURIComponent(f), ms: 5000 }).catch(() => {}); } } };
+    window.setPose = setPose = function (p) { _setPose(p); if (!document.hidden) return; if (p === 'run' || p === 'walk') { FP.pose({ action: p }).catch(() => {}); return; } if (P.frames && P.frames.length > 1) { FP.frames({ files: P.frames, fps: P.fps || 8, ms: p === 'sleep' ? 20000 : 6000 }).catch(() => {}); return; } const f = (pet.getAttribute('src') || '').split('/').pop(); if (f) FP.pose({ file: decodeURIComponent(f), ms: p === 'sleep' || p === 'lie' || p === 'sit' ? 12000 : 6000 }).catch(() => {}); };
     const _say = window.say;
     window.say = say = function (text, opt = {}) { _say(text, opt); if (document.hidden) FP.say({ text: plain(text), ms: Math.min(opt.ms || (5000 + String(text).length * 80), 15000) }).catch(() => {}); };
   }
