@@ -47,7 +47,7 @@ document.addEventListener('click', e => { const b = e.target.closest('[data-go]'
 // ── 다루 마당: 그림·움직임
 const CH = (window.CHARS || {}).dog;
 const POSES = {
-  bang: ['빵'], warn: ['위험'], wink: ['윙크'], crawl: ['기어'], drink: ['물먹기'], meal: ['밥먹기'], brush: ['양치'], wash: ['세수'], laugh: ['웃어', '기쁨'],
+  bang: ['빵'], warn: ['위험'], wink: ['윙크'], crawl: ['기어'], drink: ['물먹기'], meal: ['밥먹기'], eat: ['먹기'], brush: ['양치'], wash: ['세수'], laugh: ['웃어', '기쁨'],
   sit: ['앉아', '눈망울_앉기'], roll: ['굴러'], idle: ['정면'], walk: ['walk'], run: ['run'], sleep: ['자자', '잠'], stretch: ['기지개'], talk: ['말하기'],
   bark: ['소리', '소리2'], joy: ['기쁨'], fun: ['즐거움'], sad: ['슬픔'], think: ['생각중'], surprise: ['놀람'], shy: ['부끄러움'], love: ['사랑'],
   letter: ['편지'], magnify: ['돋보기'], wave: ['손흔들기'], paw: ['손'], up: ['올려다보기'], lie: ['엎드림', '눈망울_엎드림'], jump: ['점프'], gaze: ['눈망울_앉기'],
@@ -149,7 +149,7 @@ function doCommand(id) {
   const now = performance.now(); P.target = null; P.until = now + 5000;
   const c = COMMANDS.find(x => x.id === id), line = c ? pick(c.say) : '';
   const map = { sleep: 'sleep', sit: 'sit', lie: 'lie', playdead: 'bang', stand: 'joy', wait: 'sit', no: 'sad', quiet: 'shy', jump: 'jump', down: 'joy', climb: 'jump', paw: 'paw', spin: 'fun',
-    stretch: 'stretch', drink: 'drink', meal: 'meal', brush: 'brush', wash: 'wash', laugh: 'laugh', wink: 'wink', good: 'love', bark: 'bark', speak: 'up', call: 'up', hide: 'shy', back: 'walk', slow: 'walk', home: 'joy', free: 'run' };
+    stretch: 'stretch', drink: 'drink', meal: 'meal', snack: 'eat', dance: 'fun', brush: 'brush', wash: 'wash', laugh: 'laugh', wink: 'wink', good: 'love', bark: 'bark', speak: 'up', call: 'up', hide: 'shy', back: 'walk', slow: 'walk', home: 'joy', free: 'run' };
   if (id === 'run' || id === 'free' || id === 'follow' || id === 'come' || id === 'roll' || id === 'crawl') {
     P.target = id === 'come' || id === 'follow' ? 0.5 : (P.x > 0.5 ? 0.12 : 0.88); P.speed = id === 'crawl' ? 0.05 : id === 'roll' ? 0.12 : 0.3;
     setPose(id === 'roll' ? 'roll' : id === 'crawl' ? 'crawl' : 'run'); P.until = now + 15000;
@@ -159,6 +159,8 @@ function doCommand(id) {
   if (id === 'bark' || id === 'speak' || id === 'call') { quietUntil = 0; cry(false); setTimeout(() => cry(false), 900); }
   if (['jump', 'joy', 'good'].includes(id)) fx('hop');
   if (id === 'sleep') P.until = now + 25000;
+  if (id === 'dance') { P.until = now + 7000; cry(true); }
+  if (id === 'snack') { P.until = now + 6000; cry(true); setTimeout(() => setPose('love'), 3500); }
   if (line) say(esc(line), { ms: 2600 });
 }
 
