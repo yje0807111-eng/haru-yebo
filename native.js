@@ -67,7 +67,7 @@
   N.floatOn = async () => {
     if (!FP || S.floatOff) return;
     const p = await FP.hasPermission().catch(() => ({ granted: false }));
-    if (p.granted) FP.start({ size: S.me.size || 60 }).catch(() => {});
+    if (p.granted) FP.start({ size: S.me.size || 100, name: bn() }).catch(() => {});
   };
   N.askFloat = async () => {
     if (!FP) return;
@@ -79,7 +79,7 @@
     if (document.hidden) N.floatOn();                         // 앱을 닫으면 → 화면 위로
     else if (FP) { FP.stop().catch(() => {}); petOnly(true); }   // 앱을 열면 → 앱 안 팻만
   });
-  if (FP) FP.addListener('petTap', () => { petOnly(true); setTimeout(petMenu, 400); });
+  if (FP) FP.addListener('petTap', d => { petOnly(true); const w = d && d.what; if (w === 'talk') setTimeout(() => { hideBubble(); t.focus(); }, 300); else if (w === 'mic') setTimeout(() => $('#micBtn').click(), 500); else setTimeout(petMenu, 400); });
   // 켤 때 알람 다시 예약 · 새 버전 확인(하루 한 번)
   window.addEventListener('load', () => {
     setTimeout(() => N.schedule(S.alarms), 2000);

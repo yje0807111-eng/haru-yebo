@@ -37,7 +37,8 @@ public class FloatPetPlugin extends Plugin {
     public void start(PluginCall call) {
         if (Build.VERSION.SDK_INT >= 23 && !Settings.canDrawOverlays(getContext())) { call.reject("no-permission"); return; }
         Intent i = new Intent(getContext(), FloatPetService.class);
-        i.putExtra("size", call.getInt("size", 60));
+        i.putExtra("size", call.getInt("size", 100));
+        i.putExtra("name", call.getString("name", "다루"));
         if (Build.VERSION.SDK_INT >= 26) getContext().startForegroundService(i); else getContext().startService(i);
         call.resolve();
     }
@@ -50,11 +51,13 @@ public class FloatPetPlugin extends Plugin {
 
     @PluginMethod
     public void setSize(PluginCall call) {
-        FloatPetService.setSizeStatic(call.getInt("size", 60));
+        FloatPetService.setSizeStatic(call.getInt("size", 100));
         call.resolve();
     }
 
-    static void tapped() {
-        if (inst != null) inst.notifyListeners("petTap", new JSObject(), true);
+    static void tapped(String what) {
+        JSObject d = new JSObject();
+        d.put("what", what);
+        if (inst != null) inst.notifyListeners("petTap", d, true);
     }
 }

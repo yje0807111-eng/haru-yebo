@@ -8,7 +8,7 @@ const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 
 
 // ── 저장소 (이 휴대폰 안에만)
 const DEF = {
-  me: { name: '', buddyName: '다루', size: 60 },   // size: 팻 크기 10~100 (100 = 처음 크기)
+  me: { name: '', buddyName: '다루', size: 100 },   // size: 팻 크기 10~100 (100 = 처음 크기)
   talk: { freq: 'normal', volume: 0.4, cries: true },
   chat: [], alarms: [], chimeLast: {}, birthdays: [], bdayLast: {},
   chimes: [
@@ -24,6 +24,7 @@ const DEF = {
 const isObj = v => v && typeof v === 'object' && !Array.isArray(v);
 function merge(t, s) { for (const k of Object.keys(s || {})) { if (isObj(s[k]) && isObj(t[k])) merge(t[k], s[k]); else t[k] = s[k]; } return t; }
 let S = merge(structuredClone(DEF), (() => { try { return JSON.parse(localStorage.getItem('haru') || '{}'); } catch { return {}; } })());
+if (!S.sizeV2) { S.me.size = 100; S.sizeV2 = true; }   // 11-05: 크기 기준 바꿈 (지금 크기 = 100)
 function save() { try { localStorage.setItem('haru', JSON.stringify(S)); } catch { } }
 function patch(p) { merge(S, p); save(); return S; }
 const bn = () => S.me.buddyName || '다루';
@@ -80,7 +81,7 @@ function tick(now) {
     else { P.dir = d > 0 ? 1 : -1; P.x += Math.sign(d) * Math.min(Math.abs(d), P.speed * dt); }
   } else if (now > P.until) decide();
   if (P.frames && now - frameT > 1000 / P.fps) { frameT = now; P.fi = (P.fi + 1) % P.frames.length; pet.src = 'chars/dog/' + P.frames[P.fi]; }
-  const hh = Math.max(12, Math.round(Math.min(yard.clientHeight * 0.34, 210) * (S.me.size || 60) / 100)); if (pet._h !== hh) { pet._h = hh; pet.style.height = hh + 'px'; }
+  const hh = Math.max(10, Math.round(120 * (S.me.size || 100) / 100));   // 100 = 120, 10 = 12 (콩알만) if (pet._h !== hh) { pet._h = hh; pet.style.height = hh + 'px'; }
   const w = pet.getBoundingClientRect().width || 100, W = yard.clientWidth;
   pet.style.left = Math.round(P.x * W - w / 2) + 'px';
   const flip = P.face ? (P.dir !== P.face) : P.dir < 0 && P.target != null;
