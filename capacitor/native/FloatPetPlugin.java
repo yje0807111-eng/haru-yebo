@@ -68,6 +68,34 @@ public class FloatPetPlugin extends Plugin {
         call.resolve();
     }
 
+    @PluginMethod
+    public void diag(PluginCall call) {
+        JSObject r = new JSObject();
+        android.content.SharedPreferences sp = getContext().getSharedPreferences("pet", 0);
+        r.put("canDraw", Build.VERSION.SDK_INT < 23 || Settings.canDrawOverlays(getContext()));
+        r.put("on", sp.getBoolean("on", true));
+        r.put("running", FloatPetService.me != null);
+        r.put("shown", FloatPetService.wantShown);
+        r.put("pet", FloatPetService.me != null && FloatPetService.me.pet != null && FloatPetService.me.pet.isAttachedToWindow());
+        r.put("bar", FloatPetService.me != null && FloatPetService.me.bar != null && FloatPetService.me.bar.isAttachedToWindow());
+        r.put("err", sp.getString("err", ""));
+        r.put("crash", sp.getString("crash", ""));
+        r.put("sdk", Build.VERSION.SDK_INT);
+        r.put("model", Build.MANUFACTURER + " " + Build.MODEL);
+        StringBuilder sb = new StringBuilder();
+        try {
+            Process p = Runtime.getRuntime().exec(new String[] { "logcat", "-d", "-t", "600" });
+            java.io.BufferedReader br = new java.io.BufferedReader(new java.io.InputStreamReader(p.getInputStream()));
+            String line;
+            while ((line = br.readLine()) != null) {
+                if (line.contains("HaruPet") || line.contains("AndroidRuntime") || line.contains("FATAL") || line.contains("ForegroundService") || line.contains("kr.haruyebo")) sb.append(line).append('\n');
+            }
+        } catch (Exception e) { sb.append("log ").append(e); }
+        String log = sb.toString();
+        r.put("log", log.length() > 4000 ? log.substring(log.length() - 4000) : log);
+        call.resolve(r);
+    }
+
     static void tapped(String what) {
         JSObject d = new JSObject();
         d.put("what", what);

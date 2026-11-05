@@ -22,6 +22,7 @@ public class MainActivity extends BridgeActivity {
     @Override
     public void onStop() {
         super.onStop();
+        android.util.Log.i("HaruPet", "activity stop, service=" + (FloatPetService.me != null));
         FloatPetService.setShown(true);
         if (FloatPetService.me == null) FloatPetService.maybeStart(this);
     }

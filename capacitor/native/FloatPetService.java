@@ -55,7 +55,7 @@ public class FloatPetService extends Service {
             if (Build.VERSION.SDK_INT >= 23 && !android.provider.Settings.canDrawOverlays(c)) return;
             Intent i = new Intent(c, FloatPetService.class);
             if (Build.VERSION.SDK_INT >= 26) c.startForegroundService(i); else c.startService(i);
-        } catch (Exception e) { Log.e("HaruPet", "start", e); }
+        } catch (Exception e) { Log.e("HaruPet", "start", e); c.getSharedPreferences("pet", 0).edit().putString("err", "start: " + e).apply(); }
     }
 
     // 앱이 열리면 숨기고, 닫히면 보이기 (서비스는 그대로)
@@ -65,14 +65,27 @@ public class FloatPetService extends Service {
     }
 
     void applyShown() {
+        Log.i("HaruPet", "shown=" + wantShown + " pet=" + (pet != null) + " bar=" + (bar != null));
         int vis = wantShown ? View.VISIBLE : View.GONE;
         if (pet != null) pet.setVisibility(vis);
         if (bar != null) bar.setVisibility(vis);
     }
 
     @Override
+    public void onCreate() {
+        super.onCreate();
+        final Thread.UncaughtExceptionHandler old = Thread.getDefaultUncaughtExceptionHandler();
+        Thread.setDefaultUncaughtExceptionHandler((t, e) -> {
+            try { getSharedPreferences("pet", 0).edit().putString("crash", new java.util.Date() + " " + Log.getStackTraceString(e).substring(0, Math.min(1500, Log.getStackTraceString(e).length()))).commit(); } catch (Exception ignored) { }
+            if (old != null) old.uncaughtException(t, e);
+        });
+        Log.i("HaruPet", "service create");
+    }
+
+    @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         me = this;
+        Log.i("HaruPet", "start shown=" + wantShown);
         SharedPreferences sp = getSharedPreferences("pet", 0);
         sizePct = sp.getInt("size", 100);
         act = sp.getInt("act", 2);
@@ -134,6 +147,7 @@ public class FloatPetService extends Service {
             sizeLp();
             pet.setOnTouchListener(dragger(pet, lp, "", () -> open("pet"), true));
             wm.addView(pet, lp);
+            Log.i("HaruPet", "pet added");
         } catch (Exception e) { Log.e("HaruPet", "pet", e); note("pet " + e); }
         // 💬 말창 (PC 말창 모양)
         try {
@@ -176,6 +190,7 @@ public class FloatPetService extends Service {
             bar.setOnTouchListener(dragger(bar, blp, "t", () -> open("talk"), false));
             mic.setOnTouchListener(dragger(bar, blp, "t", () -> open("mic"), false));
             wm.addView(bar, blp);
+            Log.i("HaruPet", "bar added x=" + blp.x + " y=" + blp.y);
         } catch (Exception e) { Log.e("HaruPet", "bar", e); note("bar " + e); }
         h.post(tick);
     }
@@ -264,6 +279,7 @@ public class FloatPetService extends Service {
 
     @Override
     public void onDestroy() {
+        Log.i("HaruPet", "service destroy");
         h.removeCallbacksAndMessages(null);
         try { if (pet != null) wm.removeView(pet); } catch (Exception ignored) { }
         try { if (bar != null) wm.removeView(bar); } catch (Exception ignored) { }
