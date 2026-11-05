@@ -451,7 +451,8 @@ public class FloatPetService extends Service {
     }
 
     void sizeLp() {
-        int hpx = Math.max(dp(10), dp(120 * sizePct / 100f));   // 100 = 120dp, 10 = 12dp (콩알만)
+        float old = 30f + (Math.max(10, Math.min(100, sizePct)) - 10) * 100f / 90f;   // 10 = 예전 30 크기, 100 = 예전 130 크기
+        int hpx = dp(1.2f * old);
         lp.height = hpx;
         lp.width = (int) (hpx * 1.1f);
     }

@@ -70,6 +70,8 @@ function fx(cls) { pet.classList.remove(cls); void pet.offsetWidth; pet.classLis
 const MOVE = { often: 1.4, normal: 1, rare: 0.5, quiet: 0 };
 // 움직이는 정도 0~4 (0 가만히 · 4 아주 활발) — 화면 위 팻과 앱 안 팻이 같이 씀
 function petAct() { const f = S.talk.freq, m = S.me.temper || 'normal'; if (f === 'quiet') return 0; if (m === 'active') return f === 'rare' ? 2 : 4; if (m === 'shy') return 1; return { often: 3, normal: 2, rare: 1 }[f] ?? 2; }
+// 팻 크기: 10 = 예전 30 크기, 100 = 예전 130 크기 (11-05 사용자) — 바탕화면 팻과 같은 셈
+function petPx(n) { return Math.round(1.2 * (30 + (Math.max(10, Math.min(100, n)) - 10) * 100 / 90)); }
 function decide() {
   const q = S.talk.freq === 'quiet', h = new Date().getHours(), night = h >= 23 || h < 6;
   const r = Math.random();
@@ -88,7 +90,8 @@ function tick(now) {
     else { P.dir = d > 0 ? 1 : -1; P.x += Math.sign(d) * Math.min(Math.abs(d), P.speed * dt); }
   } else if (now > P.until) decide();
   if (P.frames && now - frameT > 1000 / P.fps) { frameT = now; P.fi = (P.fi + 1) % P.frames.length; pet.src = 'chars/dog/' + P.frames[P.fi]; }
-  const hh = Math.max(10, Math.round(120 * (S.me.size || 100) / 100));   // 100 = 120, 10 = 12 (콩알만) if (pet._h !== hh) { pet._h = hh; pet.style.height = hh + 'px'; }
+  const hh = petPx(S.me.size || 100);   // 크기 단계 → 화면 크기
+  if (pet._h !== hh) { pet._h = hh; pet.style.height = hh + 'px'; }
   const w = pet.getBoundingClientRect().width || 100, W = yard.clientWidth;
   pet.style.left = Math.round(P.x * W - w / 2) + 'px';
   const flip = P.face ? (P.dir !== P.face) : P.dir < 0 && P.target != null;
