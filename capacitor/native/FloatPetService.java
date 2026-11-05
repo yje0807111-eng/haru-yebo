@@ -53,7 +53,7 @@ public class FloatPetService extends Service {
     int sizePct = 100, act = 2;          // act: 0 가만히 · 1 조금 · 2 보통 · 3 활발 · 4 아주 활발
     String name = "다루";
     // 돌아다니기
-    float px, tx; int dir = 1; boolean moving = false, running = false; int frame = 0; long nextDecide = 0;
+    float px, tx, py = -1, ty = -1; int dir = 1; boolean moving = false, running = false; int frame = 0; long nextDecide = 0;
 
     @Override
     public IBinder onBind(Intent i) { return null; }
@@ -254,7 +254,7 @@ public class FloatPetService extends Service {
                     case MotionEvent.ACTION_MOVE:
                         float dx = e.getRawX() - sx, dy = e.getRawY() - sy;
                         if (Math.abs(dx) + Math.abs(dy) > dp(8)) moved = true;
-                        if (moved) { p.x = ox + (int) dx; p.y = oy + (int) dy; wm.updateViewLayout(v, p); if (isPet) { px = tx = p.x; if (homeMode) homeMode = false; } else if (homeMode && pet != null) { lp.y = homeY(); lp.x = Math.max(blp.x, Math.min(blp.x + blp.width - lp.width, lp.x)); px = tx = lp.x; wm.updateViewLayout(pet, lp); } }
+                        if (moved) { p.x = ox + (int) dx; p.y = oy + (int) dy; wm.updateViewLayout(v, p); if (isPet) { px = tx = p.x; py = ty = p.y; if (homeMode) homeMode = false; } else if (homeMode && pet != null) { lp.y = homeY(); lp.x = Math.max(blp.x, Math.min(blp.x + blp.width - lp.width, lp.x)); px = tx = lp.x; wm.updateViewLayout(pet, lp); } }
                         return true;
                     case MotionEvent.ACTION_UP:
                     case MotionEvent.ACTION_CANCEL:
@@ -280,14 +280,15 @@ public class FloatPetService extends Service {
                 if (!held && wantShown) {
                     if (moving) {
                         float speed = dp(running ? (act >= 4 ? 7 : 5) : 2.2f);
-                        float d = tx - px;
-                        if (Math.abs(d) <= speed) { px = tx; moving = false; pet.setImageBitmap(pick(idle, now)); pet.setScaleX(1); nextDecide = now + restMs(); }
+                        if (py < 0) py = ty = lp.y;
+                        float d = tx - px, dyy = ty - py, dist = (float) Math.hypot(d, dyy);
+                        if (dist <= speed) { px = tx; py = ty; moving = false; pet.setImageBitmap(pick(idle, now)); pet.setScaleX(1); nextDecide = now + restMs(); }
                         else {
-                            px += Math.signum(d) * speed; dir = d > 0 ? 1 : -1;
+                            px += d / dist * speed; py += dyy / dist * speed; if (Math.abs(d) > 1) dir = d > 0 ? 1 : -1;
                             if (now - last > (running ? 140 : 200)) { last = now; frame++; Bitmap[] f = running ? run : walk; Bitmap b = f[frame % f.length]; if (b != null) pet.setImageBitmap(b); }
                             pet.setScaleX(-dir);  // 그림은 왼쪽을 봄 → 오른쪽으로 갈 땐 뒤집기
                         }
-                        lp.x = (int) px; wm.updateViewLayout(pet, lp);
+                        lp.x = (int) px; lp.y = (int) py; wm.updateViewLayout(pet, lp);
                     } else if (poseFrames != null && now < poseUntil) {
                         if (now - poseLast > 1000 / poseFps) { poseLast = now; poseFi = (poseFi + 1) % poseFrames.length; if (poseFrames[poseFi] != null) pet.setImageBitmap(poseFrames[poseFi]); }
                     } else if (now > nextDecide) { poseFrames = null; decide(now); }
@@ -319,8 +320,14 @@ public class FloatPetService extends Service {
         double moveP = act >= 4 ? 0.92 : act == 3 ? 0.75 : act == 2 ? 0.45 : 0.2;
         if (r < moveP) {
             int w = lp.width > 0 ? lp.width : dp(120);
-            if (homeMode && blp != null) { int bw = blp.width > 0 ? blp.width : sw(); tx = blp.x + (float) (Math.random() * Math.max(1, bw - w)); }
-            else tx = (float) (Math.random() * Math.max(1, sw() - w));
+            if (py < 0) py = lp.y;
+            if (homeMode && blp != null) { int bw = blp.width > 0 ? blp.width : sw(); tx = blp.x + (float) (Math.random() * Math.max(1, bw - w)); ty = homeY(); }
+            else {
+                tx = (float) (Math.random() * Math.max(1, sw() - w));
+                int hgt = lp.height > 0 ? lp.height : dp(120);
+                int top = dp(60), bottom = (blp != null ? blp.y - dp(8) : sh() - dp(100)) - hgt;   // 위쪽부터 말창 바로 위까지
+                ty = top + (float) (Math.random() * Math.max(1, bottom - top));
+            }
             running = act >= 3 ? Math.random() < (act >= 4 ? 0.7 : 0.45) : Math.random() < 0.15;
             moving = true;
         } else { pet.setImageBitmap(pick(idle, now)); nextDecide = now + restMs(); }
@@ -459,21 +466,21 @@ public class FloatPetService extends Service {
         homeMode = true; moving = false; poseFrames = null;
         int w = lp.width > 0 ? lp.width : dp(120);
         px = tx = Math.max(blp.x, Math.min(blp.x + (blp.width > 0 ? blp.width : sw()) - w, (int) px));
-        lp.x = (int) px; lp.y = homeY(); wm.updateViewLayout(pet, lp);
+        lp.x = (int) px; lp.y = homeY(); py = ty = lp.y; wm.updateViewLayout(pet, lp);
         Bitmap b = load("기쁨.webp"); if (b != null) { pet.setScaleX(1); pet.setImageBitmap(b); }
         nextDecide = System.currentTimeMillis() + 3000;
     }
     void leaveHome() {
         if (!homeMode) return;
         homeMode = false;
-        lp.y = getSharedPreferences("pet", 0).getInt("y", sh() - dp(330)); wm.updateViewLayout(pet, lp);
+        lp.y = getSharedPreferences("pet", 0).getInt("y", sh() - dp(330)); py = ty = lp.y; wm.updateViewLayout(pet, lp);
     }
     void showPose(String file, String action, int ms) {
         if (pet == null) return;
         if ("home".equals(action)) { goHome(); return; }
         if ("free".equals(action) || "run".equals(action)) leaveHome();
         lastPoseAt = System.currentTimeMillis(); poseFrames = null;
-        if ("run".equals(action) || "walk".equals(action)) { int w = lp.width > 0 ? lp.width : dp(120); tx = (float) (Math.random() * Math.max(1, sw() - w)); if (Math.abs(tx - px) < dp(80)) tx = px > sw() / 2f ? dp(10) : sw() - w - dp(10); running = "run".equals(action); moving = true; return; }
+        if ("run".equals(action) || "walk".equals(action)) { int w = lp.width > 0 ? lp.width : dp(120); if (py < 0) py = lp.y; tx = (float) (Math.random() * Math.max(1, sw() - w)); if (Math.abs(tx - px) < dp(80)) tx = px > sw() / 2f ? dp(10) : sw() - w - dp(10); int hgt = lp.height > 0 ? lp.height : dp(120); int bottom = (blp != null ? blp.y - dp(8) : sh() - dp(100)) - hgt; ty = dp(60) + (float) (Math.random() * Math.max(1, bottom - dp(60))); running = "run".equals(action); moving = true; return; }
         Bitmap b = file == null ? null : load(file);
         if (b != null) { moving = false; pet.setScaleX(1); pet.setImageBitmap(b); nextDecide = System.currentTimeMillis() + ms; poseUntil = nextDecide; }
     }
