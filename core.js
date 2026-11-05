@@ -351,7 +351,11 @@ function boot() {
   setInterval(checkTimes, 10e3); setTimeout(checkTimes, 3000);
   setTimeout(() => say(pick([`${S.me.name ? esc(S.me.name) + '! ' : ''}왔구나! 보고 싶었어 🐶`, '멍! 반가워~', '헤헤 오늘도 같이 놀자!']), { pose: 'joy', ms: 3500 }), 600);
   setTimeout(() => cry(true), 700);
-  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
+  // 웹앱에서만 저장 기능 (휴대폰 앱 안에서는 끄고, 예전에 켜진 것도 지움)
+  if ('serviceWorker' in navigator) {
+    if (location.hostname === 'localhost') navigator.serviceWorker.getRegistrations().then(rs => rs.forEach(r => r.unregister())).catch(() => {});
+    else navigator.serviceWorker.register('sw.js').catch(() => {});
+  }
   markSign();
 }
 window.addEventListener('load', boot);
