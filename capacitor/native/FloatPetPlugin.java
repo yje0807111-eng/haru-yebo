@@ -108,6 +108,10 @@ public class FloatPetPlugin extends Plugin {
         call.resolve();
     }
     @PluginMethod
+    public void bark(PluginCall call) { FloatPetService.barkStatic(call.getBoolean("happy", false), call.getFloat("vol", 0.6f)); call.resolve(); }
+    @PluginMethod
+    public void pose(PluginCall call) { FloatPetService.poseStatic(call.getString("file", null), call.getString("action", ""), call.getInt("ms", 4000)); call.resolve(); }
+    @PluginMethod
     public void ack(PluginCall call) { FloatPetService.ack = true; call.resolve(); }
     @PluginMethod
     public void takePending(PluginCall call) {

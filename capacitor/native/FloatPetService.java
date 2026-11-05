@@ -117,8 +117,15 @@ public class FloatPetService extends Service {
         PendingIntent pi = PendingIntent.getActivity(this, 0, open, PendingIntent.FLAG_IMMUTABLE);
         Notification.Builder b = Build.VERSION.SDK_INT >= 26 ? new Notification.Builder(this, ch) : new Notification.Builder(this);
         Notification n = b.setContentTitle("하루 예보").setContentText("팻이 화면에서 놀고 있어요").setSmallIcon(getApplicationInfo().icon).setContentIntent(pi).setOngoing(true).build();
-        if (Build.VERSION.SDK_INT >= 34) startForeground(7, n, ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE);
-        else startForeground(7, n);
+        boolean micOk = Build.VERSION.SDK_INT < 23 || checkSelfPermission(android.Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED;
+        try {
+            if (Build.VERSION.SDK_INT >= 34) startForeground(7, n, ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE | (micOk ? ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE : 0));
+            else if (Build.VERSION.SDK_INT >= 30) startForeground(7, n, micOk ? ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE : 0);
+            else startForeground(7, n);
+        } catch (Exception e) {
+            Log.e("HaruPet", "fg", e); note("fg " + e);
+            if (Build.VERSION.SDK_INT >= 34) startForeground(7, n, ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE); else startForeground(7, n);
+        }
     }
 
     Bitmap load(String n) {
@@ -212,7 +219,7 @@ public class FloatPetService extends Service {
             });
             bar.addView(input);
             // 🎤 마이크 (누르면 하루 예보가 열리며 바로 말로 하기)
-            TextView mic = new TextView(this);
+            mic = new TextView(this);
             mic.setText("🎤");
             mic.setTextSize(TypedValue.COMPLEX_UNIT_SP, 18);
             mic.setGravity(Gravity.CENTER);
@@ -303,6 +310,9 @@ public class FloatPetService extends Service {
 
     // ── 바탕화면 말창에서 바로 쓰기
     EditText input;
+    TextView mic;
+    GradientDrawable micBg;
+    void micRed(boolean on) { if (mic == null) return; if (micBg == null) { micBg = new GradientDrawable(); micBg.setStroke(dp(2), Color.parseColor("#2B2118")); micBg.setCornerRadius(dp(20)); } micBg.setColor(Color.parseColor(on ? "#FF6B6B" : "#FFFFFF")); mic.setBackground(micBg); }
     boolean editing = false;
     int savedBy = 0;
     static volatile boolean ack = false;
@@ -346,16 +356,17 @@ public class FloatPetService extends Service {
         if (Build.VERSION.SDK_INT >= 23 && checkSelfPermission(android.Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) { open("mic"); return; }
         if (!SpeechRecognizer.isRecognitionAvailable(this)) { open("mic"); return; }
         bubble("👂 듣고 있어… 말해 줘!", 9000);
+        micRed(true);
         final SpeechRecognizer sr = SpeechRecognizer.createSpeechRecognizer(this);
         sr.setRecognitionListener(new RecognitionListener() {
             public void onResults(Bundle b) {
                 ArrayList<String> m = b.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
-                sr.destroy();
+                sr.destroy(); micRed(false);
                 if (m != null && !m.isEmpty()) { bubble("👂 \"" + m.get(0) + "\"", 2500); submit(m.get(0)); }
                 else bubble("잘 못 들었어 🥲 다시 눌러 줘", 3000);
             }
             public void onError(int err) {
-                sr.destroy();
+                sr.destroy(); micRed(false); Log.i("HaruPet", "listen err " + err); note("listen err " + err);
                 if (err == SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS || err == SpeechRecognizer.ERROR_AUDIO) open("mic");
                 else bubble("잘 못 들었어 🥲 다시 눌러 줘", 3000);
             }
@@ -364,14 +375,16 @@ public class FloatPetService extends Service {
             public void onRmsChanged(float v) { }
             public void onBufferReceived(byte[] b) { }
             public void onEndOfSpeech() { }
-            public void onPartialResults(Bundle b) { }
+            public void onPartialResults(Bundle b) { ArrayList<String> m = b.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION); if (m != null && !m.isEmpty() && !m.get(0).isEmpty()) bubble("👂 " + m.get(0) + "…", 6000); }
             public void onEvent(int t, Bundle b) { }
         });
         Intent i = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
         i.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
         i.putExtra(RecognizerIntent.EXTRA_LANGUAGE, "ko-KR");
         i.putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 1);
-        try { sr.startListening(i); } catch (Exception e) { open("mic"); }
+        i.putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true);
+        i.putExtra(RecognizerIntent.EXTRA_CALLING_PACKAGE, getPackageName());
+        try { sr.startListening(i); } catch (Exception e) { micRed(false); open("mic"); }
     }
 
     // ── 바탕화면 팻 말풍선
@@ -407,6 +420,26 @@ public class FloatPetService extends Service {
             if (pet != null && idle != null && idle[2] != null && !text.startsWith("💭")) pet.setImageBitmap(idle[2]);
         } catch (Exception e) { Log.e("HaruPet", "bubble", e); }
     }
+    android.media.MediaPlayer mp;
+    void bark(boolean happy, float vol) {
+        try {
+            String[] list = happy ? new String[] { "dog_happy1", "dog_happy2", "dog_happy3" } : new String[] { "dog_bark1", "dog_bark2", "dog_bark3", "dog_bark4" };
+            android.content.res.AssetFileDescriptor fd = getAssets().openFd("public/sounds/" + list[(int) (Math.random() * list.length)] + ".mp3");
+            if (mp != null) { try { mp.release(); } catch (Exception ignored) { } }
+            mp = new android.media.MediaPlayer();
+            mp.setDataSource(fd.getFileDescriptor(), fd.getStartOffset(), fd.getLength()); fd.close();
+            mp.setVolume(vol, vol); mp.prepare(); mp.start();
+        } catch (Exception e) { Log.e("HaruPet", "bark", e); }
+    }
+    void showPose(String file, String action, int ms) {
+        if (pet == null) return;
+        if ("run".equals(action) || "walk".equals(action)) { int w = lp.width > 0 ? lp.width : dp(120); tx = (float) (Math.random() * Math.max(1, sw() - w)); if (Math.abs(tx - px) < dp(80)) tx = px > sw() / 2f ? dp(10) : sw() - w - dp(10); running = "run".equals(action); moving = true; return; }
+        Bitmap b = file == null ? null : load(file);
+        if (b != null) { moving = false; pet.setScaleX(1); pet.setImageBitmap(b); nextDecide = System.currentTimeMillis() + ms; }
+    }
+    static void barkStatic(boolean happy, float vol) { if (me != null) me.h.post(() -> me.bark(happy, vol)); }
+    static void poseStatic(String file, String action, int ms) { if (me != null) me.h.post(() -> me.showPose(file, action, ms)); }
+
     static void sayStatic(String text, int ms) { if (me != null) me.h.post(() -> me.bubble(text, ms)); }
 
     void open(String what) {

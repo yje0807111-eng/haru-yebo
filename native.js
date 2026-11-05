@@ -82,6 +82,10 @@
   if (FP) {
     FP.addListener('overlayText', d => { FP.ack().catch(() => {}); if (d && d.text) send(d.text); });
     const plain = x => String(x || '').replace(/<br\s*\/?>/gi, '\n').replace(/<[^>]+>/g, '').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"');
+    const _cry = window.cry;
+    window.cry = cry = function (happy, loud) { if (document.hidden) { if (!loud && (S.talk.cries === false)) return; FP.bark({ happy: !!happy, vol: loud ? 1 : Math.max(0.3, S.talk.volume) }).catch(() => {}); } else _cry(happy, loud); };
+    const _setPose = window.setPose;
+    window.setPose = setPose = function (p) { _setPose(p); if (document.hidden) { if (p === 'run' || p === 'walk') FP.pose({ action: p }).catch(() => {}); else { const f = (pet.getAttribute('src') || '').split('/').pop(); if (f) FP.pose({ file: decodeURIComponent(f), ms: 5000 }).catch(() => {}); } } };
     const _say = window.say;
     window.say = say = function (text, opt = {}) { _say(text, opt); if (document.hidden) FP.say({ text: plain(text), ms: Math.min(opt.ms || (5000 + String(text).length * 80), 15000) }).catch(() => {}); };
   }
