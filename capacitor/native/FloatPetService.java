@@ -171,24 +171,23 @@ public class FloatPetService extends Service {
             hint.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15);
             hint.setSingleLine(true);
             hint.setLayoutParams(new LinearLayout.LayoutParams(dp(170), LinearLayout.LayoutParams.WRAP_CONTENT));
-            TextView mic = new TextView(this);
-            mic.setText("🎤");
-            mic.setTextSize(TypedValue.COMPLEX_UNIT_SP, 18);
-            mic.setGravity(Gravity.CENTER);
-            GradientDrawable mbg = new GradientDrawable();
-            mbg.setColor(Color.WHITE);
-            mbg.setStroke(dp(2), Color.parseColor("#2B2118"));
-            mbg.setCornerRadius(dp(20));
-            mic.setBackground(mbg);
-            mic.setLayoutParams(new LinearLayout.LayoutParams(dp(38), dp(38)));
+            // 🐶 얼굴 (보내 준 그림처럼: ♥ · 🐶 · "○○에게 말 걸기…")
+            ImageView face = new ImageView(this);
+            Bitmap fb = load("정면.webp"); if (fb != null) face.setImageBitmap(fb);
+            face.setScaleType(ImageView.ScaleType.FIT_CENTER);
+            LinearLayout.LayoutParams flp = new LinearLayout.LayoutParams(dp(30), dp(30)); flp.setMargins(0, 0, dp(10), 0);
+            face.setLayoutParams(flp);
+            hint.setLayoutParams(new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
+            hint.setTextSize(TypedValue.COMPLEX_UNIT_SP, 17);
+            bar.setPadding(dp(16), dp(10), dp(16), dp(10));
             bar.addView(heart);
+            bar.addView(face);
             bar.addView(hint);
-            bar.addView(mic);
             blp = params();
-            blp.x = sp.getInt("tx", Math.max(0, sw() / 2 - dp(135)));
-            blp.y = sp.getInt("ty", sh() - dp(210));
-            bar.setOnTouchListener(dragger(bar, blp, "t", () -> open("talk"), false));
-            mic.setOnTouchListener(dragger(bar, blp, "t", () -> open("mic"), false));
+            blp.width = sw() - dp(24);                     // 화면 아래 가로로 길게
+            blp.x = sp.getInt("bx", dp(12));
+            blp.y = sp.getInt("by", sh() - dp(78));
+            bar.setOnTouchListener(dragger(bar, blp, "b", () -> open("talk"), false));
             wm.addView(bar, blp);
             Log.i("HaruPet", "bar added x=" + blp.x + " y=" + blp.y);
         } catch (Exception e) { Log.e("HaruPet", "bar", e); note("bar " + e); }

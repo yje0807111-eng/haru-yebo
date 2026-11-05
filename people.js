@@ -34,6 +34,7 @@ function startNostr() {
 }
 const nameOf = () => S.me.name || '';
 function onPeople(ev) {
+  if (['hi', 'ok', 'msg', 'bye'].includes(ev.t)) { if (window.townDm) townDm(ev); return; }   // 동네 이웃 톡
   const list = S.contacts;
   if (ev.t === 'link') {
     const inv = S.invites[ev.token]; if (!inv) return;

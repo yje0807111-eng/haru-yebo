@@ -36,6 +36,8 @@ function go(v) {
   $$('.view').forEach(e => e.classList.toggle('on', e.dataset.v === v));
   $$('#tabs button').forEach(b => b.classList.toggle('on', b.dataset.go === v));
   if (v === 'people') drawPeople();
+  if (v === 'town') drawTown();
+  if (v === 'room') drawRoom();
   if (v === 'safe') drawSafe();
   if (v === 'time') drawTime();
   if (v === 'set') drawSet();
@@ -101,7 +103,7 @@ function cry(happy, loud) {
 }
 function petMenu() {
   setPose(pick(['joy', 'love', 'wave', 'laugh'])); fx('hop'); cry(true); P.until = performance.now() + 3000; P.target = null; markSign();
-  const b = [['💬 나랑 이야기하기', () => { petOnly(false); hideBubble(); t.focus(); }, 'talkb'], ['📒 주소록', () => openView('people')], ['🛡️ 지킴이', () => openView('safe')], ['⏰ 시간·알람', () => openView('time')], ['⚙️ 설정', () => openView('set')]];
+  const b = [['🏘️ 동네 날씨', () => openView('town')], ['🎨 내 방', () => openView('room')], ['📒 주소록', () => openView('people')], ['🛡️ 지킴이', () => openView('safe')], ['⏰ 시간·알람', () => openView('time')], ['⚙️ 설정', () => openView('set')]];
   clearTimeout(bubbleT);
   bubble.querySelector('.text').innerHTML = pick([`멍! 뭐 할까? 🐾`, `불렀어? 헤헤 🐶`, `${S.me.name ? esc(S.me.name) + '! ' : ''}뭐 도와줄까?`]);
   const box = bubble.querySelector('.btns'); box.innerHTML = '<div class="petmenu"></div>';
@@ -167,6 +169,7 @@ function isSearch(text) {
 async function send(text) {
   text = String(text || '').trim(); if (!text) return;
   t.value = ''; markSign();
+  if (view !== 'home') go('home');   // 대답은 다루 마당에서
   if (window.sosHear && sosHear(text)) return;   // 🚨 도와주세요 (지킴이)
   const em = stripName(text).match(/^(119|112|1394|일일구|일일이|구급차|소방서|경찰)\s*(에|로|번|을|를|좀)?\s*(전화|신고|불러)/);
   if (em && window.sosCall) { sosCall(/^(119|일일구|구급차|소방서)/.test(em[1]) ? '119' : /^(112|일일이|경찰)/.test(em[1]) ? '112' : '1394'); return; }
@@ -314,14 +317,15 @@ function schedNotify() { if (window.Native && Native.schedule) Native.schedule(S
 
 // ── 말로 하기 (휴대폰 음성 인식)
 const SR = window.SpeechRecognition || window.webkitSpeechRecognition; let rec = null;
+$('#tFace').onclick = () => $('#micBtn').click();
 $('#micBtn').onclick = async () => {
   if (window.Native && Native.listen) { $('#micBtn').classList.add('rec'); say('👂 듣고 있어… 말해 줘!', { pose: 'up', ms: 6000 }); try { const txt = await Native.listen(); if (txt) { say(`👂 "${esc(txt)}"`, { ms: 1500 }); send(txt); } } catch { say('잘 못 들었어 🥲 다시 해 볼래?', { ms: 3000 }); } $('#micBtn').classList.remove('rec'); return; }
   if (!SR) { say('이 휴대폰 브라우저는 말 알아듣기를 못 해 🥲 크롬에서 열어 줘!', { ms: 4000 }); return; }
   if (rec) { rec.stop(); return; }
   rec = new SR(); rec.lang = 'ko-KR'; rec.interimResults = false; rec.maxAlternatives = 1;
-  $('#micBtn').classList.add('rec'); say('👂 듣고 있어… 말해 줘!', { pose: 'up', ms: 6000 });
+  $('#micBtn').classList.add('rec'); $('#talk').classList.add('rec'); say('👂 듣고 있어… 말해 줘!', { pose: 'up', ms: 6000 });
   rec.onresult = e => { const txt = e.results[0][0].transcript; say(`👂 "${esc(txt)}"`, { ms: 1500 }); send(txt); };
-  rec.onend = () => { $('#micBtn').classList.remove('rec'); rec = null; };
+  rec.onend = () => { $('#micBtn').classList.remove('rec'); $('#talk').classList.remove('rec'); rec = null; };
   rec.onerror = () => { $('#micBtn').classList.remove('rec'); rec = null; };
   rec.start();
 };

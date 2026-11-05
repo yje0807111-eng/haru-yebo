@@ -24,11 +24,19 @@
       <div class="ground"></div>
     </div>
     <div class="homeinfo" id="homeInfo"></div>
-    <div class="talk" id="talk">
-      <button class="mode" id="modeBtn" aria-label="대화/검색 바꾸기">♥</button>
-      <input id="t" placeholder="다루에게 말 걸기…" autocomplete="off" enterkeyhint="send">
-      <button class="mic" id="micBtn" aria-label="말로 하기">🎤</button>
-    </div>
+
+  </section>
+
+  <!-- 🏘️ 우리 동네 날씨 -->
+  <section class="view" data-v="town">
+    <header><h2>🏘️ 우리 동네 날씨</h2></header>
+    <div id="townBox"></div>
+  </section>
+
+  <!-- 🎨 내 방 꾸미기 -->
+  <section class="view" data-v="room">
+    <header><h2>🎨 내 방 꾸미기</h2></header>
+    <div id="roomBox"></div>
   </section>
 
   <!-- 📒 주소록 -->
@@ -58,8 +66,17 @@
     <div id="setBox"></div>
   </section>
 
+  <div class="talk" id="talk">
+      <button class="mode" id="modeBtn" aria-label="대화/검색 바꾸기">♥</button>
+      <img class="tface" id="tFace" src="chars/dog/정면.webp" alt="말로 하기" title="누르면 말로 하기">
+      <input id="t" placeholder="다루에게 말 걸기…" autocomplete="off" enterkeyhint="send">
+      <button class="mic" id="micBtn" aria-label="말로 하기" hidden>🎤</button>
+    </div>
+
   <nav class="tabs" id="tabs">
     <button data-go="home" class="on">🐶<span id="tabPet">다루</span></button>
+    <button data-go="town">🏘️<span>동네</span></button>
+    <button data-go="room">🎨<span>내 방</span></button>
     <button data-go="people">📒<span>주소록</span></button>
     <button data-go="safe">🛡️<span>지킴이</span></button>
     <button data-go="time">⏰<span>시간</span></button>
@@ -73,6 +90,8 @@
 <script src="chars/dog/manifest.js"></script>
 <script src="core.js"></script>
 <script src="people.js"></script>
+<script src="town.js"></script>
+<script src="myroom.js"></script>
 <script src="safe.js"></script>
 <script src="timeset.js"></script>
 <script src="native.js"></script>

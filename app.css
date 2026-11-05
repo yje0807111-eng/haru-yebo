@@ -104,3 +104,34 @@ body.petonly .ground { opacity: .35; }
 .sizes button { border: 2px solid var(--ink); background: #fff; border-radius: 10px; padding: 7px 0; font: inherit; font-size: 14px; }
 .sizes button.on { background: var(--sun); font-weight: 800; }
 .backpet { position: absolute; right: 10px; top: 8px; z-index: 6; border: 2px solid var(--ink); background: #fff; border-radius: 999px; padding: 5px 10px; font: inherit; font-size: 13px; font-weight: 700; }
+
+/* 아래 탭 7개 */
+.tabs button { font-size: 19px; } .tabs button span { font-size: 10.5px; }
+/* 🏘️ 동네 */
+#tMap { max-width: 420px; width: 100%; margin: 8px auto 0; }
+.tmap { width: 100%; height: auto; display: block; }
+.tmap circle[data-n] { cursor: pointer; }
+.likes { display: flex; flex-wrap: wrap; gap: 5px; margin: 8px 0; }
+.likes button { border: 2px solid var(--ink); background: #fff; border-radius: 999px; padding: 5px 10px; font: inherit; font-size: 13.5px; }
+.likes button.on { background: var(--sun); font-weight: 800; }
+/* 🎨 내 방 */
+.rtabs { display: flex; gap: 5px; overflow-x: auto; padding-bottom: 6px; }
+.rtabs button { flex: none; border: 2px solid var(--ink); background: #fff; border-radius: 12px; padding: 6px 12px; font: inherit; font-size: 14px; font-weight: 700; }
+.rtabs button.on { background: var(--sun); }
+.rboard { position: relative; width: 100%; aspect-ratio: 1 / 1; border: 3px solid var(--ink); border-radius: 18px; overflow: hidden; touch-action: none; background: #FFF7DF; }
+.ritem { position: absolute; user-select: none; -webkit-user-select: none; }
+.ritem.photo { background: #fff; padding: 4% 4% 12%; box-shadow: 0 3px 8px rgba(0,0,0,.25); }
+.ritem.photo img { width: 100%; display: block; pointer-events: none; }
+.ritem .vid { position: absolute; left: 50%; top: 42%; transform: translate(-50%,-50%); font-size: 26px; color: #fff; text-shadow: 0 0 6px #000; }
+.ritem.text span { display: block; text-align: center; white-space: nowrap; }
+.ritem.sel { outline: 3px dashed #2F74D8; outline-offset: 3px; }
+.rsel { display: flex; flex-wrap: wrap; gap: 5px; margin: 8px 0; min-height: 34px; align-items: center; }
+.rsel button { border: 2px solid var(--ink); background: #fff; border-radius: 10px; padding: 5px 9px; font: inherit; font-size: 13px; }
+.roomview { position: fixed; inset: 0; background: rgba(43,33,24,.55); z-index: 50; display: flex; align-items: center; justify-content: center; padding: 12px; }
+.roomview .card { width: 100%; max-width: 460px; }
+
+/* 말창은 늘 아래에 고정 (어느 화면이든) */
+.talk { flex: none; }
+.talk .tface { width: 30px; height: 30px; object-fit: contain; flex: none; }
+.talk .mic[hidden] { display: none; }
+.talk.rec { box-shadow: 0 0 0 4px #FF8A8A; }
