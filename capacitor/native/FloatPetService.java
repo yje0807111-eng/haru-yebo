@@ -183,11 +183,25 @@ public class FloatPetService extends Service {
             bar.addView(heart);
             bar.addView(face);
             bar.addView(hint);
+            // 🎤 마이크 (누르면 하루 예보가 열리며 바로 말로 하기)
+            TextView mic = new TextView(this);
+            mic.setText("🎤");
+            mic.setTextSize(TypedValue.COMPLEX_UNIT_SP, 18);
+            mic.setGravity(Gravity.CENTER);
+            GradientDrawable mbg = new GradientDrawable();
+            mbg.setColor(Color.WHITE);
+            mbg.setStroke(dp(2), Color.parseColor("#2B2118"));
+            mbg.setCornerRadius(dp(20));
+            mic.setBackground(mbg);
+            mic.setLayoutParams(new LinearLayout.LayoutParams(dp(40), dp(40)));
+            bar.addView(mic);
+            bar.setPadding(dp(16), dp(6), dp(6), dp(6));
             blp = params();
             blp.width = sw() - dp(24);                     // 화면 아래 가로로 길게
             blp.x = sp.getInt("bx", dp(12));
             blp.y = sp.getInt("by", sh() - dp(78));
             bar.setOnTouchListener(dragger(bar, blp, "b", () -> open("talk"), false));
+            mic.setOnTouchListener(dragger(bar, blp, "b", () -> open("mic"), false));
             wm.addView(bar, blp);
             Log.i("HaruPet", "bar added x=" + blp.x + " y=" + blp.y);
         } catch (Exception e) { Log.e("HaruPet", "bar", e); note("bar " + e); }
