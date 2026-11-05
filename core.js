@@ -8,7 +8,7 @@ const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 
 
 // ── 저장소 (이 휴대폰 안에만)
 const DEF = {
-  me: { name: '', buddyName: '다루', size: 100 },   // size: 팻 크기 10~100 (100 = 처음 크기)
+  me: { name: '', buddyName: '다루', size: 100, temper: 'active' },   // temper: active 활발 · normal 평범 · shy 소심   // size: 팻 크기 10~100 (100 = 처음 크기)
   talk: { freq: 'normal', volume: 0.4, cries: true },
   chat: [], alarms: [], chimeLast: {}, birthdays: [], bdayLast: {},
   chimes: [
@@ -63,21 +63,23 @@ function setPose(p) {
 }
 function fx(cls) { pet.classList.remove(cls); void pet.offsetWidth; pet.classList.add(cls); setTimeout(() => pet.classList.remove(cls), 1000); }
 const MOVE = { often: 1.4, normal: 1, rare: 0.5, quiet: 0 };
+// 움직이는 정도 0~4 (0 가만히 · 4 아주 활발) — 화면 위 팻과 앱 안 팻이 같이 씀
+function petAct() { const f = S.talk.freq, m = S.me.temper || 'normal'; if (f === 'quiet') return 0; if (m === 'active') return f === 'rare' ? 2 : 4; if (m === 'shy') return 1; return { often: 3, normal: 2, rare: 1 }[f] ?? 2; }
 function decide() {
   const q = S.talk.freq === 'quiet', h = new Date().getHours(), night = h >= 23 || h < 6;
   const r = Math.random();
   if (q || (night && r < 0.7)) { setPose(pick(['sit', 'lie', 'sleep', 'gaze'])); P.mode = 'rest'; P.until = performance.now() + rnd(20000, 50000); return; }
-  const mv = MOVE[S.talk.freq] ?? 1;
-  if (r < 0.45 * mv) { P.target = rnd(0.12, 0.88); P.speed = r < 0.12 * mv ? 0.28 : 0.09; P.mode = P.speed > 0.2 ? 'run' : 'walk'; setPose(P.mode); P.until = performance.now() + 15000; return; }
+  const a = petAct(), mv = [0, 0.5, 1, 1.5, 2.1][a];
+  if (r < Math.min(0.93, 0.45 * mv)) { P.target = rnd(0.08, 0.92); P.speed = r < (a >= 4 ? 0.6 : 0.12 * mv) ? 0.32 : 0.1; P.mode = P.speed > 0.2 ? 'run' : 'walk'; setPose(P.mode); P.until = performance.now() + 15000; return; }
   setPose(pick(['idle', 'gaze', 'sit', 'joy', 'up', 'lie', 'stretch', 'wink', 'laugh']));
-  P.mode = 'idle'; P.until = performance.now() + rnd(3000, 8000);
+  P.mode = 'idle'; P.until = performance.now() + (a >= 4 ? rnd(600, 1800) : a === 3 ? rnd(1500, 4000) : rnd(3000, 8000));
 }
 let frameT = 0;
 function tick(now) {
   const dt = Math.min(0.1, (now - (P.lastT || now)) / 1000); P.lastT = now;
   if (P.target != null) {
     const d = P.target - P.x;
-    if (Math.abs(d) < 0.01) { P.target = null; setPose(pick(['idle', 'sit', 'joy', 'gaze'])); P.until = now + rnd(2500, 6000); }
+    if (Math.abs(d) < 0.01) { P.target = null; setPose(pick(['idle', 'sit', 'joy', 'gaze', 'jump', 'laugh'])); if (petAct() >= 4) fx('hop'); P.until = now + (petAct() >= 4 ? rnd(500, 1500) : rnd(2500, 6000)); }
     else { P.dir = d > 0 ? 1 : -1; P.x += Math.sign(d) * Math.min(Math.abs(d), P.speed * dt); }
   } else if (now > P.until) decide();
   if (P.frames && now - frameT > 1000 / P.fps) { frameT = now; P.fi = (P.fi + 1) % P.frames.length; pet.src = 'chars/dog/' + P.frames[P.fi]; }

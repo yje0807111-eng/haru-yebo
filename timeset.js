@@ -44,6 +44,7 @@ function drawSet() {
     <label class="note">팻 이름 <input id="s_bname" value="${esc(S.me.buddyName)}" placeholder="예: 사랑이"></label></div>
   <div class="card"><h3>🐶 팻 크기</h3><p class="note small">10 = 콩알만 하게 · 100 = 처음 크기</p><div class="sizes" id="s_size">${[10, 20, 30, 40, 50, 60, 70, 80, 90, 100].map(n => `<button data-sz="${n}" class="${(S.me.size || 100) === n ? 'on' : ''}">${n}</button>`).join('')}</div></div>
 ${window.Native ? `<div class="card"><h3>🐶 화면 위 팻</h3><label class="chk"><input type="checkbox" id="s_float" ${S.floatOff ? '' : 'checked'}> 하루 예보를 닫아도 다른 앱 위에 팻 띄우기</label><p class="note small">팻을 끌어서 옮기고, 누르면 하루 예보가 열려요.</p></div>` : ''}
+  <div class="card"><h3>🐾 팻 기분</h3><div class="seg" id="s_temper">${[['active', '😆 활발'], ['normal', '🙂 평범'], ['shy', '🥺 소심']].map(([k, n]) => `<button data-tm="${k}" class="${(S.me.temper || 'normal') === k ? 'on' : ''}">${n}</button>`).join('')}</div><p class="note small">활발 = 화면을 아주 신나게 뛰어다녀요 · 소심 = 거의 가만히</p></div>
   <div class="card"><h3>말 걸고 움직이는 정도</h3>
     <div class="seg" id="s_freq">${[['often', '자주'], ['normal', '보통'], ['rare', '가끔'], ['quiet', '조용히']].map(([k, n]) => `<button data-f="${k}" class="${S.talk.freq === k ? 'on' : ''}">${n}</button>`).join('')}</div>
     <label class="note" style="display:block;margin-top:10px">🔊 짖는 소리 크기 <input type="range" id="s_vol" min="0" max="100" step="5" value="${Math.round(S.talk.volume * 100)}" style="padding:0;border:0"></label></div>
@@ -64,6 +65,7 @@ $('#setBox').addEventListener('input', e => {
 });
 $('#setBox').addEventListener('click', async e => {
   const sz = e.target.closest('[data-sz]'); if (sz) { $$('#s_size button').forEach(b => b.classList.toggle('on', b === sz)); dset({ me: { size: +sz.dataset.sz } }); S.me.size = +sz.dataset.sz; pet._h = 0; }   // 바로 보여 주기 (저장해야 남음)
+  const tm = e.target.closest('[data-tm]'); if (tm) { $$('#s_temper button').forEach(b => b.classList.toggle('on', b === tm)); dset({ me: { temper: tm.dataset.tm } }); }
   const f = e.target.closest('[data-f]'); if (f) { $$('#s_freq button').forEach(b => b.classList.toggle('on', b === f)); dset({ talk: { freq: f.dataset.f } }); }
   const p = e.target.closest('[data-p]'); if (p) { $$('#s_ai button').forEach(b => b.classList.toggle('on', b === p)); dset({ ai: { provider: p.dataset.p } }); }
   if (e.target.id === 's_share') return shareApp();
