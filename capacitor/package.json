@@ -1,0 +1,13 @@
+{
+  "name": "haru-yebo-app",
+  "private": true,
+  "version": "0.1.0",
+  "dependencies": {
+    "@capacitor/android": "6.1.2",
+    "@capacitor/cli": "6.1.2",
+    "@capacitor/core": "6.1.2",
+    "@capacitor/local-notifications": "6.1.0",
+    "@capacitor-community/contacts": "6.1.1",
+    "@capacitor-community/speech-recognition": "6.0.1"
+  }
+}

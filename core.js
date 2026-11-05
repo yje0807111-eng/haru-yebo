@@ -297,7 +297,8 @@ function schedNotify() { if (window.Native && Native.schedule) Native.schedule(S
 
 // ── 말로 하기 (휴대폰 음성 인식)
 const SR = window.SpeechRecognition || window.webkitSpeechRecognition; let rec = null;
-$('#micBtn').onclick = () => {
+$('#micBtn').onclick = async () => {
+  if (window.Native && Native.listen) { $('#micBtn').classList.add('rec'); say('👂 듣고 있어… 말해 줘!', { pose: 'up', ms: 6000 }); try { const txt = await Native.listen(); if (txt) { say(`👂 "${esc(txt)}"`, { ms: 1500 }); send(txt); } } catch { say('잘 못 들었어 🥲 다시 해 볼래?', { ms: 3000 }); } $('#micBtn').classList.remove('rec'); return; }
   if (!SR) { say('이 휴대폰 브라우저는 말 알아듣기를 못 해 🥲 크롬에서 열어 줘!', { ms: 4000 }); return; }
   if (rec) { rec.stop(); return; }
   rec = new SR(); rec.lang = 'ko-KR'; rec.interimResults = false; rec.maxAlternatives = 1;

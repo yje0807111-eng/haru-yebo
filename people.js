@@ -122,6 +122,9 @@ function addContacts(add) {
   save(); return added;
 }
 async function pickPhoneContacts() {
+  if (window.Native && Native.contacts) {   // 앱 파일: 한 번 허락하면 생일까지
+    try { const l = await Native.contacts(); if (l) { const n = addContacts(l); say(l.length ? `📒 ${n}명을 주소록에 넣었어! 생일 있는 사람은 미리 알려 줄게 🎂` : '연락처를 쓰려면 허락이 필요해 🥲', { pose: 'joy', ms: 7000 }); drawPeople(); return; } } catch { }
+  }
   if (!('contacts' in navigator && 'ContactsManager' in window)) { $('#vcfFile').click(); return; }
   try {
     const props = await navigator.contacts.getProperties();
