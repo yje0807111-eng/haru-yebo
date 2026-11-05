@@ -45,6 +45,7 @@
       const mine = (await (await fetch('version.json')).json()).build;
       const rel = await (await fetch(REL)).json();
       const latest = +String(rel.tag_name || '').replace(/\D/g, '');
+      const asset = (rel.assets || []).find(x => /haru-yebo-\d+\.apk$/.test(x.name)); if (asset) N.apkUrl = asset.browser_download_url;
       if (!latest || !(+mine) || latest <= +mine) { if (manual) say('지금이 제일 새 버전이야! 🐶', { ms: 3000 }); return; }
       say(`🔄 하루 예보 새 버전이 나왔어! (${latest}판)<br>지금 바꿀까?`, { pose: 'joy', ms: 60000, important: true, buttons: [{ label: '응, 바꿔 줘', act: () => N.install() }, { label: '나중에', ghost: true }] });
     } catch (e) { if (manual) say('지금은 확인을 못 했어. 인터넷을 확인해 줘 🥲', { ms: 3000 }); }
@@ -52,13 +53,13 @@
   N.install = async () => {
     say('📥 새 버전 받는 중… 잠깐만!', { pose: 'magnify', ms: 120000 });
     try {
-      const r = await Pl.CapacitorHttp.get({ url: APK, responseType: 'blob' });
+      const r = await Pl.CapacitorHttp.get({ url: N.apkUrl || APK, responseType: 'blob' });
       const w = await Pl.Filesystem.writeFile({ path: 'haru-yebo.apk', data: r.data, directory: 'CACHE' });
       say('설치 화면에서 [설치]를 눌러 줘! 🐶', { ms: 8000 });
       await Pl.FileOpener.open({ filePath: w.uri, contentType: 'application/vnd.android.package-archive', openWithDefault: true });
     } catch (e) {
       say('바로 설치가 안 돼서 받는 곳을 열게. 받은 뒤 알림을 눌러 설치해 줘!', { ms: 8000 });
-      window.open(APK, '_system');
+      window.open(N.apkUrl || APK, '_system');
     }
   };
   // 🐶 화면 위 팻: 하루 예보를 닫으면 다른 앱 위에 팻이 떠 있고, 누르면 다시 열림

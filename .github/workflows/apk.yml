@@ -49,6 +49,7 @@ jobs:
           chmod +x gradlew
           ./gradlew assembleDebug --no-daemon -q
           cp app/build/outputs/apk/debug/app-debug.apk ../../haru-yebo.apk
+          cp app/build/outputs/apk/debug/app-debug.apk ../../haru-yebo-${{ github.run_number }}.apk
       - name: 내려받을 곳에 올리기
         uses: softprops/action-gh-release@v2
         with:
@@ -58,5 +59,7 @@ jobs:
             받기 안내 페이지: https://yje0807111-eng.github.io/haru-yebo/get/
             갤럭시에서 아래 haru-yebo.apk 를 눌러 받고 설치하세요.
             처음 한 번은 '이 출처 허용'을 눌러야 해요 (설치 뒤에는 다시 꺼 두세요).
-          files: haru-yebo.apk
+          files: |
+            haru-yebo.apk
+            haru-yebo-${{ github.run_number }}.apk
           make_latest: true

@@ -35,7 +35,7 @@
   <div class="steps" id="after">
     <ol>
       <li>위 노란 단추를 누르면 파일을 받아요.</li>
-      <li>"<b>열기</b>" 또는 화면 위 알림의 <b>haru-yebo.apk</b>를 눌러요.</li>
+      <li>"<b>열기</b>" 또는 화면 위 알림의 <b>haru-yebo-번호.apk</b>를 눌러요. (번호가 제일 큰 것)</li>
       <li>"이 출처 허용"이 나오면 <b>켜고</b> 뒤로 와서 <b>설치</b>를 눌러요.</li>
       <li>홈 화면의 🐶 <b>하루 예보</b>를 누르면 끝!</li>
     </ol>
@@ -62,6 +62,12 @@
   const ua = navigator.userAgent;
   // 카카오톡 안의 브라우저에서는 파일을 못 받아서 → 휴대폰 기본 브라우저로 열기
   if (/KAKAOTALK/i.test(ua)) location.href = 'kakaotalk://web/openExternal?url=' + encodeURIComponent(location.href);
+  // 최신 버전 파일 (haru-yebo-17.apk 처럼 번호가 붙어서 옛 파일과 안 헷갈림)
+  fetch('https://api.github.com/repos/yje0807111-eng/haru-yebo/releases/latest').then(r => r.json()).then(j => {
+    const a = (j.assets || []).find(x => /haru-yebo-\d+\.apk$/.test(x.name)); const n = String(j.tag_name || '').replace(/\D/g, '');
+    if (a) document.getElementById('dl').href = a.browser_download_url;
+    if (n) document.getElementById('dl').textContent = `📥 하루 예보 받기 (버전 ${n})`;
+  }).catch(() => {});
   const ios = /iPhone|iPad|iPod/i.test(ua);
   if (ios) { document.getElementById('android').classList.add('hide'); document.getElementById('ios').classList.remove('hide'); document.querySelector('.sub').textContent = '🧭 하루 예보 열기'; }
   document.getElementById('share').onclick = async e => {
