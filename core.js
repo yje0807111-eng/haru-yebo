@@ -8,7 +8,7 @@ const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 
 
 // ── 저장소 (이 휴대폰 안에만)
 const DEF = {
-  me: { name: '', buddyName: '다루' },
+  me: { name: '', buddyName: '다루', size: 60 },   // size: 팻 크기 10~100 (100 = 처음 크기)
   talk: { freq: 'normal', volume: 0.4, cries: true },
   chat: [], alarms: [], chimeLast: {}, birthdays: [], bdayLast: {},
   chimes: [
@@ -80,6 +80,7 @@ function tick(now) {
     else { P.dir = d > 0 ? 1 : -1; P.x += Math.sign(d) * Math.min(Math.abs(d), P.speed * dt); }
   } else if (now > P.until) decide();
   if (P.frames && now - frameT > 1000 / P.fps) { frameT = now; P.fi = (P.fi + 1) % P.frames.length; pet.src = 'chars/dog/' + P.frames[P.fi]; }
+  const hh = Math.max(12, Math.round(Math.min(yard.clientHeight * 0.34, 210) * (S.me.size || 60) / 100)); if (pet._h !== hh) { pet._h = hh; pet.style.height = hh + 'px'; }
   const w = pet.getBoundingClientRect().width || 100, W = yard.clientWidth;
   pet.style.left = Math.round(P.x * W - w / 2) + 'px';
   const flip = P.face ? (P.dir !== P.face) : P.dir < 0 && P.target != null;
@@ -95,7 +96,21 @@ function cry(happy, loud) {
   a.volume = Math.max(0, Math.min(1, loud ? Math.max(0.8, S.talk.volume) : S.talk.volume));
   a.play().catch(() => {});
 }
-pet.addEventListener('click', () => { setPose(pick(['joy', 'love', 'wave', 'laugh'])); fx('hop'); cry(true); P.until = performance.now() + 2500; P.target = null; markSign(); });
+function petMenu() {
+  setPose(pick(['joy', 'love', 'wave', 'laugh'])); fx('hop'); cry(true); P.until = performance.now() + 3000; P.target = null; markSign();
+  const b = [['💬 나랑 이야기하기', () => { petOnly(false); hideBubble(); t.focus(); }, 'talkb'], ['📒 주소록', () => openView('people')], ['🛡️ 지킴이', () => openView('safe')], ['⏰ 시간·알람', () => openView('time')], ['⚙️ 설정', () => openView('set')]];
+  clearTimeout(bubbleT);
+  bubble.querySelector('.text').innerHTML = pick([`멍! 뭐 할까? 🐾`, `불렀어? 헤헤 🐶`, `${S.me.name ? esc(S.me.name) + '! ' : ''}뭐 도와줄까?`]);
+  const box = bubble.querySelector('.btns'); box.innerHTML = '<div class="petmenu"></div>';
+  for (const [label, act, cls] of b) { const el = document.createElement('button'); el.textContent = label; if (cls) el.className = cls; el.onclick = ev => { ev.stopPropagation(); act(); }; box.firstChild.appendChild(el); }
+  bubble.hidden = false; bubbleT = setTimeout(hideBubble, 15000);
+}
+pet.addEventListener('click', petMenu);
+// 팻만 보기 ↔ 말창·메뉴
+function petOnly(on) { document.body.classList.toggle('petonly', on); $('#backPet').hidden = on; if (on) { go('home'); if (smode) setSmode(false); } }
+function openView(v) { hideBubble(); petOnly(false); go(v); }
+$('#backPet').onclick = () => { petOnly(true); hideBubble(); };
+document.addEventListener('click', e => { const b = e.target.closest('#tabs [data-go="home"]'); if (b) setTimeout(() => petOnly(true), 0); });
 
 // ── 말풍선
 const bubble = $('#bubble'); let bubbleT = 0;

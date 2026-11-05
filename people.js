@@ -85,7 +85,7 @@ async function join(code) {
 }
 // 말창: 초대 코드·"엄마한테 ~라고 전해 줘"·"엄마랑 연결해 줘"·"엄마한테 전화 걸어 줘"
 let pmode = null; window.pmode = null;
-function startPmode(c) { pmode = window.pmode = { cid: c.id, name: c.name }; document.body.classList.add('pmode'); t.placeholder = `💌 ${c.name}에게 보낼 말… ("그만"이면 끝)`; go('home'); t.focus(); }
+function startPmode(c) { petOnly(false); pmode = window.pmode = { cid: c.id, name: c.name }; document.body.classList.add('pmode'); t.placeholder = `💌 ${c.name}에게 보낼 말… ("그만"이면 끝)`; go('home'); t.focus(); }
 function endPmode() { pmode = window.pmode = null; document.body.classList.remove('pmode'); t.placeholder = `${bn()}에게 말 걸기…`; }
 async function sendTo(c, msg) {
   const r = await nsend(c.pk, 'pmsg', msg, { name: nameOf() });

@@ -12,12 +12,13 @@
 <title>하루 예보</title>
 <link rel="stylesheet" href="app.css">
 </head>
-<body>
+<body class="petonly">
 <div id="app">
   <!-- 🐶 다루 -->
   <section class="view on" data-v="home">
     <div class="yard" id="yard">
       <div class="sky" id="sky"></div>
+      <button class="backpet" id="backPet" hidden>🐶 팻만 보기</button>
       <div class="bubble" id="bubble" hidden><div class="text"></div><div class="btns"></div></div>
       <img class="pet" id="pet" alt="팻" draggable="false">
       <div class="ground"></div>

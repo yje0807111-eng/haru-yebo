@@ -42,6 +42,8 @@ function drawSet() {
   <div class="card"><h3>나와 팻</h3>
     <label class="note">내 이름 <input id="s_name" value="${esc(S.me.name)}" placeholder="예: 푸른이"></label>
     <label class="note">팻 이름 <input id="s_bname" value="${esc(S.me.buddyName)}" placeholder="예: 사랑이"></label></div>
+  <div class="card"><h3>🐶 팻 크기</h3><p class="note small">10 = 콩알만 하게 · 100 = 처음 크기</p><div class="sizes" id="s_size">${[10, 20, 30, 40, 50, 60, 70, 80, 90, 100].map(n => `<button data-sz="${n}" class="${(S.me.size || 60) === n ? 'on' : ''}">${n}</button>`).join('')}</div></div>
+${window.Native ? `<div class="card"><h3>🐶 화면 위 팻</h3><label class="chk"><input type="checkbox" id="s_float" ${S.floatOff ? '' : 'checked'}> 하루 예보를 닫아도 다른 앱 위에 팻 띄우기</label><p class="note small">팻을 끌어서 옮기고, 누르면 하루 예보가 열려요.</p></div>` : ''}
   <div class="card"><h3>말 걸고 움직이는 정도</h3>
     <div class="seg" id="s_freq">${[['often', '자주'], ['normal', '보통'], ['rare', '가끔'], ['quiet', '조용히']].map(([k, n]) => `<button data-f="${k}" class="${S.talk.freq === k ? 'on' : ''}">${n}</button>`).join('')}</div>
     <label class="note" style="display:block;margin-top:10px">🔊 짖는 소리 크기 <input type="range" id="s_vol" min="0" max="100" step="5" value="${Math.round(S.talk.volume * 100)}" style="padding:0;border:0"></label></div>
@@ -61,9 +63,11 @@ $('#setBox').addEventListener('input', e => {
   if (e.target.id === 's_key' && !/^•+$/.test(e.target.value)) dset({ ai: { key: e.target.value.trim() } });
 });
 $('#setBox').addEventListener('click', async e => {
+  const sz = e.target.closest('[data-sz]'); if (sz) { $$('#s_size button').forEach(b => b.classList.toggle('on', b === sz)); dset({ me: { size: +sz.dataset.sz } }); S.me.size = +sz.dataset.sz; pet._h = 0; }   // 바로 보여 주기 (저장해야 남음)
   const f = e.target.closest('[data-f]'); if (f) { $$('#s_freq button').forEach(b => b.classList.toggle('on', b === f)); dset({ talk: { freq: f.dataset.f } }); }
   const p = e.target.closest('[data-p]'); if (p) { $$('#s_ai button').forEach(b => b.classList.toggle('on', b === p)); dset({ ai: { provider: p.dataset.p } }); }
   if (e.target.id === 's_share') return shareApp();
+  if (e.target.id === 's_float') { patch({ floatOff: !e.target.checked }); if (e.target.checked && window.Native) Native.askFloat(); return; }
   if (e.target.id === 's_upd' && window.Native) return Native.checkUpdate(true);
   if (e.target.id === 's_notif') { try { const r = await Notification.requestPermission(); say(r === 'granted' ? '알림을 켰어! 🔔' : '알림을 못 켰어. 휴대폰 설정에서 허락해 줘', { ms: 3500 }); } catch { say('이 브라우저는 알림을 못 해 🥲', { ms: 3000 }); } }
 });
@@ -72,6 +76,7 @@ $('#setSave').onclick = () => {
   const oldB = bn(); patch(draft); draft = {};
   setBuddyName(bn()); $('#tabPet').textContent = bn(); setSmode(smode);
   $('#setSave').disabled = true; $('#setSave').classList.remove('dirty');
-  go('home');
+  if (window.Native && Native.petSize) Native.petSize(S.me.size);
+  petOnly(true);
   say(bn() !== oldB ? `이제 내 이름은 '${esc(bn())}'야! "${esc(callName(bn()))}" 하고 불러 줘 🐶` : '설정을 저장했어! ✓', { pose: 'joy' });
 };

@@ -61,9 +61,29 @@
       window.open(APK, '_system');
     }
   };
+  // 🐶 화면 위 팻: 하루 예보를 닫으면 다른 앱 위에 팻이 떠 있고, 누르면 다시 열림
+  const FP = Pl.FloatPet;
+  N.petSize = s => { if (FP) FP.setSize({ size: s }).catch(() => {}); };
+  N.floatOn = async () => {
+    if (!FP || S.floatOff) return;
+    const p = await FP.hasPermission().catch(() => ({ granted: false }));
+    if (p.granted) FP.start({ size: S.me.size || 60 }).catch(() => {});
+  };
+  N.askFloat = async () => {
+    if (!FP) return;
+    const p = await FP.hasPermission().catch(() => ({ granted: false }));
+    if (p.granted) return;
+    say('🐶 하루 예보를 닫아도 내가 화면 위에 있을게!<br>"다른 앱 위에 표시"를 켜 줄래?', { pose: 'gaze', ms: 60000, buttons: [{ label: '응, 켜 줄게', act: () => { FP.requestPermission(); hideBubble(); } }, { label: '나중에', ghost: true, act: () => { patch({ floatAsked: today() }); hideBubble(); } }] });
+  };
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) N.floatOn();                         // 앱을 닫으면 → 화면 위로
+    else if (FP) { FP.stop().catch(() => {}); petOnly(true); }   // 앱을 열면 → 앱 안 팻만
+  });
+  if (FP) FP.addListener('petTap', () => { petOnly(true); setTimeout(petMenu, 400); });
   // 켤 때 알람 다시 예약 · 새 버전 확인(하루 한 번)
   window.addEventListener('load', () => {
     setTimeout(() => N.schedule(S.alarms), 2000);
+    setTimeout(() => { if (S.floatAsked !== today()) N.askFloat(); }, 4500);   // 화면 위 팻 허락 (안 했으면 하루 한 번 물음)
     setTimeout(() => { const d = today(); if (S.updDay !== d) { S.updDay = d; save(); N.checkUpdate(false); } }, 8000);
   });
 })();

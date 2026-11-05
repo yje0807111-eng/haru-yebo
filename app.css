@@ -28,7 +28,7 @@ textarea { resize: vertical; }
 .yard { position: relative; flex: 1; min-height: 280px; overflow: hidden; background: linear-gradient(#CFEFFF, #F3FBFF 70%); }
 .sky { position: absolute; left: 12px; top: 10px; font-size: 14px; font-weight: 700; background: rgba(255,255,255,.75); border-radius: 999px; padding: 4px 10px; }
 .ground { position: absolute; left: 0; right: 0; bottom: 0; height: 22%; background: linear-gradient(#BFE89A, #9FD47A); border-top: 3px solid #86C060; }
-.pet { position: absolute; bottom: 14%; height: 34%; max-height: 210px; transform-origin: 50% 100%; user-select: none; -webkit-user-select: none; z-index: 2; transition: filter .2s; }
+.pet { position: absolute; bottom: 14%; height: 120px; transform-origin: 50% 100%; user-select: none; -webkit-user-select: none; z-index: 2; transition: filter .2s; }
 .pet.flip { transform: scaleX(-1); }
 .pet.hop { animation: hop .5s ease-out; }
 @keyframes hop { 40% { translate: 0 -18%; } }
@@ -92,3 +92,15 @@ body.pmode .talk { background: var(--pink); }
 .seg { display: flex; gap: 4px; }
 .seg button { flex: 1; border: 2px solid var(--ink); background: #fff; border-radius: 999px; padding: 7px 0; font: inherit; font-size: 14px; }
 .seg button.on { background: var(--sun); font-weight: 800; }
+
+/* 🐶 팻만 보기: 앱을 열면 팻만, 누르면 메뉴 */
+body.petonly .tabs, body.petonly .talk, body.petonly .homeinfo { display: none; }
+body.petonly .yard { background: linear-gradient(#E9F6FF, #FFFDF6); }
+body.petonly .ground { opacity: .35; }
+.petmenu { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; }
+.petmenu button { border: 2.5px solid var(--ink); background: #fff; border-radius: 16px; padding: 12px 4px; font: inherit; font-size: 16px; font-weight: 800; }
+.petmenu button.talkb { grid-column: 1 / -1; background: var(--sun); }
+.sizes { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; }
+.sizes button { border: 2px solid var(--ink); background: #fff; border-radius: 10px; padding: 7px 0; font: inherit; font-size: 14px; }
+.sizes button.on { background: var(--sun); font-weight: 800; }
+.backpet { position: absolute; right: 10px; top: 8px; z-index: 6; border: 2px solid var(--ink); background: #fff; border-radius: 999px; padding: 5px 10px; font: inherit; font-size: 13px; font-weight: 700; }
