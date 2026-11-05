@@ -15,6 +15,7 @@ import android.graphics.Color;
 import android.graphics.PixelFormat;
 import android.graphics.drawable.GradientDrawable;
 import android.os.Build;
+import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Looper;
@@ -24,7 +25,16 @@ import android.view.Gravity;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.WindowManager;
+import android.widget.EditText;
 import android.widget.ImageView;
+import android.view.inputmethod.EditorInfo;
+import android.view.inputmethod.InputMethodManager;
+import android.view.KeyEvent;
+import android.speech.RecognitionListener;
+import android.speech.RecognizerIntent;
+import android.speech.SpeechRecognizer;
+import android.content.pm.PackageManager;
+import java.util.ArrayList;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import java.io.InputStream;
@@ -69,6 +79,8 @@ public class FloatPetService extends Service {
         int vis = wantShown ? View.VISIBLE : View.GONE;
         if (pet != null) pet.setVisibility(vis);
         if (bar != null) bar.setVisibility(vis);
+        if (bub != null && !wantShown) bub.setVisibility(View.GONE);
+        if (!wantShown) endEdit();
     }
 
     @Override
@@ -183,6 +195,22 @@ public class FloatPetService extends Service {
             bar.addView(heart);
             bar.addView(face);
             bar.addView(hint);
+            input = new EditText(this);
+            input.setHint(name + "에게 말 걸기…");
+            input.setSingleLine(true);
+            input.setTextSize(TypedValue.COMPLEX_UNIT_SP, 17);
+            input.setTextColor(Color.parseColor("#2B2118"));
+            input.setBackground(null);
+            input.setImeOptions(EditorInfo.IME_ACTION_SEND);
+            input.setLayoutParams(new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
+            input.setVisibility(View.GONE);
+            input.setOnEditorActionListener((v, actionId, ev) -> { submit(input.getText().toString()); return true; });
+            input.setOnKeyListener((v, keyCode, ev) -> {
+                if (keyCode == KeyEvent.KEYCODE_BACK && ev.getAction() == KeyEvent.ACTION_UP) { endEdit(); return true; }
+                if (keyCode == KeyEvent.KEYCODE_ENTER && ev.getAction() == KeyEvent.ACTION_UP) { submit(input.getText().toString()); return true; }
+                return false;
+            });
+            bar.addView(input);
             // 🎤 마이크 (누르면 하루 예보가 열리며 바로 말로 하기)
             TextView mic = new TextView(this);
             mic.setText("🎤");
@@ -200,8 +228,8 @@ public class FloatPetService extends Service {
             blp.width = sw() - dp(24);                     // 화면 아래 가로로 길게
             blp.x = sp.getInt("bx", dp(12));
             blp.y = sp.getInt("by", sh() - dp(78));
-            bar.setOnTouchListener(dragger(bar, blp, "b", () -> open("talk"), false));
-            mic.setOnTouchListener(dragger(bar, blp, "b", () -> open("mic"), false));
+            bar.setOnTouchListener(dragger(bar, blp, "b", () -> startEdit(), false));
+            mic.setOnTouchListener(dragger(bar, blp, "b", () -> listen(), false));
             wm.addView(bar, blp);
             Log.i("HaruPet", "bar added x=" + blp.x + " y=" + blp.y);
         } catch (Exception e) { Log.e("HaruPet", "bar", e); note("bar " + e); }
@@ -273,6 +301,114 @@ public class FloatPetService extends Service {
         } else { pet.setImageBitmap(pick(idle, now)); nextDecide = now + restMs(); }
     }
 
+    // ── 바탕화면 말창에서 바로 쓰기
+    EditText input;
+    boolean editing = false;
+    int savedBy = 0;
+    static volatile boolean ack = false;
+    void startEdit() {
+        if (editing || input == null) return;
+        editing = true;
+        hint.setVisibility(View.GONE);
+        input.setVisibility(View.VISIBLE);
+        input.setText("");
+        savedBy = blp.y;
+        blp.flags &= ~WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE;
+        blp.y = (int) (sh() * 0.38f);                       // 글자판에 가리지 않게 위로
+        wm.updateViewLayout(bar, blp);
+        input.requestFocus();
+        h.postDelayed(() -> { InputMethodManager im = (InputMethodManager) getSystemService(INPUT_METHOD_SERVICE); if (im != null) im.showSoftInput(input, InputMethodManager.SHOW_IMPLICIT); }, 200);
+    }
+    void endEdit() {
+        if (!editing) return;
+        editing = false;
+        InputMethodManager im = (InputMethodManager) getSystemService(INPUT_METHOD_SERVICE);
+        if (im != null) im.hideSoftInputFromWindow(input.getWindowToken(), 0);
+        input.setVisibility(View.GONE);
+        hint.setVisibility(View.VISIBLE);
+        blp.flags |= WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE;
+        blp.y = savedBy;
+        wm.updateViewLayout(bar, blp);
+    }
+    void submit(String text) {
+        final String t = text == null ? "" : text.trim();
+        endEdit();
+        if (t.isEmpty()) return;
+        bubble("💭 …", 20000);
+        ack = false;
+        FloatPetPlugin.overlayText(t);
+        // 하루 예보가 대답을 못 하면(꺼져 있으면) 열어서 이어서 하기
+        h.postDelayed(() -> { if (!ack) { FloatPetPlugin.pending = t; open("talk"); } }, 3500);
+    }
+
+    // ── 바탕화면 🎤: 그 자리에서 듣기
+    void listen() {
+        if (Build.VERSION.SDK_INT >= 23 && checkSelfPermission(android.Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) { open("mic"); return; }
+        if (!SpeechRecognizer.isRecognitionAvailable(this)) { open("mic"); return; }
+        bubble("👂 듣고 있어… 말해 줘!", 9000);
+        final SpeechRecognizer sr = SpeechRecognizer.createSpeechRecognizer(this);
+        sr.setRecognitionListener(new RecognitionListener() {
+            public void onResults(Bundle b) {
+                ArrayList<String> m = b.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
+                sr.destroy();
+                if (m != null && !m.isEmpty()) { bubble("👂 \"" + m.get(0) + "\"", 2500); submit(m.get(0)); }
+                else bubble("잘 못 들었어 🥲 다시 눌러 줘", 3000);
+            }
+            public void onError(int err) {
+                sr.destroy();
+                if (err == SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS || err == SpeechRecognizer.ERROR_AUDIO) open("mic");
+                else bubble("잘 못 들었어 🥲 다시 눌러 줘", 3000);
+            }
+            public void onReadyForSpeech(Bundle p) { }
+            public void onBeginningOfSpeech() { }
+            public void onRmsChanged(float v) { }
+            public void onBufferReceived(byte[] b) { }
+            public void onEndOfSpeech() { }
+            public void onPartialResults(Bundle b) { }
+            public void onEvent(int t, Bundle b) { }
+        });
+        Intent i = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
+        i.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
+        i.putExtra(RecognizerIntent.EXTRA_LANGUAGE, "ko-KR");
+        i.putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 1);
+        try { sr.startListening(i); } catch (Exception e) { open("mic"); }
+    }
+
+    // ── 바탕화면 팻 말풍선
+    TextView bub;
+    WindowManager.LayoutParams bubLp;
+    final Runnable hideBub = () -> { if (bub != null) bub.setVisibility(View.GONE); };
+    void bubble(String text, int ms) {
+        try {
+            if (bub == null) {
+                bub = new TextView(this);
+                GradientDrawable g = new GradientDrawable();
+                g.setColor(Color.WHITE); g.setStroke(dp(2), Color.parseColor("#2B2118")); g.setCornerRadius(dp(18));
+                bub.setBackground(g);
+                bub.setPadding(dp(14), dp(10), dp(14), dp(10));
+                bub.setTextColor(Color.parseColor("#2B2118"));
+                bub.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15);
+                bub.setMaxWidth(sw() - dp(40));
+                bubLp = params();
+                bub.setOnClickListener(v -> bub.setVisibility(View.GONE));
+                wm.addView(bub, bubLp);
+            }
+            bub.setText(text);
+            bub.setVisibility(wantShown ? View.VISIBLE : View.GONE);
+            bub.measure(View.MeasureSpec.makeMeasureSpec(sw() - dp(40), View.MeasureSpec.AT_MOST), View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED));
+            int bw = bub.getMeasuredWidth(), bh = bub.getMeasuredHeight();
+            int pw = lp != null ? lp.width : dp(120);
+            bubLp.x = Math.max(dp(8), Math.min(sw() - bw - dp(8), (lp != null ? lp.x : 0) + pw / 2 - bw / 2));
+            bubLp.y = Math.max(dp(30), (lp != null ? lp.y : dp(300)) - bh - dp(6));
+            wm.updateViewLayout(bub, bubLp);
+            h.removeCallbacks(hideBub);
+            h.postDelayed(hideBub, ms);
+            moving = false; nextDecide = System.currentTimeMillis() + Math.min(ms, 8000);
+            if (pet != null && idle != null && idle[2] != null && !text.startsWith("💭")) pet.setImageBitmap(idle[2]);
+        } catch (Exception e) { Log.e("HaruPet", "bubble", e); }
+    }
+    static void sayStatic(String text, int ms) { if (me != null) me.h.post(() -> me.bubble(text, ms)); }
+
     void open(String what) {
         if ("pet".equals(what) && idle[2] != null) pet.setImageBitmap(idle[2]);
         Intent i = new Intent(this, MainActivity.class);
@@ -296,6 +432,7 @@ public class FloatPetService extends Service {
         h.removeCallbacksAndMessages(null);
         try { if (pet != null) wm.removeView(pet); } catch (Exception ignored) { }
         try { if (bar != null) wm.removeView(bar); } catch (Exception ignored) { }
+        try { if (bub != null) wm.removeView(bub); } catch (Exception ignored) { }
         pet = null; bar = null; me = null;
         super.onDestroy();
     }

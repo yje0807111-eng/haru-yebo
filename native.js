@@ -72,7 +72,18 @@
     if (p.granted) return;
     say('🐶 하루 예보를 닫아도 내가 화면 위에 있을게!<br>"다른 앱 위에 표시"를 켜 줄래?', { pose: 'gaze', ms: 60000, buttons: [{ label: '응, 켜 줄게', act: () => { FP.requestPermission(); hideBubble(); } }, { label: '나중에', ghost: true, act: () => { patch({ floatAsked: today() }); hideBubble(); } }] });
   };
-  document.addEventListener('visibilitychange', () => { if (!document.hidden) petOnly(true); });   // 앱을 열면 → 앱 안 팻만
+  document.addEventListener('visibilitychange', async () => {
+    if (document.hidden || !FP) return;
+    petOnly(true);   // 앱을 열면 → 앱 안 팻만
+    const r = await FP.takePending().catch(() => null); if (r && r.text) send(r.text);   // 바탕화면에서 하던 말 이어서
+  });
+  // 💬 바탕화면 말창에서 쓴 말 → 여기서 생각해서 → 바탕화면 팻 말풍선으로 대답
+  if (FP) {
+    FP.addListener('overlayText', d => { FP.ack().catch(() => {}); if (d && d.text) send(d.text); });
+    const plain = x => String(x || '').replace(/<br\s*\/?>/gi, '\n').replace(/<[^>]+>/g, '').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"');
+    const _say = window.say;
+    window.say = say = function (text, opt = {}) { _say(text, opt); if (document.hidden) FP.say({ text: plain(text), ms: Math.min(opt.ms || (5000 + String(text).length * 80), 15000) }).catch(() => {}); };
+  }
   if (FP) FP.addListener('petTap', d => { petOnly(true); const w = d && d.what; if (w === 'talk') setTimeout(() => { hideBubble(); t.focus(); }, 300); else if (w === 'mic') setTimeout(() => $('#micBtn').click(), 500); else setTimeout(petMenu, 400); });
   // 켤 때 알람 다시 예약 · 새 버전 확인(하루 한 번)
   window.addEventListener('load', () => {

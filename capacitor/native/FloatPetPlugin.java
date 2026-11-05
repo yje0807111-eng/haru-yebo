@@ -96,6 +96,27 @@ public class FloatPetPlugin extends Plugin {
         call.resolve(r);
     }
 
+    static volatile String pending = null;
+    static void overlayText(String text) {
+        JSObject d = new JSObject();
+        d.put("text", text);
+        if (inst != null) inst.notifyListeners("overlayText", d, true);
+    }
+    @PluginMethod
+    public void say(PluginCall call) {
+        FloatPetService.sayStatic(call.getString("text", ""), call.getInt("ms", 6000));
+        call.resolve();
+    }
+    @PluginMethod
+    public void ack(PluginCall call) { FloatPetService.ack = true; call.resolve(); }
+    @PluginMethod
+    public void takePending(PluginCall call) {
+        JSObject r = new JSObject();
+        r.put("text", pending == null ? "" : pending);
+        pending = null;
+        call.resolve(r);
+    }
+
     static void tapped(String what) {
         JSObject d = new JSObject();
         d.put("what", what);

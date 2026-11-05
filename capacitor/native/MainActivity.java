@@ -10,6 +10,12 @@ public class MainActivity extends BridgeActivity {
         super.onCreate(savedInstanceState);
     }
 
+    // 뒤로 가기 = 앱을 끄지 않고 뒤로 보내기 (바탕화면에서 팻이 계속 대답하려고)
+    @Override
+    public void onBackPressed() {
+        moveTaskToBack(true);
+    }
+
     // 앱이 보이면 → 화면 위 팻은 숨기고(서비스는 그대로), 서비스는 앱이 앞에 있을 때 켜 둠
     @Override
     public void onResume() {
