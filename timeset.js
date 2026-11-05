@@ -50,7 +50,9 @@ function drawSet() {
     <div class="seg" id="s_ai"><button data-p="none" class="${S.ai.provider !== 'claude' ? 'on' : ''}">연결 안 함</button><button data-p="claude" class="${S.ai.provider === 'claude' ? 'on' : ''}">Claude</button></div>
     <input id="s_key" type="password" placeholder="Claude API 열쇠 붙여 넣기 (sk-ant-…)" value="${S.ai.key ? '••••••••' : ''}" style="margin-top:8px" autocomplete="off"></div>
   <div class="card"><h3>🔔 알림</h3><button class="btn ghost" id="s_notif">알림 허락하기</button><p class="note small">알람이 울릴 때 휴대폰 알림도 같이 띄워요.</p></div>
-  <div class="card"><h3>📱 이 앱</h3><p class="note small">하루 예보 휴대폰판 · 주소록·대화는 이 휴대폰에만 저장돼요.</p></div>`;
+  <div class="card"><h3>📤 친구·가족에게 알려 주기</h3><p class="note small">카카오톡 등으로 '하루 예보 받기' 주소를 보내요. 받은 사람이 누르면 바로 받을 수 있어요.</p><button class="btn" id="s_share">📤 하루 예보 보내기</button></div>
+  <div class="card"><h3>📱 이 앱</h3><p class="note small">하루 예보 휴대폰판 <span id="s_ver"></span> · 주소록·대화는 이 휴대폰에만 저장돼요.</p>${window.Native ? '<button class="btn ghost small" id="s_upd">🔄 새 버전 확인</button>' : ''}</div>`;
+  fetch('version.json').then(r => r.json()).then(v => { const e = $('#s_ver'); if (e) e.textContent = '(' + v.build + '판)'; }).catch(() => {});
 }
 $('#setBox').addEventListener('input', e => {
   if (e.target.id === 's_name') dset({ me: { name: e.target.value.trim() } });
@@ -61,6 +63,8 @@ $('#setBox').addEventListener('input', e => {
 $('#setBox').addEventListener('click', async e => {
   const f = e.target.closest('[data-f]'); if (f) { $$('#s_freq button').forEach(b => b.classList.toggle('on', b === f)); dset({ talk: { freq: f.dataset.f } }); }
   const p = e.target.closest('[data-p]'); if (p) { $$('#s_ai button').forEach(b => b.classList.toggle('on', b === p)); dset({ ai: { provider: p.dataset.p } }); }
+  if (e.target.id === 's_share') return shareApp();
+  if (e.target.id === 's_upd' && window.Native) return Native.checkUpdate(true);
   if (e.target.id === 's_notif') { try { const r = await Notification.requestPermission(); say(r === 'granted' ? '알림을 켰어! 🔔' : '알림을 못 켰어. 휴대폰 설정에서 허락해 줘', { ms: 3500 }); } catch { say('이 브라우저는 알림을 못 해 🥲', { ms: 3000 }); } }
 });
 $('#setSave').onclick = () => {

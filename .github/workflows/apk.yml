@@ -25,13 +25,14 @@ jobs:
         run: |
           mkdir -p capacitor/www
           rsync -a --exclude capacitor --exclude .github --exclude .git --exclude README.md ./ capacitor/www/
+          echo "{\"build\": ${{ github.run_number }}}" > capacitor/www/version.json
       - name: 안드로이드 앱 만들기
         working-directory: capacitor
         run: |
           npm install --no-audit --no-fund
           npx cap add android
           M=android/app/src/main/AndroidManifest.xml
-          sed -i 's#</manifest>#    <uses-permission android:name="android.permission.READ_CONTACTS"/>\n    <uses-permission android:name="android.permission.RECORD_AUDIO"/>\n    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>\n    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM"/>\n    <uses-permission android:name="android.permission.VIBRATE"/>\n    <queries><intent><action android:name="android.speech.RecognitionService"/></intent><intent><action android:name="android.intent.action.DIAL"/></intent></queries>\n</manifest>#' $M
+          sed -i 's#</manifest>#    <uses-permission android:name="android.permission.READ_CONTACTS"/>\n    <uses-permission android:name="android.permission.RECORD_AUDIO"/>\n    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>\n    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM"/>\n    <uses-permission android:name="android.permission.VIBRATE"/>\n    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES"/>\n    <queries><intent><action android:name="android.speech.RecognitionService"/></intent><intent><action android:name="android.intent.action.DIAL"/></intent></queries>\n</manifest>#' $M
           # 아이콘
           for d in mdpi hdpi xhdpi xxhdpi xxxhdpi; do
             for f in ic_launcher ic_launcher_round ic_launcher_foreground; do
@@ -49,6 +50,7 @@ jobs:
           tag_name: app-${{ github.run_number }}
           name: 하루 예보 갤럭시 앱 (${{ github.run_number }})
           body: |
+            받기 안내 페이지: https://yje0807111-eng.github.io/haru-yebo/get/
             갤럭시에서 아래 haru-yebo.apk 를 눌러 받고 설치하세요.
             처음 한 번은 '이 출처 허용'을 눌러야 해요 (설치 뒤에는 다시 꺼 두세요).
           files: haru-yebo.apk

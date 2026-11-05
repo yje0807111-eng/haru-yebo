@@ -71,8 +71,8 @@ async function invite(c) {
   const token = Math.random().toString(36).slice(2, 8).padEnd(6, '0');
   S.invites[token] = { cid: c.id, at: Date.now() }; save();
   const code = `HARU-${NT.nip19.npubEncode(PK)}-${token}`;
-  const text = `${c.name}, 하루 예보에서 우리 팻끼리 이야기하자! 🐶\n하루 예보를 켜고 말창에 아래 초대 코드를 그대로 붙여 넣어 줘.\n${code}`;
-  if (navigator.share) { try { await navigator.share({ title: '하루 예보 초대', text }); return; } catch { } }
+  const text = `${c.name}, 하루 예보에서 우리 팻끼리 이야기하자! 🐶\n① 앱 받기: https://yje0807111-eng.github.io/haru-yebo/get/\n② 하루 예보를 켜고 말창에 아래 초대 코드를 그대로 붙여 넣어 줘.\n${code}`;
+  if (await shareText('하루 예보 초대', text)) return;
   try { await navigator.clipboard.writeText(text); say(`📋 초대 글을 복사했어! 카톡에서 ${esc(c.name)}에게 붙여 넣어 보내 줘`, { pose: 'joy', ms: 8000 }); } catch { say('초대 글: ' + esc(code), { ms: 20000 }); }
 }
 async function join(code) {

@@ -309,6 +309,16 @@ $('#micBtn').onclick = async () => {
   rec.start();
 };
 
+// ── 친구·가족에게 하루 예보 알려 주기 (카톡 등으로 받기 주소 보내기)
+const GET_URL = 'https://yje0807111-eng.github.io/haru-yebo/get/';
+async function shareText(title, text, url) {
+  const Sh = window.Capacitor && Capacitor.Plugins && Capacitor.Plugins.Share;
+  try { if (Sh) { await Sh.share({ title, text, url, dialogTitle: '어디로 보낼까?' }); return true; } } catch { return false; }
+  if (navigator.share) { try { await navigator.share({ title, text, url }); return true; } catch { return false; } }
+  try { await navigator.clipboard.writeText(text + (url ? '\n' + url : '')); say('📋 복사했어! 카카오톡에 붙여 넣어 보내 줘', { ms: 4000 }); return true; } catch { return false; }
+}
+function shareApp() { return shareText('하루 예보', '🐶 하루 예보 — 내 휴대폰 속 강아지 친구 (무료)\n가족 안부·119 지킴이·알람·생일 챙기기\n여기서 받아요 👉', GET_URL); }
+
 // ── 시작
 function homeInfo() { const g = S.mood.date === today() ? `오늘 마음: ${S.mood.today}` : ''; $('#homeInfo').textContent = g; $('#sky').textContent = new Date().toLocaleDateString('ko-KR', { month: 'long', day: 'numeric', weekday: 'short' }); }
 function boot() {

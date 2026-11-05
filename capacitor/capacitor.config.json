@@ -2,6 +2,16 @@
   "appId": "kr.haruyebo.app",
   "appName": "하루 예보",
   "webDir": "www",
-  "android": { "allowMixedContent": false },
-  "plugins": { "LocalNotifications": { "smallIcon": "ic_launcher_foreground", "iconColor": "#FFD93B" } }
+  "android": {
+    "allowMixedContent": false
+  },
+  "plugins": {
+    "LocalNotifications": {
+      "smallIcon": "ic_launcher_foreground",
+      "iconColor": "#FFD93B"
+    },
+    "CapacitorHttp": {
+      "enabled": false
+    }
+  }
 }
