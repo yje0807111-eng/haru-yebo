@@ -67,7 +67,7 @@ $('#setBox').addEventListener('click', async e => {
   const f = e.target.closest('[data-f]'); if (f) { $$('#s_freq button').forEach(b => b.classList.toggle('on', b === f)); dset({ talk: { freq: f.dataset.f } }); }
   const p = e.target.closest('[data-p]'); if (p) { $$('#s_ai button').forEach(b => b.classList.toggle('on', b === p)); dset({ ai: { provider: p.dataset.p } }); }
   if (e.target.id === 's_share') return shareApp();
-  if (e.target.id === 's_float') { patch({ floatOff: !e.target.checked }); if (e.target.checked && window.Native) Native.askFloat(); return; }
+  if (e.target.id === 's_float') { patch({ floatOff: !e.target.checked }); if (window.Native) Native.floatConfig(); if (e.target.checked && window.Native) Native.askFloat(); return; }
   if (e.target.id === 's_upd' && window.Native) return Native.checkUpdate(true);
   if (e.target.id === 's_notif') { try { const r = await Notification.requestPermission(); say(r === 'granted' ? '알림을 켰어! 🔔' : '알림을 못 켰어. 휴대폰 설정에서 허락해 줘', { ms: 3500 }); } catch { say('이 브라우저는 알림을 못 해 🥲', { ms: 3000 }); } }
 });
@@ -77,6 +77,7 @@ $('#setSave').onclick = () => {
   setBuddyName(bn()); $('#tabPet').textContent = bn(); setSmode(smode);
   $('#setSave').disabled = true; $('#setSave').classList.remove('dirty');
   if (window.Native && Native.petSize) Native.petSize(S.me.size);
+  if (window.Native && Native.floatConfig) Native.floatConfig();
   petOnly(true);
   say(bn() !== oldB ? `이제 내 이름은 '${esc(bn())}'야! "${esc(callName(bn()))}" 하고 불러 줘 🐶` : '설정을 저장했어! ✓', { pose: 'joy' });
 };

@@ -44,6 +44,19 @@ public class FloatPetService extends Service {
     @Override
     public IBinder onBind(Intent i) { return null; }
 
+    // 앱이 화면에서 사라질 때 (MainActivity.onStop) — 켜 두었고 허락이 있으면 띄움
+    static void maybeStart(android.content.Context c) {
+        try {
+            SharedPreferences sp = c.getSharedPreferences("pet", 0);
+            if (!sp.getBoolean("on", true)) return;
+            if (Build.VERSION.SDK_INT >= 23 && !android.provider.Settings.canDrawOverlays(c)) return;
+            Intent i = new Intent(c, FloatPetService.class);
+            i.putExtra("size", sp.getInt("size", 100));
+            i.putExtra("name", sp.getString("name", "다루"));
+            if (Build.VERSION.SDK_INT >= 26) c.startForegroundService(i); else c.startService(i);
+        } catch (Exception ignored) { }
+    }
+
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         me = this;
@@ -53,7 +66,7 @@ public class FloatPetService extends Service {
             if (n != null && !n.isEmpty()) name = n;
         }
         startFg();
-        if (pet == null) show(); else { applySize(); if (hint != null) hint.setText(name + "에게 말 걸기…"); }
+        if (pet == null) { try { show(); } catch (Exception e) { android.util.Log.e("HaruPet", "show", e); } } else { applySize(); if (hint != null) hint.setText(name + "에게 말 걸기…"); }
         return START_STICKY;
     }
 

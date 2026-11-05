@@ -151,9 +151,8 @@ function doCommand(id) {
 
 // ── 말창
 const t = $('#t'), modeBtn = $('#modeBtn'); let smode = false, busy = false, lastUser = '', lastSearch = '';
-function setSmode(on) { smode = on; document.body.classList.toggle('smode', on); modeBtn.textContent = on ? '🔎' : '♥'; t.placeholder = on ? '🔎 무엇이든 찾아볼게…' : `${bn()}에게 말 걸기…`; }
+function setSmode(on) { smode = on; document.body.classList.toggle('smode', on); modeBtn.textContent = on ? '🔎' : '♥'; t.placeholder = on ? '무엇이든 찾아볼게…' : `${bn()}에게 말 걸기…`; }
 modeBtn.onclick = () => { setSmode(!smode); say(smode ? '🔎 검색창이야! 궁금한 걸 쓰면 찾아서 알려 줄게' : '다시 나랑 이야기하자 🐶', { ms: 2200 }); };
-$('#sendBtn').onclick = () => send(t.value);
 t.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.isComposing) { e.preventDefault(); send(t.value); } });
 function markSign() { patch({ guard: { lastSign: new Date().toISOString() } }); }
 

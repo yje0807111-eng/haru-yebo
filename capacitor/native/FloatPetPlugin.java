@@ -43,6 +43,17 @@ public class FloatPetPlugin extends Plugin {
         call.resolve();
     }
 
+    // 크기·이름·켜기 저장 (앱을 닫을 때 안드로이드가 이걸 보고 띄움)
+    @PluginMethod
+    public void config(PluginCall call) {
+        getContext().getSharedPreferences("pet", 0).edit()
+            .putInt("size", call.getInt("size", 100))
+            .putString("name", call.getString("name", "다루"))
+            .putBoolean("on", call.getBoolean("on", true))
+            .apply();
+        call.resolve();
+    }
+
     @PluginMethod
     public void stop(PluginCall call) {
         getContext().stopService(new Intent(getContext(), FloatPetService.class));
