@@ -56,6 +56,9 @@ const pet = $('#pet'), yard = $('#yard');
 const P = { x: 0.5, dir: 1, target: null, speed: 0.08, pose: 'idle', frames: null, fi: 0, fps: 8, until: 0, mode: 'idle', lastT: 0 };
 function setPose(p) {
   P.pose = p;
+  // 걷기·뛰기: 얼굴·뒤통수가 안 잘린 그림 두 장을 번갈아 (11-05: 예전 걷기 그림은 앞뒤가 잘려 있었음)
+  const CYC = { walk: [['걷기1.webp', '걷기2.webp'], 5], run: [['뛰기1.webp', '뛰기2.webp'], 7], crawl: null, roll: null };
+  if (CYC[p]) { P.frames = CYC[p][0]; P.fps = CYC[p][1]; P.fi = 0; P.face = -1; pet.src = 'chars/dog/' + P.frames[0]; return; }
   const names = POSES[p] || POSES.idle;
   for (const n of names) {
     if (CH && CH.anims && CH.anims[n]) { P.frames = CH.anims[n].frames; P.fps = CH.anims[n].fps || 8; P.fi = 0; P.face = CH.anims[n].face || 0; pet.src = 'chars/dog/' + P.frames[0]; return; }

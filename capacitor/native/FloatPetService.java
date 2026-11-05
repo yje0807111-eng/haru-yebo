@@ -147,8 +147,8 @@ public class FloatPetService extends Service {
         // 🐶 팻
         try {
             idle = new Bitmap[] { load("정면.webp"), load("눈망울_앉기.webp"), load("기쁨.webp"), load("a_윙크_1.webp"), load("엎드림.webp") };
-            walk = frames("a_walk_", 8);
-            run = frames("a_run_", 6);
+            walk = new Bitmap[] { load("걷기1.webp"), load("걷기2.webp") };   // 안 잘린 그림 (왼쪽을 봄)
+            run = new Bitmap[] { load("뛰기1.webp"), load("뛰기2.webp") };
             pet = new ImageView(this);
             pet.setScaleType(ImageView.ScaleType.FIT_CENTER);
             if (idle[0] != null) pet.setImageBitmap(idle[0]);
@@ -277,8 +277,8 @@ public class FloatPetService extends Service {
                         if (Math.abs(d) <= speed) { px = tx; moving = false; pet.setImageBitmap(pick(idle, now)); pet.setScaleX(1); nextDecide = now + restMs(); }
                         else {
                             px += Math.signum(d) * speed; dir = d > 0 ? 1 : -1;
-                            if (now - last > (running ? 70 : 100)) { last = now; frame++; Bitmap[] f = running ? run : walk; Bitmap b = f[frame % f.length]; if (b != null) pet.setImageBitmap(b); }
-                            pet.setScaleX(dir);   // 그림은 오른쪽을 봄 → 왼쪽으로 갈 땐 뒤집기
+                            if (now - last > (running ? 140 : 200)) { last = now; frame++; Bitmap[] f = running ? run : walk; Bitmap b = f[frame % f.length]; if (b != null) pet.setImageBitmap(b); }
+                            pet.setScaleX(-dir);  // 그림은 왼쪽을 봄 → 오른쪽으로 갈 땐 뒤집기
                         }
                         lp.x = (int) px; wm.updateViewLayout(pet, lp);
                     } else if (now > nextDecide) decide(now);
