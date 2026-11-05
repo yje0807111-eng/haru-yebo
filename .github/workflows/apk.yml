@@ -19,8 +19,13 @@ jobs:
       - name: 서명 열쇠 이어 쓰기
         uses: actions/cache@v4
         with:
-          path: ~/.android/debug.keystore
-          key: haru-debug-keystore-v1
+          path: ~/haru-key
+          key: haru-keystore-v2
+      - name: 서명 열쇠 준비 (없을 때만 한 번 만듦)
+        run: |
+          mkdir -p ~/haru-key
+          [ -f ~/haru-key/debug.keystore ] || keytool -genkeypair -keystore ~/haru-key/debug.keystore -storepass android -keypass android -alias androiddebugkey -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Haru Yebo,C=KR"
+          keytool -list -keystore ~/haru-key/debug.keystore -storepass android | grep -i fingerprint || true
       - name: 웹 파일 모으기
         run: |
           mkdir -p capacitor/www
@@ -45,6 +50,8 @@ jobs:
             done
           done
           npx cap sync android
+          # 늘 같은 서명 열쇠로 (덮어 깔기가 되게)
+          printf '\nandroid { signingConfigs { debug { storeFile file(System.getenv("HOME") + "/haru-key/debug.keystore"); storePassword "android"; keyAlias "androiddebugkey"; keyPassword "android" } } }\n' >> android/app/build.gradle
           cd android
           chmod +x gradlew
           ./gradlew assembleDebug --no-daemon -q
