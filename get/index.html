@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#FFD93B">
 <meta property="og:title" content="🐶 하루 예보 받기">
-<meta property="og:description" content="내 휴대폰 속 강아지 친구 — 가족 안부·119 지킴이·알람·생일 챙기기 (무료)">
+<meta property="og:description" content="내 휴대폰 속 반려동물 — 가족 안부·119 지킴이·알람·생일 챙기기 (무료)">
 <meta property="og:image" content="https://yje0807111-eng.github.io/haru-yebo/icon-512.png">
 <title>하루 예보 받기</title>
 <style>
@@ -28,7 +28,7 @@
 <body>
 <img class="logo" src="../icon-512.png" alt="">
 <h1>🐶 하루 예보</h1>
-<p>내 휴대폰 속 강아지 친구<br>가족 안부 · 119 지킴이 · 알람 · 생일 챙기기<br><b>무료 · 가입 없음</b></p>
+<p>내 휴대폰 속 반려동물<br>가족 안부 · 119 지킴이 · 알람 · 생일 챙기기<br><b>무료 · 가입 없음</b></p>
 
 <div id="android">
   <a class="big" id="dl" href="https://github.com/yje0807111-eng/haru-yebo/releases/latest/download/haru-yebo.apk">📥 하루 예보 받기</a>
@@ -72,7 +72,7 @@
   if (ios) { document.getElementById('android').classList.add('hide'); document.getElementById('ios').classList.remove('hide'); document.querySelector('.sub').textContent = '🧭 하루 예보 열기'; }
   document.getElementById('share').onclick = async e => {
     e.preventDefault();
-    const text = '🐶 하루 예보 — 내 휴대폰 속 강아지 친구 (무료)\n가족 안부·119 지킴이·알람·생일 챙기기\n여기서 받아요 👉 ' + url;
+    const text = '🐾 하루 예보 — 내 휴대폰 속 반려동물 (무료)\n가족 안부·119 지킴이·알람·생일 챙기기\n여기서 받아요 👉 ' + url;
     if (navigator.share) { try { await navigator.share({ title: '하루 예보', text, url }); return; } catch {} }
     try { await navigator.clipboard.writeText(text); alert('주소를 복사했어요! 카카오톡에 붙여 넣어 보내 주세요.'); } catch { prompt('이 주소를 복사해서 보내 주세요', url); }
   };

@@ -1,7 +1,7 @@
 {
   "name": "하루 예보",
   "short_name": "하루 예보",
-  "description": "내 휴대폰 속 강아지 친구 — 마음 날씨, 가족 안부, 지킴이",
+  "description": "내 휴대폰 속 반려동물 — 마음 날씨, 가족 안부, 지킴이",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",

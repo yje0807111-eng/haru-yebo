@@ -259,7 +259,7 @@ async function doSearch(text) {
   const web = { label: '🌐 인터넷에서 더 보기', url: 'https://www.google.com/search?q=' + encodeURIComponent(q) };
   if (!list.length) { busy = false; return say(`"${esc(q)}"는 내가 바로 답을 못 찾았어. 인터넷에서 볼래?`, { buttons: [web, { label: '괜찮아', ghost: true }] }); }
   let ans = list[0].snippet.slice(0, 180);
-  try { const a = await askAI([{ role: 'user', content: `질문: ${q}\n\n검색 결과:\n${list.map((r, i) => `[${i + 1}] ${r.title}\n${r.snippet}`).join('\n\n')}` }], '너는 강아지 친구야. 검색 결과만 근거로 반말 2~4문장으로 쉽게 답해. 기호(#,*,-)는 쓰지 마. 결과에 없으면 모른다고 해.', 500); if (a) ans = a.replace(/[#*]/g, ''); } catch { }
+  try { const a = await askAI([{ role: 'user', content: `질문: ${q}\n\n검색 결과:\n${list.map((r, i) => `[${i + 1}] ${r.title}\n${r.snippet}`).join('\n\n')}` }], '너는 사용자의 반려동물이야. 검색 결과만 근거로 반말 2~4문장으로 쉽게 답해. 기호(#,*,-)는 쓰지 마. 결과에 없으면 모른다고 해.', 500); if (a) ans = a.replace(/[#*]/g, ''); } catch { }
   busy = false;
   say(esc(ans), { pose: 'talk', ms: 30000, buttons: [...list.slice(0, 2).filter(r => r.url).map((r, i) => ({ label: `${i + 1}. ${r.title.slice(0, 16)}`, url: r.url })), web] });
 }
@@ -344,7 +344,7 @@ async function shareText(title, text, url) {
   if (navigator.share) { try { await navigator.share({ title, text, url }); return true; } catch { return false; } }
   try { await navigator.clipboard.writeText(text + (url ? '\n' + url : '')); say('📋 복사했어! 카카오톡에 붙여 넣어 보내 줘', { ms: 4000 }); return true; } catch { return false; }
 }
-function shareApp() { return shareText('하루 예보', '🐶 하루 예보 — 내 휴대폰 속 강아지 친구 (무료)\n가족 안부·119 지킴이·알람·생일 챙기기\n여기서 받아요 👉', GET_URL); }
+function shareApp() { return shareText('하루 예보', '🐾 하루 예보 — 내 휴대폰 속 반려동물 (무료)\n가족 안부·119 지킴이·알람·생일 챙기기\n여기서 받아요 👉', GET_URL); }
 
 // ── 시작
 function homeInfo() { const g = S.mood.date === today() ? `오늘 마음: ${S.mood.today}` : ''; $('#homeInfo').textContent = g; $('#sky').textContent = new Date().toLocaleDateString('ko-KR', { month: 'long', day: 'numeric', weekday: 'short' }) + (window.APPVER ? ' · ' + window.APPVER : ''); }
