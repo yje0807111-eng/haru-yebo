@@ -48,9 +48,21 @@
       const rel = await (await fetch(REL)).json();
       const latest = +String(rel.tag_name || '').replace(/\D/g, '');
       const asset = (rel.assets || []).find(x => /haru-yebo-\d+\.apk$/.test(x.name)); if (asset) N.apkUrl = asset.browser_download_url;
-      if (!latest || !(+mine) || latest <= +mine) { if (manual) say('지금이 제일 새 버전이야! 🐶', { ms: 3000 }); return; }
+      if (!latest || !(+mine) || latest <= +mine) { N.setUpd(0); if (manual) say('지금이 제일 새 버전이야! 🐶', { ms: 3000 }); return; }
+      N.setUpd(latest);
+      if (!manual) return;   // 11-06: 저절로 확인할 때는 '1' 표시만 (아이콘 · 메뉴 설정 · 새 버전 확인)
       say(`🔄 하루 예보 새 버전이 나왔어! (${latest}판)<br>지금 바꿀까?`, { pose: 'joy', ms: 60000, important: true, buttons: [{ label: '응, 바꿔 줘', act: () => N.install() }, { label: '나중에', ghost: true }] });
     } catch (e) { if (manual) say('지금은 확인을 못 했어. 인터넷을 확인해 줘 🥲', { ms: 3000 }); }
+  };
+  // 🔴 새 버전 '1': 휴대폰 아이콘(알림 하나) → 메뉴 ⚙️ 설정 → 🔄 새 버전 확인 으로 이어짐
+  N.upd = 0;
+  N.setUpd = async v => {
+    N.upd = v || 0; document.body.classList.toggle('hasupd', !!N.upd);
+    const LN = Pl.LocalNotifications; if (!LN) return;
+    try {
+      if (N.upd && S.updNoti !== N.upd) { await LN.requestPermissions(); await LN.schedule({ notifications: [{ id: 99, title: '🔄 하루 예보 새 버전', body: `새 버전(${N.upd}판)이 나왔어요. 눌러서 바꿔 주세요!`, extra: { upd: 1 } }] }); S.updNoti = N.upd; save(); }
+      if (!N.upd) { await LN.cancel({ notifications: [{ id: 99 }] }); await LN.removeAllDeliveredNotifications?.(); }
+    } catch (e) { }
   };
   N.install = async () => {
     say('📥 새 버전 받는 중… 잠깐만!', { pose: 'magnify', ms: 120000 });
@@ -79,7 +91,7 @@
     const L = SOUNDS[sp] || SOUNDS.dog;
     return { sp, idle: idle.join('|'), walk: walk.join('|'), run: run.join('|'), home: one('기쁨') || idle[0], sndC: L[0].join('|'), sndH: L[1].join('|') };
   };
-  N.floatConfig = () => { if (FP) FP.config({ size: S.me.size || 100, name: bn(), on: !S.floatOff, act: petAct(), cries: !S.talk.mute && S.talk.cries !== false && Date.now() >= (quietUntil || 0), micBeep: S.talk.micBeep ?? 1, temper: S.me.temper || 'normal', vol: Math.max(0.2, S.talk.volume || 0.4), ...petLists() }).catch(() => {}); };
+  N.floatConfig = () => { if (FP) FP.config({ size: S.me.size || 100, name: bn(), on: !S.floatOff, act: petAct(), cries: !S.talk.mute && S.talk.cries !== false && Date.now() >= (quietUntil || 0), micBeep: S.talk.micBeep ?? 1, temper: S.me.temper || 'normal', kakao: !S.kakaoOff, vol: Math.max(0.2, S.talk.volume || 0.4), ...petLists() }).catch(() => {}); };
   N.quit = () => { if (FP && FP.quit) FP.quit().catch(() => {}); };
   N.petAction = id => { if (FP && document.hidden) FP.pose({ action: id === 'home' ? 'home' : 'free' }).catch(() => {}); };
   N.petSize = s => { if (FP) { FP.setSize({ size: s }).catch(() => {}); N.floatConfig(); } };
@@ -91,6 +103,7 @@
   };
   document.addEventListener('visibilitychange', async () => {
     if (document.hidden || !FP) return;
+    setTimeout(() => N.checkUpdate(false), 2500);
     petOnly(true);   // 앱을 열면 → 앱 안 팻만
     setTimeout(() => { if (!document.hidden && bubble.hidden) petMenu(); }, 500);   // 11-06: 들어오자마자 메뉴
     const r = await FP.takePending().catch(() => null); if (r && r.text) send(r.text, { talk: true });   // 바탕화면에서 하던 말 이어서
@@ -106,12 +119,21 @@
     const _say = window.say;
     window.say = say = function (text, opt = {}) { _say(text, opt); if (document.hidden) FP.say({ text: plain(text), ms: Math.min(opt.ms || (5000 + String(text).length * 80), 15000) }).catch(() => {}); };
   }
+  // 💬 카톡이 오면 (하루 예보가 열려 있을 때는 여기서 알려 줌)
+  if (FP) FP.addListener('kakao', d => { if (document.hidden || S.kakaoOff) return; say(`💬 카톡 왔어!<br><b>${esc(d.room && d.room !== d.who ? d.room + ' · ' + d.who : d.who)}</b>: ${esc(d.text)}`, { pose: 'bark', ms: 9000 }); cry(true); });
+  N.kakaoCheck = async () => { if (!FP || !FP.notiAccess) return false; const r = await FP.notiAccess().catch(() => ({ granted: false })); return !!r.granted; };
+  N.kakaoAsk = async force => {
+    if (!FP || S.kakaoOff) return; if (await N.kakaoCheck()) return;
+    if (!force && S.kakaoAsked === today()) return; patch({ kakaoAsked: today() });
+    say('💬 카톡이 오면 내가 바로 알려 줄까?<br>휴대폰 설정에서 <b>하루 예보 카톡 알림</b>을 켜 주면 돼!', { pose: 'gaze', ms: 60000, buttons: [{ label: '응, 켤게', act: () => { FP.openNotiAccess(); hideBubble(); } }, { label: '괜찮아', ghost: true, act: () => { patch({ kakaoOff: true }); N.floatConfig(); hideBubble(); } }] });
+  };
   if (FP) FP.addListener('petTap', d => { petOnly(true); const w = d && d.what; if (w === 'talk') setTimeout(() => { hideBubble(); t.focus(); }, 300); else if (w === 'mic') setTimeout(() => $('#micBtn').click(), 500); else setTimeout(petMenu, 400); });
   // 켤 때 알람 다시 예약 · 새 버전 확인(하루 한 번)
   window.addEventListener('load', () => {
     setTimeout(() => N.schedule(S.alarms), 2000);
     setTimeout(() => N.floatConfig(), 1000);
-    setTimeout(() => { if (S.floatAsked !== today()) N.askFloat(); }, 4500);   // 화면 위 팻 허락 (안 했으면 하루 한 번 물음)
-    setTimeout(() => { const d = today(); if (S.updDay !== d) { S.updDay = d; save(); N.checkUpdate(false); } }, 8000);
+    setTimeout(() => { if (S.floatAsked !== today()) N.askFloat(); }, 4500);
+    setTimeout(() => N.kakaoAsk(false), 15000);   // 카톡 알림 (안 켰으면 하루 한 번 물음)   // 화면 위 팻 허락 (안 했으면 하루 한 번 물음)
+    setTimeout(() => N.checkUpdate(false), 4000);   // 11-06: 열 때마다 새 버전 확인 → 있으면 '1'
   });
 })();

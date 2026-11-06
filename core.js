@@ -123,11 +123,11 @@ function quitApp() {   // 11-06: 조용히 끝내기 — 팻도 화면에서 사
 }
 function petMenu() {
   setPose(pick(['joy', 'love', 'wave', 'laugh'])); fx('hop'); cry(true); P.until = performance.now() + 3000; P.target = null; markSign();
-  const b = [['🏘️ 동네 날씨', () => openView('town')], ['🎨 내 방', () => openView('room')], ['📒 주소록', () => openView('people')], ['🛡️ 지킴이', () => openView('safe')], ['⏰ 시간·알람', () => openView('time')], ['⚙️ 설정', () => openView('set')], ['📖 안내소식', () => openGuide()], ['🌙 끝내기', quitApp]];
+  const b = [['🏘️ 동네 날씨', () => openView('town')], ['🎨 내 방', () => openView('room')], ['📒 주소록', () => openView('people')], ['🛡️ 지킴이', () => openView('safe')], ['⏰ 시간·알람', () => openView('time')], ['⚙️ 설정', () => openView('set'), 'setb'], ['📖 안내소식', () => openGuide()], ['🌙 끝내기', quitApp]];
   clearTimeout(bubbleT);
   bubble.querySelector('.text').innerHTML = animalize(pick([`멍! 뭐 할까? 🐾`, `불렀어? 헤헤 🐶`, `${S.me.name ? esc(S.me.name) + '! ' : ''}뭐 도와줄까?`]));
   const box = bubble.querySelector('.btns'); box.innerHTML = '<div class="petmenu"></div>';
-  for (const [label, act, cls] of b) { const el = document.createElement('button'); el.textContent = label; if (cls) el.className = cls; el.onclick = ev => { ev.stopPropagation(); act(); }; box.firstChild.appendChild(el); }
+  for (const [label, act, cls] of b) { const el = document.createElement('button'); el.textContent = label; if (cls) el.className = cls; if (cls === 'setb' && window.Native && Native.upd) el.innerHTML = label + ' <i class="badge">1</i>'; el.onclick = ev => { ev.stopPropagation(); act(); }; box.firstChild.appendChild(el); }
   bubble.hidden = false; bubbleT = setTimeout(hideBubble, 15000);
 }
 pet.addEventListener('click', petMenu);

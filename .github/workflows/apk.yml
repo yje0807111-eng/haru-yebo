@@ -42,6 +42,7 @@ jobs:
           cp native/*.java android/app/src/main/java/kr/haruyebo/app/
           sed -i 's#</manifest>#<uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW"/><uses-permission android:name="android.permission.FOREGROUND_SERVICE"/><uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE"/><uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE"/></manifest>#' $M
           sed -i 's#</application>#<service android:name=".FloatPetService" android:exported="false" android:foregroundServiceType="specialUse|microphone"><property android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE" android:value="floating pet companion"/></service></application>#' $M
+          sed -i 's#</application>#<service android:name=".HaruNotiListener" android:exported="true" android:label="하루 예보 카톡 알림" android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE"><intent-filter><action android:name="android.service.notification.NotificationListenerService"/></intent-filter></service></application>#' $M
           grep -c FloatPetService $M
           # 아이콘
           for d in mdpi hdpi xhdpi xxhdpi xxxhdpi; do

@@ -56,6 +56,7 @@ public class FloatPetPlugin extends Plugin {
             .putString("sp", call.getString("sp", "dog"))
             .putInt("micBeep", call.getInt("micBeep", 1))
             .putString("temper", call.getString("temper", "normal"))
+            .putBoolean("kakao", call.getBoolean("kakao", true))
             .putString("idle", call.getString("idle", ""))
             .putString("walk", call.getString("walk", ""))
             .putString("run", call.getString("run", ""))
@@ -122,6 +123,20 @@ public class FloatPetPlugin extends Plugin {
     }
 
     static volatile String pending = null;
+    static void kakaoEvent(String who, String msg, String room) {
+        JSObject d = new JSObject(); d.put("who", who); d.put("text", msg); d.put("room", room);
+        if (inst != null) inst.notifyListeners("kakao", d, true);
+    }
+    @PluginMethod
+    public void notiAccess(PluginCall call) {
+        String en = Settings.Secure.getString(getContext().getContentResolver(), "enabled_notification_listeners");
+        JSObject r = new JSObject(); r.put("granted", en != null && en.contains(getContext().getPackageName())); call.resolve(r);
+    }
+    @PluginMethod
+    public void openNotiAccess(PluginCall call) {
+        Intent i = new Intent("android.settings.ACTION_NOTIFICATION_LISTENER_SETTINGS"); i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        getContext().startActivity(i); call.resolve();
+    }
     static void overlayText(String text) {
         JSObject d = new JSObject();
         d.put("text", text);

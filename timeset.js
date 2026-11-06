@@ -56,9 +56,11 @@ ${window.Native ? `<div class="card"><h3>🐶 화면 위 팻</h3><label class="c
     <p class="note small">연결하면 팻이 더 똑똑하게 이야기하고 검색 결과도 짧게 정리해 줘요. 열쇠는 이 휴대폰에만 저장돼요. 연결하지 않아도 기본 대화·검색은 돼요.</p>
     <div class="seg" id="s_ai"><button data-p="none" class="${S.ai.provider !== 'claude' ? 'on' : ''}">연결 안 함</button><button data-p="claude" class="${S.ai.provider === 'claude' ? 'on' : ''}">Claude</button></div>
     <input id="s_key" type="password" placeholder="Claude API 열쇠 붙여 넣기 (sk-ant-…)" value="${S.ai.key ? '••••••••' : ''}" style="margin-top:8px" autocomplete="off"></div>
+${window.Native ? `<div class="card"><h3>💬 카톡 알림</h3><label class="chk"><input type="checkbox" id="s_kakao" ${S.kakaoOff ? '' : 'checked'}> 카톡이 오면 팻이 알려 주기</label><p class="note small" id="s_kakaoSt">확인 중…</p></div>` : ''}
   <div class="card"><h3>🔔 알림</h3><button class="btn ghost" id="s_notif">알림 허락하기</button><p class="note small">알람이 울릴 때 휴대폰 알림도 같이 띄워요.</p></div>
   <div class="card"><h3>📤 친구·가족에게 알려 주기</h3><p class="note small">카카오톡 등으로 '하루 예보 받기' 주소를 보내요. 받은 사람이 누르면 바로 받을 수 있어요.</p><button class="btn" id="s_share">📤 하루 예보 보내기</button></div>
-  <div class="card"><h3>📱 이 앱</h3><p class="note small">하루 예보 휴대폰판 <span id="s_ver"></span> · 주소록·대화는 이 휴대폰에만 저장돼요.</p>${window.Native ? '<button class="btn ghost small" id="s_upd">🔄 새 버전 확인</button>' : ''}</div>`;
+  <div class="card"><h3>📱 이 앱</h3><p class="note small">하루 예보 휴대폰판 <span id="s_ver"></span> · 주소록·대화는 이 휴대폰에만 저장돼요.</p>${window.Native ? `<button class="btn ghost small" id="s_upd">🔄 새 버전 확인${Native.upd ? ' <i class="badge">1</i>' : ''}</button>` : ''}</div>`;
+  if (window.Native && Native.kakaoCheck) Native.kakaoCheck().then(ok => { const e = $('#s_kakaoSt'); if (e) e.innerHTML = S.kakaoOff ? '꺼져 있어요' : ok ? '✅ 켜져 있어요 — 카톡이 오면 알려 드려요' : '⚠️ 휴대폰 설정에서 허락이 필요해요 <button class="btn small" id="s_kakaoGo">허락하러 가기</button>'; });
   fetch('version.json').then(r => r.json()).then(v => { const e = $('#s_ver'); if (e) e.textContent = '(' + v.build + '판)'; }).catch(() => {});
 }
 $('#setBox').addEventListener('input', e => {
@@ -85,6 +87,8 @@ $('#setBox').addEventListener('click', async e => {
     } catch (er) { $('#s_diagOut').textContent = '상태를 못 읽었어: ' + er; }
     return;
   }
+  if (e.target.id === 's_kakao') { patch({ kakaoOff: !e.target.checked }); if (window.Native) { Native.floatConfig(); if (e.target.checked) Native.kakaoAsk(true); } drawSet(); return; }   // 바로
+  if (e.target.id === 's_kakaoGo') { const F = window.Capacitor && Capacitor.Plugins.FloatPet; if (F) F.openNotiAccess(); return; }
   if (e.target.id === 's_float') { patch({ floatOff: !e.target.checked }); if (window.Native) Native.floatConfig(); if (e.target.checked && window.Native) Native.askFloat(); return; }
   if (e.target.id === 's_upd' && window.Native) return Native.checkUpdate(true);
   if (e.target.id === 's_notif') { try { const r = await Notification.requestPermission(); say(r === 'granted' ? '알림을 켰어! 🔔' : '알림을 못 켰어. 휴대폰 설정에서 허락해 줘', { ms: 3500 }); } catch { say('이 브라우저는 알림을 못 해 🥲', { ms: 3000 }); } }

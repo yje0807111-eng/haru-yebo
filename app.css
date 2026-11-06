@@ -165,3 +165,6 @@ body.petonly .ground { opacity: .35; }
 #intro .idots i.on { background: #2B2118; }
 #intro .ibtns { display: flex; gap: 8px; }
 #intro .ibtns .btn { flex: 1; padding: 10px; font-size: 15px; }
+
+/* 11-06 새 버전 1 */
+.badge { display: inline-block; min-width: 18px; height: 18px; line-height: 18px; border-radius: 9px; background: #F04452; color: #fff; font-style: normal; font-size: 12px; font-weight: 800; text-align: center; padding: 0 5px; vertical-align: middle; }

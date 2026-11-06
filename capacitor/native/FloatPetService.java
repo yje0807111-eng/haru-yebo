@@ -110,9 +110,14 @@ public class FloatPetService extends Service {
     }
 
     void startFg() {
-        String ch = "haru_pet";
+        String ch = "haru_pet2";   // 11-06: 아이콘에 '1'이 뜨지 않게 (늘 있는 알림은 숫자로 세지 않음)
         NotificationManager nm = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
-        if (Build.VERSION.SDK_INT >= 26) nm.createNotificationChannel(new NotificationChannel(ch, "화면 위 팻", NotificationManager.IMPORTANCE_MIN));
+        if (Build.VERSION.SDK_INT >= 26) {
+            try { nm.deleteNotificationChannel("haru_pet"); } catch (Exception ignored) { }
+            NotificationChannel nc = new NotificationChannel(ch, "화면 위 팻", NotificationManager.IMPORTANCE_MIN);
+            nc.setShowBadge(false);
+            nm.createNotificationChannel(nc);
+        }
         Intent open = new Intent(this, MainActivity.class);
         open.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_SINGLE_TOP);
         PendingIntent pi = PendingIntent.getActivity(this, 0, open, PendingIntent.FLAG_IMMUTABLE);
@@ -548,6 +553,16 @@ public class FloatPetService extends Service {
     static void poseStatic(String file, String action, int ms) { if (me != null) me.h.post(() -> me.showPose(file, action, ms)); }
 
     static void quitStatic() { if (me != null) me.h.post(() -> { try { me.stopSelf(); } catch (Exception ignored) { } }); }
+    // 💬 카톡이 오면 바탕화면 팻이 알려 줌 (하루 예보가 열려 있으면 앱 안에서 알려 줌)
+    static void kakaoStatic(String who, String msg, String room) {
+        if (me == null || !wantShown) return;
+        me.h.post(() -> {
+            String head = room != null && !room.isEmpty() && !room.equals(who) ? "💬 카톡 · " + room + "\n" + who : "💬 카톡 · " + who;
+            me.bubble(head + "\n" + msg, 9000);
+            SharedPreferences sp = me.getSharedPreferences("pet", 0);
+            if (sp.getBoolean("cries", true)) me.bark(true, sp.getFloat("vol", 0.5f));
+        });
+    }
     static void sayStatic(String text, int ms) { if (me != null) me.h.post(() -> me.bubble(text, ms)); }
 
     void open(String what) {
