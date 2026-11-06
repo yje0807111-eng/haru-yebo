@@ -53,6 +53,13 @@ public class FloatPetPlugin extends Plugin {
             .putInt("act", call.getInt("act", 2))
             .putBoolean("cries", call.getBoolean("cries", true))
             .putFloat("vol", call.getFloat("vol", 0.5f))
+            .putString("sp", call.getString("sp", "dog"))
+            .putString("idle", call.getString("idle", ""))
+            .putString("walk", call.getString("walk", ""))
+            .putString("run", call.getString("run", ""))
+            .putString("home", call.getString("home", ""))
+            .putString("sndC", call.getString("sndC", ""))
+            .putString("sndH", call.getString("sndH", ""))
             .apply();
         FloatPetService.reload();
         call.resolve();

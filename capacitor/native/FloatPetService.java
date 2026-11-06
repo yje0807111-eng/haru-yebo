@@ -129,8 +129,27 @@ public class FloatPetService extends Service {
     }
 
     Bitmap load(String n) {
-        try (InputStream in = getAssets().open("public/chars/dog/" + n)) { return BitmapFactory.decodeStream(in); }
+        try (InputStream in = getAssets().open("public/chars/" + getSharedPreferences("pet", 0).getString("sp", "dog") + "/" + n)) { return BitmapFactory.decodeStream(in); }
         catch (Exception e) { return null; }
+    }
+
+    // 11-06: 고른 동물의 그림 목록(앱이 config 로 넘겨줌). 없으면 예전 강아지 그림
+    Bitmap[] list(String key, String[] def) {
+        String v = getSharedPreferences("pet", 0).getString(key, "");
+        String[] names = v == null || v.isEmpty() ? def : v.split("\\|");
+        java.util.ArrayList<Bitmap> out = new java.util.ArrayList<>();
+        for (String n : names) { Bitmap b = load(n); if (b != null) out.add(b); }
+        if (out.isEmpty()) { Bitmap b = load("정면.webp"); if (b != null) out.add(b); }
+        while (out.size() < 5 && key.equals("idle")) out.add(out.get(0));
+        return out.toArray(new Bitmap[0]);
+    }
+    String loadedSp = "";
+    void loadLists() {
+        idle = list("idle", new String[] { "정면.webp", "눈망울_앉기.webp", "기쁨.webp", "a_윙크_1.webp", "엎드림.webp" });
+        walk = list("walk", new String[] { "걷기1.webp", "걷기2.webp" });
+        run = list("run", new String[] { "뛰기1.webp", "뛰기2.webp" });
+        loadedSp = getSharedPreferences("pet", 0).getString("sp", "dog") + "|" + getSharedPreferences("pet", 0).getString("walk", "");
+        if (pet != null && idle.length > 0 && idle[0] != null) pet.setImageBitmap(idle[0]);
     }
     Bitmap[] frames(String pre, int n) { Bitmap[] b = new Bitmap[n]; for (int i = 0; i < n; i++) b[i] = load(pre + i + ".webp"); return b; }
 
@@ -153,9 +172,7 @@ public class FloatPetService extends Service {
         SharedPreferences sp = getSharedPreferences("pet", 0);
         // 🐶 팻
         try {
-            idle = new Bitmap[] { load("정면.webp"), load("눈망울_앉기.webp"), load("기쁨.webp"), load("a_윙크_1.webp"), load("엎드림.webp") };
-            walk = new Bitmap[] { load("걷기1.webp"), load("걷기2.webp") };   // 안 잘린 그림 (왼쪽을 봄)
-            run = new Bitmap[] { load("뛰기1.webp"), load("뛰기2.webp") };
+            loadLists();
             pet = new ImageView(this);
             pet.setScaleType(ImageView.ScaleType.FIT_CENTER);
             if (idle[0] != null) pet.setImageBitmap(idle[0]);
@@ -449,7 +466,7 @@ public class FloatPetService extends Service {
     android.media.MediaPlayer mp;
     void bark(boolean happy, float vol) {
         try {
-            String[] list = happy ? new String[] { "dog_happy1", "dog_happy2", "dog_happy3" } : new String[] { "dog_bark1", "dog_bark2", "dog_bark3", "dog_bark4" };
+            String cv = getSharedPreferences("pet", 0).getString(happy ? "sndH" : "sndC", ""); String[] list = cv != null && !cv.isEmpty() ? cv.split("\\|") : happy ? new String[] { "dog_happy1", "dog_happy2", "dog_happy3" } : new String[] { "dog_bark1", "dog_bark2", "dog_bark3", "dog_bark4" };
             android.content.res.AssetFileDescriptor fd = getAssets().openFd("public/sounds/" + list[(int) (Math.random() * list.length)] + ".mp3");
             if (mp != null) { try { mp.release(); } catch (Exception ignored) { } }
             mp = new android.media.MediaPlayer();
@@ -467,7 +484,7 @@ public class FloatPetService extends Service {
         int w = lp.width > 0 ? lp.width : dp(120);
         px = tx = Math.max(blp.x, Math.min(blp.x + (blp.width > 0 ? blp.width : sw()) - w, (int) px));
         lp.x = (int) px; lp.y = homeY(); py = ty = lp.y; wm.updateViewLayout(pet, lp);
-        Bitmap b = load("기쁨.webp"); if (b != null) { pet.setScaleX(1); pet.setImageBitmap(b); }
+        String hf = getSharedPreferences("pet", 0).getString("home", ""); Bitmap b = load(hf == null || hf.isEmpty() ? "기쁨.webp" : hf); if (b != null) { pet.setScaleX(1); pet.setImageBitmap(b); }
         nextDecide = System.currentTimeMillis() + 3000;
     }
     void leaveHome() {
@@ -512,7 +529,7 @@ public class FloatPetService extends Service {
         lp.width = (int) (hpx * 1.1f);
     }
     void applySize() { if (pet != null && lp != null) { sizeLp(); wm.updateViewLayout(pet, lp); } }
-    static void reload() { if (me != null) me.h.post(() -> { SharedPreferences sp = me.getSharedPreferences("pet", 0); me.sizePct = sp.getInt("size", 100); me.act = sp.getInt("act", 2); me.name = sp.getString("name", "다루"); me.applySize(); if (me.hint != null) me.hint.setText(me.name + "에게 말 걸기…"); }); }
+    static void reload() { if (me != null) me.h.post(() -> { SharedPreferences sp = me.getSharedPreferences("pet", 0); me.sizePct = sp.getInt("size", 100); me.act = sp.getInt("act", 2); me.name = sp.getString("name", "다루"); me.applySize(); if (me.hint != null) me.hint.setText(me.name + "에게 말 걸기…"); String k = sp.getString("sp", "dog") + "|" + sp.getString("walk", ""); if (!k.equals(me.loadedSp)) me.loadLists(); }); }
     static void setSizeStatic(int s) { if (me != null) { me.sizePct = s; me.h.post(me::applySize); } }
 
     @Override

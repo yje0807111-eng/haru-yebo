@@ -45,27 +45,34 @@ function go(v) {
 document.addEventListener('click', e => { const b = e.target.closest('[data-go]'); if (b) go(b.dataset.go); });
 
 // ── 다루 마당: 그림·움직임
-const CH = (window.CHARS || {}).dog;
+// 11-06: 강아지·고양이·돼지 — 그림·동작은 PC 에서 관리(build_assets.py 로 복사)
+const SP = () => (S.me.species && (window.CHARS || {})[S.me.species]) ? S.me.species : 'dog';
+let CH = (window.CHARS || {})[SP()];
+const DIR = () => 'chars/' + SP() + '/';
 const POSES = {
-  bang: ['빵'], warn: ['위험'], wink: ['윙크'], crawl: ['기어'], drink: ['물먹기'], meal: ['밥먹기'], eat: ['먹기'], brush: ['양치'], wash: ['세수'], laugh: ['웃어', '기쁨'],
-  sit: ['앉아', '눈망울_앉기'], roll: ['굴러'], idle: ['정면'], walk: ['walk'], run: ['run'], sleep: ['자자', '잠'], stretch: ['기지개'], talk: ['말하기'],
-  bark: ['소리', '소리2'], joy: ['기쁨'], fun: ['즐거움'], sad: ['슬픔'], think: ['생각중'], surprise: ['놀람'], shy: ['부끄러움'], love: ['사랑'],
-  letter: ['편지'], magnify: ['돋보기'], wave: ['손흔들기'], paw: ['손'], up: ['올려다보기'], lie: ['엎드림', '눈망울_엎드림'], jump: ['점프'], gaze: ['눈망울_앉기'],
+  angry: ['화남', '놀람'], solo: ['혼자놀기', '혼자놀기2', '물장난'], dance: ['춤', '즐거움'], bang: ['빵'], warn: ['위험'], wink: ['윙크'], crawl: ['기어'], drink: ['물먹기'], meal: ['밥먹기', '밥먹기2'], brush: ['양치'], wash: ['세수'], laugh: ['웃어', '기쁨'], sit: ['앉아', '눈망울_앉기'], roll: ['굴러'], peekaboo: ['숨어', '부끄러움'],
+  curious: ['궁금', '생각중'], dizzy: ['헤롱', '놀람'], sick: ['아픔', '엎드림', '슬픔'], hello: ['인사_왼손', '인사_오른손', '인사_꾸벅', '손흔들기', '손흔들기2'], loveyou: ['사랑해', '사랑'], heart: ['하트날리기', '사랑'], cute: ['이쁜짓', '눈망울_앉기'], idle: ['정면'], walk: ['walk'], run: ['run', '네발뛰기', 'dash'], sleep: ['자자', '잠'], hang: ['걸치기', '눈망울_걸치기'],
+  stretch: ['기지개'], talk: ['말하기', '정면'], bark: ['소리', '소리2'], joy: ['기쁨'], fun: ['즐거움', '춤'], sad: ['슬픔'], gloomy: ['우울'], hungry: ['배고픔'], think: ['생각중', '궁금'], surprise: ['놀람'], shy: ['부끄러움', '부끄러움2'], love: ['사랑', '사랑해'],
+  eat: ['먹기'], letter: ['편지'], magnify: ['돋보기'], wave: ['손흔들기', '인사_왼손'], paw: ['손', '손흔들기'], up: ['올려다보기', '정면'], back: ['뒷모습'], side: ['옆모습'], lie: ['엎드림', '눈망울_엎드림', '자자'],
+  jump: ['점프', '점프2'], splash: ['물장난'], flipover: ['발라당'], hooray: ['만세', '기쁨'], gaze: ['눈망울_앉기', '정면'],
 };
 const pet = $('#pet'), yard = $('#yard');
 const P = { x: 0.5, dir: 1, target: null, speed: 0.08, pose: 'idle', frames: null, fi: 0, fps: 8, until: 0, mode: 'idle', lastT: 0 };
 function setPose(p) {
   P.pose = p;
-  // 걷기·뛰기: 얼굴·뒤통수가 안 잘린 그림 두 장을 번갈아 (11-05: 예전 걷기 그림은 앞뒤가 잘려 있었음)
-  const CYC = { walk: [['걷기1.webp', '걷기2.webp'], 5], run: [['뛰기1.webp', '뛰기2.webp'], 7], crawl: null, roll: null };
-  if (CYC[p]) { P.frames = CYC[p][0]; P.fps = CYC[p][1]; P.fi = 0; P.face = -1; pet.src = 'chars/dog/' + P.frames[0]; return; }
-  const names = POSES[p] || POSES.idle;
+  // 강아지 걷기·뛰기: 얼굴·뒤통수가 안 잘린 그림 두 장을 번갈아 (11-05) — 고양이·돼지는 PC 와 같은 움직이는 그림
+  const CYC = SP() === 'dog' ? { walk: [['걷기1.webp', '걷기2.webp'], 5], run: [['뛰기1.webp', '뛰기2.webp'], 7] } : {};
+  if (CYC[p]) { P.frames = CYC[p][0]; P.fps = CYC[p][1]; P.fi = 0; P.face = -1; P.hk = 1; pet.src = DIR() + P.frames[0]; return; }
+  const names = POSES[p] || POSES.idle, R = (CH && CH.refH) || 0;
   for (const n of names) {
-    if (CH && CH.anims && CH.anims[n]) { P.frames = CH.anims[n].frames; P.fps = CH.anims[n].fps || 8; P.fi = 0; P.face = CH.anims[n].face || 0; pet.src = 'chars/dog/' + P.frames[0]; return; }
-    if (CH && CH.sprites && CH.sprites[n]) { P.frames = null; P.face = CH.sprites[n].face || 0; pet.src = 'chars/dog/' + CH.sprites[n].file; return; }
+    const an = CH && CH.anims && CH.anims[n];
+    if (an) { P.frames = an.frames; P.fps = an.fps || 8; P.fi = 0; P.face = an.face || 0; P.hk = R && an.h ? an.h * (an.sc || 1) / R : 1; pet.src = DIR() + P.frames[0]; return; }   // 크기: PC 와 같은 셈(동작 그림 높이 ÷ 기준 높이)
+    const sp = CH && CH.sprites && CH.sprites[n];
+    if (sp) { P.frames = null; P.face = sp.face || 0; P.hk = R && sp.h ? sp.h / R : 1; pet.src = DIR() + sp.file; return; }
   }
   if (p !== 'idle') setPose('idle');
 }
+function setSpecies(sp) { S.me.species = sp; save(); CH = (window.CHARS || {})[SP()]; setPose('joy'); const f = $('#tFace'); if (f) { f.onerror = () => { f.onerror = null; f.src = DIR() + CH.sprites['정면'].file; }; f.src = DIR() + '말창얼굴.webp'; } if (window.Native && Native.floatConfig) Native.floatConfig(); }
 function fx(cls) { pet.classList.remove(cls); void pet.offsetWidth; pet.classList.add(cls); setTimeout(() => pet.classList.remove(cls), 1000); }
 const MOVE = { often: 1.4, normal: 1, rare: 0.5, quiet: 0 };
 // 움직이는 정도 0~4 (0 가만히 · 4 아주 활발) — 화면 위 팻과 앱 안 팻이 같이 씀
@@ -90,9 +97,9 @@ function tick(now) {
     if (Math.abs(d) < 0.01) { P.target = null; setPose(pick(['idle', 'sit', 'joy', 'gaze', 'jump', 'laugh'])); if (petAct() >= 4) fx('hop'); P.until = now + (petAct() >= 4 ? rnd(500, 1500) : rnd(2500, 6000)); }
     else { P.dir = d > 0 ? 1 : -1; P.x += Math.sign(d) * Math.min(Math.abs(d), P.speed * dt); }
   } else if (now > P.until) decide();
-  if (P.frames && now - frameT > 1000 / P.fps) { frameT = now; P.fi = (P.fi + 1) % P.frames.length; pet.src = 'chars/dog/' + P.frames[P.fi]; }
+  if (P.frames && now - frameT > 1000 / P.fps) { frameT = now; P.fi = (P.fi + 1) % P.frames.length; pet.src = DIR() + P.frames[P.fi]; }
   const hh = petPx(S.me.size || 100);   // 크기 단계 → 화면 크기
-  if (pet._h !== hh) { pet._h = hh; pet.style.height = hh + 'px'; }
+  const hp = Math.round(hh * (P.hk || 1)); if (pet._h !== hp) { pet._h = hp; pet.style.height = hp + 'px'; }
   const w = pet.getBoundingClientRect().width || 100, W = yard.clientWidth;
   pet.style.left = Math.round(P.x * W - w / 2) + 'px';
   const flip = P.face ? (P.dir !== P.face) : P.dir < 0 && P.target != null;
@@ -100,11 +107,11 @@ function tick(now) {
   requestAnimationFrame(tick);
 }
 // 짖는 소리
-const BARKS = ['dog_bark1', 'dog_bark2', 'dog_bark3', 'dog_bark4'], HAPPY = ['dog_happy1', 'dog_happy2', 'dog_happy3'];
+const SOUNDS = { dog: [['dog_bark1', 'dog_bark2', 'dog_bark3', 'dog_bark4'], ['dog_happy1', 'dog_happy2', 'dog_happy3']], cat: [['cat_meow1', 'cat_meow2', 'cat_meow3', 'cat_meow4'], ['cat_meow1', 'cat_meow3']], pig: [['pig_oink1', 'pig_oink2', 'pig_oink3', 'pig_oink4', 'pig_oink5'], ['pig_oink1', 'pig_oink3', 'pig_oink4']] };
 let quietUntil = 0;
 function cry(happy, loud) {
   if (!loud && (S.talk.cries === false || Date.now() < quietUntil)) return;
-  const a = new Audio(`sounds/${pick(happy ? HAPPY : BARKS)}.mp3`);
+  const L = SOUNDS[SP()] || SOUNDS.dog; const a = new Audio(`sounds/${pick(happy ? L[1] : L[0])}.mp3`);
   a.volume = Math.max(0, Math.min(1, loud ? Math.max(0.8, S.talk.volume) : S.talk.volume));
   a.play().catch(() => {});
 }
@@ -112,7 +119,7 @@ function petMenu() {
   setPose(pick(['joy', 'love', 'wave', 'laugh'])); fx('hop'); cry(true); P.until = performance.now() + 3000; P.target = null; markSign();
   const b = [['🏘️ 동네 날씨', () => openView('town')], ['🎨 내 방', () => openView('room')], ['📒 주소록', () => openView('people')], ['🛡️ 지킴이', () => openView('safe')], ['⏰ 시간·알람', () => openView('time')], ['⚙️ 설정', () => openView('set')]];
   clearTimeout(bubbleT);
-  bubble.querySelector('.text').innerHTML = pick([`멍! 뭐 할까? 🐾`, `불렀어? 헤헤 🐶`, `${S.me.name ? esc(S.me.name) + '! ' : ''}뭐 도와줄까?`]);
+  bubble.querySelector('.text').innerHTML = animalize(pick([`멍! 뭐 할까? 🐾`, `불렀어? 헤헤 🐶`, `${S.me.name ? esc(S.me.name) + '! ' : ''}뭐 도와줄까?`]));
   const box = bubble.querySelector('.btns'); box.innerHTML = '<div class="petmenu"></div>';
   for (const [label, act, cls] of b) { const el = document.createElement('button'); el.textContent = label; if (cls) el.className = cls; el.onclick = ev => { ev.stopPropagation(); act(); }; box.firstChild.appendChild(el); }
   bubble.hidden = false; bubbleT = setTimeout(hideBubble, 15000);
@@ -126,7 +133,15 @@ document.addEventListener('click', e => { const b = e.target.closest('#tabs [dat
 
 // ── 말풍선
 const bubble = $('#bubble'); let bubbleT = 0;
+function animalize(t) {   // PC 와 같음
+  const sp = SP(); if (sp === 'dog' || typeof t !== 'string') return t;
+  const cat = sp === 'cat', w = cat ? '야옹' : '꿀꿀';
+  return t.replace(/멍멍멍/g, w + w).replace(/멍멍/g, w).replace(/멍!/g, w + '!').replace(/멍~/g, w + '~').replace(/왈왈/g, w + w)
+    .replace(/🐶/g, cat ? '🐱' : '🐷').replace(/안 짖을게/g, cat ? '안 울게' : '조용히 할게').replace(/짖을 수/g, cat ? '울 수' : '꿀꿀할 수')
+    .replace(/짖어/g, cat ? '울어' : '꿀꿀해').replace(/짖자/g, cat ? '울자' : '꿀꿀하자').replace(/짖는/g, cat ? '우는' : '꿀꿀하는');
+}
 function say(text, opt = {}) {
+  text = animalize(text);
   clearTimeout(bubbleT);
   bubble.querySelector('.text').innerHTML = text;
   const box = bubble.querySelector('.btns'); box.innerHTML = '';
@@ -149,7 +164,7 @@ function doCommand(id) {
   const now = performance.now(); P.target = null; P.until = now + 5000;
   const c = COMMANDS.find(x => x.id === id), line = c ? pick(c.say) : '';
   const map = { sleep: 'sleep', sit: 'sit', lie: 'lie', playdead: 'bang', stand: 'joy', wait: 'sit', no: 'sad', quiet: 'shy', jump: 'jump', down: 'joy', climb: 'jump', paw: 'paw', spin: 'fun',
-    stretch: 'stretch', drink: 'drink', meal: 'meal', snack: 'eat', dance: 'fun', brush: 'brush', wash: 'wash', laugh: 'laugh', wink: 'wink', good: 'love', bark: 'bark', speak: 'up', call: 'up', hide: 'shy', back: 'walk', slow: 'walk', home: 'joy', free: 'run' };
+    stretch: 'stretch', drink: 'drink', meal: 'meal', snack: 'eat', dance: 'fun', cute: 'cute', heart: 'heart', loveyou: 'loveyou', magnify: 'magnify', walk: 'walk', hello: 'hello', hungry: 'hungry', peekaboo: 'peekaboo', curious: 'curious', dizzy: 'dizzy', sick: 'sick', gloomy: 'gloomy', hang: 'hang', brush: 'brush', wash: 'wash', laugh: 'laugh', wink: 'wink', good: 'love', bark: 'bark', speak: 'up', call: 'up', hide: 'shy', back: 'walk', slow: 'walk', home: 'joy', free: 'run', hooray: 'hooray', flipover: 'flipover', splash: 'splash', turnback: 'back', angry: 'angry', surprise: 'surprise', warn: 'warn', letter: 'letter', joy: 'joy', sad: 'sad', solo: 'solo', gallop: 'run' };
   if (id === 'run' || id === 'free' || id === 'follow' || id === 'come' || id === 'roll' || id === 'crawl') {
     P.target = id === 'come' || id === 'follow' ? 0.5 : (P.x > 0.5 ? 0.12 : 0.88); P.speed = id === 'crawl' ? 0.05 : id === 'roll' ? 0.12 : 0.3;
     setPose(id === 'roll' ? 'roll' : id === 'crawl' ? 'crawl' : 'run'); P.until = now + 15000;
@@ -199,7 +214,7 @@ async function send(text) {
 }
 
 // ── 대화 두뇌: AI(내 Claude 열쇠)가 있으면 그걸로, 없으면 기본 말
-const SYSTEM = `너는 사용자의 휴대폰 속에 사는 작고 귀여운 강아지 친구야. 앱 이름은 "하루 예보". 다정한 반말로 1~3문장만. #, **, -, 표 같은 기호는 쓰지 마.
+const SYSTEM = `너는 사용자의 휴대폰 속에 사는 작고 귀여운 반려동물 친구야. 앱 이름은 "하루 예보". 다정한 반말로 1~3문장만. #, **, -, 표 같은 기호는 쓰지 마.
 사용자의 마음이 분명히 느껴지면 답 끝에 <mood>맑음</mood>(맑음·구름조금·흐림·비·천둥 중 하나)를 붙인다.
 최신 정보나 네가 확실히 모르는 사실을 물으면 "잠깐, 찾아볼게!"라고만 답하고 끝에 <search>검색어</search>를 붙인다. 인사·감정·잡담에는 붙이지 않는다.
 스스로를 해치고 싶다는 말이 나오면 공감하고 109(자살예방상담)·112에 바로 연락하라고 꼭 말한다. 비밀번호·계좌·인증번호는 묻지도 받지도 않는다.`;
@@ -227,7 +242,7 @@ async function chatWith(text, corrected) {
   const history = [...S.chat, { role: 'user', content: text }].slice(-20);
   let r = null;
   try {
-    const raw = await Promise.race([askAI(history, SYSTEM + `\n지금: ${new Date().toLocaleString('ko-KR')}. 너의 이름: ${bn()}. 사용자 이름: ${S.me.name || '(모름)'}`), new Promise((_, j) => setTimeout(() => j(new Error('timeout')), 40000))]);
+    const raw = await Promise.race([askAI(history, SYSTEM + `\n너는 ${({ dog: '강아지', cat: '고양이', pig: '아기 돼지' })[SP()]}야. 지금: ${new Date().toLocaleString('ko-KR')}. 너의 이름: ${bn()}. 사용자 이름: ${S.me.name || '(모름)'}`), new Promise((_, j) => setTimeout(() => j(new Error('timeout')), 40000))]);
     if (raw) { const tag = n => (raw.match(new RegExp(`<${n}>\\s*([^<]+?)\\s*</${n}>`)) || [])[1]; r = { text: raw.replace(/<(mood|search)>[^<]*<\/\1>/g, '').replace(/[#*]/g, '').trim(), mood: tag('mood'), search: tag('search') }; }
   } catch (e) { r = { text: '앗, AI 연결이 안 돼서 간단히 답할게. ' + offline(text).text }; }
   if (!r) r = offline(text);
@@ -329,6 +344,7 @@ function schedNotify() { if (window.Native && Native.schedule) Native.schedule(S
 // ── 말로 하기 (휴대폰 음성 인식)
 const SR = window.SpeechRecognition || window.webkitSpeechRecognition; let rec = null;
 $('#tFace').onclick = () => $('#micBtn').click();
+{ const f = $('#tFace'); if (f && CH && CH.sprites) f.onerror = () => { f.onerror = null; f.src = DIR() + CH.sprites['정면'].file; }; f.src = DIR() + '말창얼굴.webp'; }   // 말창 얼굴도 고른 동물로
 $('#micBtn').onclick = async () => {
   if (window.Native && Native.listen) { $('#micBtn').classList.add('rec'); say('👂 듣고 있어… 말해 줘!', { pose: 'up', ms: 6000 }); try { const txt = await Native.listen(); if (txt) { say(`👂 "${esc(txt)}"`, { ms: 1500 }); send(txt); } } catch { say('잘 못 들었어 🥲 다시 해 볼래?', { ms: 3000 }); } $('#micBtn').classList.remove('rec'); return; }
   if (!SR) { say('이 휴대폰 브라우저는 말 알아듣기를 못 해 🥲 크롬에서 열어 줘!', { ms: 4000 }); return; }
