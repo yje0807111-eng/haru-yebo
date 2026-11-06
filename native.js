@@ -5,18 +5,32 @@
   const FP0 = Pl.FloatPet;
   const N = window.Native = {};
   // ⏰ 알람: 휴대폰 알림으로 예약 (앱이 꺼져 있어도 울림)
-  N.schedule = async alarms => {
+  N.schedule = async alarms => {   // 11-07: 안드로이드 알람으로 — 앱을 닫아도 [그만] 누를 때까지 울림
+    const F = Pl.FloatPet;
+    if (F && F.setAlarms) {
+      try {
+        const r = await F.setAlarms({ list: (alarms || []).map(a => ({ id: a.id, at: a.at, daily: !!a.daily, text: HA.alarmLine(a).replace(/<[^>]+>/g, '') })) });
+        if (r && r.count && !r.exact && S.exactAsked !== today()) { patch({ exactAsked: today() }); say('⏰ 알람이 정확한 시간에 울리게 하려면<br>휴대폰 설정에서 <b>알람 및 리마인더</b>를 허용해 줘!', { ms: 30000, important: true, buttons: [{ label: '허용하러 가기', act: () => { F.openExact(); hideBubble(); } }, { label: '나중에', ghost: true }] }); }
+      } catch (e) { }
+      return;
+    }
     const LN = Pl.LocalNotifications; if (!LN) return;
     try {
       await LN.requestPermissions();
       const pend = await LN.getPending(); if (pend.notifications.length) await LN.cancel({ notifications: pend.notifications.map(n => ({ id: n.id })) });
-      const list = (alarms || []).filter(a => a.at > Date.now()).slice(0, 60).map((a, i) => ({
-        id: 1000 + i, title: '⏰ 하루 예보', body: HA.alarmLine(a).replace(/<[^>]+>/g, ''),
-        schedule: a.daily ? { on: { hour: new Date(a.at).getHours(), minute: new Date(a.at).getMinutes() }, allowWhileIdle: true } : { at: new Date(a.at), allowWhileIdle: true },
-        sound: null, extra: { id: a.id },
-      }));
+      const list = (alarms || []).filter(a => a.at > Date.now()).slice(0, 60).map((a, i) => ({ id: 1000 + i, title: '⏰ 하루 예보', body: HA.alarmLine(a).replace(/<[^>]+>/g, ''), schedule: { at: new Date(a.at), allowWhileIdle: true }, sound: null, extra: { id: a.id } }));
       if (list.length) await LN.schedule({ notifications: list });
-    } catch (e) { console.warn('알림', e); }
+    } catch (e) { }
+  };
+  // 앱을 열 때: 밖에서 울린 알람 정리 (그만 누른 것·지금 울리는 것)
+  N.alarmSync = async () => {
+    const F = Pl.FloatPet; if (!F || !F.alarmState) return;
+    const r = await F.alarmState().catch(() => null); if (!r) return;
+    const now = Date.now(); let ch = false;
+    for (const id of r.done || []) { const a = S.alarms.find(x => x.id === id || x.id + '_s' === id); if (!a) continue; window._rung = window._rung || {}; window._rung[a.id + '@' + a.at] = 1; if (a.daily) { while (a.at <= now) a.at += 864e5; } else a.done = true; ch = true; }
+    if (ch) { S.alarms = S.alarms.filter(a => !a.done); save(); }
+    if (r.ringing) { const a = S.alarms.find(x => x.id === r.ringing || x.id + '_s' === r.ringing) || { id: r.ringing, at: now, label: '' }; F.alarmStop({ id: r.ringing }).catch(() => {}); ring(a); }
+    F.alarmClear().catch(() => {});
   };
   // 📒 연락처: 한 번 허락하면 이름·번호·주소·생일까지
   N.contacts = async () => {   // 11-07: 직접 만든 읽기(연락처 읽기 권한만)
@@ -102,6 +116,7 @@
   document.addEventListener('visibilitychange', async () => {
     if (document.hidden || !FP) return;
     setTimeout(() => N.checkUpdate(false), 2500);
+    N.alarmSync();
     petOnly(true);   // 앱을 열면 → 앱 안 팻만
     setTimeout(() => { if (!document.hidden && bubble.hidden) petMenu(); }, 500);   // 11-06: 들어오자마자 메뉴
     const r = await FP.takePending().catch(() => null); if (r && r.text) send(r.text, { talk: true });   // 바탕화면에서 하던 말 이어서
@@ -127,10 +142,12 @@
     if (!force && S.kakaoAsked === today()) return; patch({ kakaoAsked: today() });
     say('💬 카톡이 오면 내가 바로 알려 줄까?<br>휴대폰 설정에서 <b>하루 예보 카톡 알림</b>을 켜 주면 돼!', { pose: 'gaze', ms: 60000, buttons: [{ label: '응, 켤게', act: () => { FP.openNotiAccess(); hideBubble(); } }, { label: '괜찮아', ghost: true, act: () => { patch({ kakaoOff: true }); N.floatConfig(); hideBubble(); } }] });
   };
+  if (FP) FP.addListener('alarm', d => { const a = S.alarms.find(x => x.id === d.id || x.id + '_s' === d.id) || { id: d.id, at: Date.now(), label: '' }; FP.alarmStop({ id: d.id }).catch(() => {}); ring(a); });
   if (FP) FP.addListener('petTap', d => { petOnly(true); const w = d && d.what; if (w === 'talk') setTimeout(() => { hideBubble(); t.focus(); }, 300); else if (w === 'mic') setTimeout(() => $('#micBtn').click(), 500); else setTimeout(petMenu, 400); });
   // 켤 때 알람 다시 예약 · 새 버전 확인(하루 한 번)
   window.addEventListener('load', () => {
     setTimeout(() => N.schedule(S.alarms), 2000);
+    setTimeout(() => N.alarmSync(), 800);
     setTimeout(() => N.floatConfig(), 1000);
     setTimeout(() => { if (S.floatAsked !== today()) N.askFloat(); }, 4500);
     setTimeout(() => N.kakaoAsk(false), 15000);   // 카톡 알림 (안 켰으면 하루 한 번 물음)   // 화면 위 팻 허락 (안 했으면 하루 한 번 물음)

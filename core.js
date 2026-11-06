@@ -110,8 +110,8 @@ function tick(now) {
 // 짖는 소리
 const SOUNDS = { dog: [['dog_bark1', 'dog_bark2', 'dog_bark3', 'dog_bark4'], ['dog_happy1', 'dog_happy2', 'dog_happy3']], cat: [['cat_meow1', 'cat_meow2', 'cat_meow3', 'cat_meow4'], ['cat_meow1', 'cat_meow3']], pig: [['pig_oink1', 'pig_oink2', 'pig_oink3', 'pig_oink4', 'pig_oink5'], ['pig_oink1', 'pig_oink3', 'pig_oink4']] };
 let quietUntil = 0;
-function cry(happy, loud) {
-  if (S.talk.mute) return;   // 11-06: 🔇 음소거면 어떤 소리도 안 냄
+function cry(happy, loud, force) {
+  if (S.talk.mute && !force) return;   // ⏰ 알람(force)은 음소거여도 울림   // 11-06: 🔇 음소거면 어떤 소리도 안 냄
   if (!loud && (S.talk.cries === false || Date.now() < quietUntil)) return;
   const L = SOUNDS[SP()] || SOUNDS.dog; const a = new Audio(`sounds/${pick(happy ? L[1] : L[0])}.mp3`);
   a.volume = Math.max(0, Math.min(1, loud ? Math.max(0.8, S.talk.volume) : S.talk.volume));
@@ -322,19 +322,20 @@ async function timeTalk(text) {
   schedNotify();
   return true;
 }
-let ringing = null;
+let ringing = null, ringingId = '';
 function ring(a) {
-  stopRing(); let n = 0;
-  const tickR = () => { n++; setPose('bark'); fx('shake'); cry(false, true); if (navigator.vibrate) navigator.vibrate([300, 150, 300]); };
+  window._rung = window._rung || {}; const rk = a.id + '@' + a.at; if (window._rung[rk] && ringing) return; window._rung[rk] = 1;   // 같은 알람 두 번 안 울림
+  stopRing(); let n = 0; ringingId = a.id;
+  const tickR = () => { n++; setPose('bark'); fx('shake'); cry(false, true, true); if (navigator.vibrate) navigator.vibrate([300, 150, 300]); };
   ringing = { t: setInterval(tickR, 2300), end: setTimeout(() => stopRing(), 90e3) }; tickR();
   say(HA.alarmLine(a), { pose: 'bark', ms: 90e3, important: true, buttons: [{ label: '알았어! 그만 ✋', act: () => stopRing(pick(['헤헤 잘했어! 🐶', '좋아, 오늘도 화이팅! 💛'])) }, { label: '5분 뒤 다시 ⏰', act: () => { stopRing('알겠어, 5분 뒤에 또 짖을게!'); patch({ alarms: [...S.alarms, { id: uid(), at: Date.now() + 5 * 60e3, label: a.label, kind: a.kind }] }); } }] });
   try { if (Notification.permission === 'granted') new Notification('⏰ 하루 예보', { body: HA.alarmLine(a).replace(/<[^>]+>/g, ''), icon: 'icon-192.png' }); } catch { }
 }
-function stopRing(msg) { if (!ringing) return; clearInterval(ringing.t); clearTimeout(ringing.end); ringing = null; if (msg) say(msg, { ms: 3000, pose: 'joy' }); else hideBubble(); }
+function stopRing(msg) { if (!ringing) return; { const F = window.Capacitor && Capacitor.Plugins && Capacitor.Plugins.FloatPet; if (F && F.alarmStop && ringingId) F.alarmStop({ id: ringingId }).catch(() => {}); } clearInterval(ringing.t); clearTimeout(ringing.end); ringing = null; if (msg) say(msg, { ms: 3000, pose: 'joy' }); else hideBubble(); }
 function checkTimes() {
   const now = Date.now(), d = new Date(), ymd = today(d), mins = d.getHours() * 60 + d.getMinutes();
   let changed = false;
-  for (const a of S.alarms) { if (a.at > now) continue; if (now - a.at < 30 * 60e3) ring(a); if (a.daily) { while (a.at <= now) a.at += 864e5; } else a.done = true; changed = true; }
+  for (const a of S.alarms) { if (a.at > now) continue; if (now - a.at < 30 * 60e3 && !(window._rung || {})[a.id + '@' + a.at]) ring(a); if (a.daily) { while (a.at <= now) a.at += 864e5; } else a.done = true; changed = true; }
   if (changed) { S.alarms = S.alarms.filter(a => !a.done); save(); }
   for (const c of S.chimes) {
     if (!c.on || !(c.days || []).includes(d.getDay()) || S.chimeLast[c.id] === ymd) continue;

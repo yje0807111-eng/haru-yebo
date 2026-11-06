@@ -210,6 +210,47 @@ public class FloatPetPlugin extends Plugin {
             } catch (Exception e) { call.reject("read: " + e); }
         }).start();
     }
+    // ⏰ 알람 (11-07)
+    @PluginMethod
+    public void setAlarms(PluginCall call) {
+        HaruAlarmReceiver.cancelAll(getContext());
+        com.getcapacitor.JSArray list = call.getArray("list");
+        long now = System.currentTimeMillis(); int n = 0;
+        try {
+            for (int k = 0; list != null && k < list.length(); k++) {
+                org.json.JSONObject a = list.getJSONObject(k);
+                long at = a.optLong("at", 0); if (at <= now) continue;
+                HaruAlarmReceiver.schedule(getContext(), a.optString("id"), at, a.optString("text", ""), a.optBoolean("daily", false)); n++;
+            }
+        } catch (Exception e) { }
+        JSObject r = new JSObject(); r.put("count", n); r.put("exact", HaruAlarmReceiver.canExact(getContext())); call.resolve(r);
+    }
+    @PluginMethod
+    public void alarmState(PluginCall call) {
+        android.content.SharedPreferences sp = getContext().getSharedPreferences("pet", 0);
+        JSObject r = new JSObject(); r.put("ringing", sp.getString("alarmRinging", ""));
+        com.getcapacitor.JSArray d = new com.getcapacitor.JSArray(); for (String x : sp.getStringSet("alarmDone", new java.util.HashSet<>())) d.put(x); r.put("done", d);
+        call.resolve(r);
+    }
+    @PluginMethod
+    public void alarmClear(PluginCall call) { getContext().getSharedPreferences("pet", 0).edit().remove("alarmRinging").putStringSet("alarmDone", new java.util.HashSet<>()).apply(); call.resolve(); }
+    @PluginMethod
+    public void alarmStop(PluginCall call) {
+        String id = call.getString("id", "");
+        android.app.NotificationManager nm = (android.app.NotificationManager) getContext().getSystemService(android.content.Context.NOTIFICATION_SERVICE);
+        if (!id.isEmpty()) nm.cancel(HaruAlarmReceiver.nid(id));
+        getContext().getSharedPreferences("pet", 0).edit().remove("alarmRinging").apply();
+        FloatPetService.alarmStopStatic(); call.resolve();
+    }
+    @PluginMethod
+    public void openExact(PluginCall call) {
+        try { Intent i = new Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM, Uri.parse("package:" + getContext().getPackageName())); i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK); getContext().startActivity(i); } catch (Exception e) { }
+        call.resolve();
+    }
+    static void alarmEvent(String id, String text) {
+        JSObject d = new JSObject(); d.put("id", id); d.put("text", text);
+        if (inst != null) inst.notifyListeners("alarm", d, true);
+    }
     @PluginMethod
     public void notiAccess(PluginCall call) {
         String en = Settings.Secure.getString(getContext().getContentResolver(), "enabled_notification_listeners");

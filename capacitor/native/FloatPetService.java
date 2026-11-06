@@ -548,6 +548,7 @@ public class FloatPetService extends Service {
     }
     // ── 바탕화면 🎤: 그 자리에서 듣기
     void listen() {
+        if (alarmOn) { stopAlarmByTap(); return; }   // 알람 울리는 중이면 누르면 그만
         if (Build.VERSION.SDK_INT >= 23 && checkSelfPermission(android.Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) { open("mic"); return; }
         if (!SpeechRecognizer.isRecognitionAvailable(this)) { open("mic"); return; }
         bubble(inKakaoChat() ? "🎤 " + HaruNotiListener.kakaoWho + "에게 보낼 말을 해 줘!" : "👂 듣고 있어… 말해 줘!", 9000);
@@ -687,6 +688,23 @@ public class FloatPetService extends Service {
         });
     }
     static void sayTelStatic(String text, String tel, int ms) { if (me != null) me.h.post(() -> { me.telNum = tel; me.bubbleK("tel", text, ms); }); }
+    // ⏰ 알람: 팻이 울며 알려 줌 (팻을 누르면 그만)
+    boolean alarmOn = false; int alarmN = 0;
+    final Runnable alarmLoop = new Runnable() { @Override public void run() {
+        if (!alarmOn) return;
+        if (++alarmN > 40) { alarmOn = false; return; }
+        SharedPreferences sp = getSharedPreferences("pet", 0);
+        bark(false, Math.max(0.8f, sp.getFloat("vol", 0.5f)));
+        h.postDelayed(this, 2500);
+    } };
+    static void alarmRingStatic(String text) { if (me != null) me.h.post(() -> { if (!wantShown) return; me.alarmOn = true; me.alarmN = 0; me.bubble("⏰ " + (text == null || text.isEmpty() ? "알람 시간이야!" : text) + "\n👉 나를 누르면 그만", 100000); me.h.removeCallbacks(me.alarmLoop); me.h.post(me.alarmLoop); }); }
+    static void alarmStopStatic() { if (me != null) me.h.post(() -> { me.alarmOn = false; me.h.removeCallbacks(me.alarmLoop); if (me.bub != null) me.bub.setVisibility(View.GONE); }); }
+    void stopAlarmByTap() {
+        alarmOn = false; h.removeCallbacks(alarmLoop);
+        SharedPreferences sp = getSharedPreferences("pet", 0); String id = sp.getString("alarmRinging", "");
+        if (!id.isEmpty()) { ((NotificationManager) getSystemService(NOTIFICATION_SERVICE)).cancel(HaruAlarmReceiver.nid(id)); HaruAlarmReceiver.addSet(sp, "alarmDone", id); sp.edit().remove("alarmRinging").apply(); }
+        bubble("헤헤 잘했어! 오늘도 화이팅 💛", 3000);
+    }
     static void sayStatic(String text, int ms) { if (me != null) me.h.post(() -> me.bubble(text, ms)); }
 
     void open(String what) {
