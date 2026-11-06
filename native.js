@@ -91,7 +91,7 @@
     const L = SOUNDS[sp] || SOUNDS.dog;
     return { sp, idle: idle.join('|'), walk: walk.join('|'), run: run.join('|'), home: one('기쁨') || idle[0], sndC: L[0].join('|'), sndH: L[1].join('|') };
   };
-  N.floatConfig = () => { if (FP) FP.config({ size: S.me.size || 100, name: bn(), on: !S.floatOff, act: petAct(), cries: !S.talk.mute && S.talk.cries !== false && Date.now() >= (quietUntil || 0), micBeep: S.talk.micBeep ?? 1, temper: S.me.temper || 'normal', kakao: !S.kakaoOff, vol: Math.max(0.2, S.talk.volume || 0.4), ...petLists() }).catch(() => {}); };
+  N.floatConfig = () => { if (FP) FP.config({ size: S.me.size || 100, name: bn(), on: !S.floatOff, act: petAct(), cries: !S.talk.mute && S.talk.cries !== false && Date.now() >= (quietUntil || 0), micBeep: S.talk.micBeep ?? 1, temper: S.me.temper || 'normal', kakao: !S.kakaoOff, talkMin: ({ often: 5, normal: 20, rare: 30, quiet: 0 })[S.talk.freq || 'normal'] ?? 20, uname: S.me.name || '', vol: Math.max(0.2, S.talk.volume || 0.4), ...petLists() }).catch(() => {}); };
   N.quit = () => { if (FP && FP.quit) FP.quit().catch(() => {}); };
   N.petAction = id => { if (FP && document.hidden) FP.pose({ action: id === 'home' ? 'home' : 'free' }).catch(() => {}); };
   N.petSize = s => { if (FP) { FP.setSize({ size: s }).catch(() => {}); N.floatConfig(); } };
@@ -122,6 +122,7 @@
   // 💬 카톡이 오면 (하루 예보가 열려 있을 때는 여기서 알려 줌)
   if (FP) FP.addListener('kakao', d => { if (document.hidden || S.kakaoOff) return; say(`💬 <b>${esc(d.room && d.room !== d.who ? d.room + '(' + d.who + ')' : d.who)}</b>한테 카톡 왔어!<br>"${esc(d.text)}"`, { pose: 'bark', ms: 15000, buttons: [{ label: '💬 카톡 열기', act: () => { hideBubble(); FP.openKakao().catch(() => {}); } }, { label: '나중에', ghost: true }] }); cry(true); });
   N.kakaoCheck = async () => { if (!FP || !FP.notiAccess) return false; const r = await FP.notiAccess().catch(() => ({ granted: false })); return !!r.granted; };
+  N.usageCheck = async () => { if (!FP || !FP.usageAccess) return false; const r = await FP.usageAccess().catch(() => ({ granted: false })); return !!r.granted; };
   N.kakaoAsk = async force => {
     if (!FP || S.kakaoOff) return; if (await N.kakaoCheck()) return;
     if (!force && S.kakaoAsked === today()) return; patch({ kakaoAsked: today() });

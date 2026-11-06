@@ -53,6 +53,7 @@ public class FloatPetService extends Service {
     int sizePct = 100, act = 2;          // act: 0 가만히 · 1 조금 · 2 보통 · 3 활발 · 4 아주 활발
     String name = "다루";
     // 돌아다니기
+    boolean hopping = false;   // 계단 뛰기 중 (빠르게)
     float px, tx, py = -1, ty = -1; int dir = 1; boolean moving = false, running = false; int frame = 0; long nextDecide = 0;
 
     @Override
@@ -302,19 +303,20 @@ public class FloatPetService extends Service {
             try {
                 if (!held && wantShown) {
                     if (moving) {
-                        float speed = dp(running ? (act >= 4 ? 7 : 5) : 2.2f);
+                        float speed = dp(hopping ? 11 : running ? (act >= 4 ? 7 : 5) : 2.2f);
                         if (py < 0) py = ty = lp.y;
                         float d = tx - px, dyy = ty - py, dist = (float) Math.hypot(d, dyy);
-                        if (dist <= speed) { px = tx; py = ty; moving = false; pet.setImageBitmap(pick(idle, now)); pet.setScaleX(1); nextDecide = now + restMs(); }
+                        if (dist <= speed) { px = tx; py = ty; moving = false; hopping = false; pet.setImageBitmap(pick(idle, now)); pet.setScaleX(1); nextDecide = now + restMs(); }
                         else {
                             px += d / dist * speed; py += dyy / dist * speed; if (Math.abs(d) > 1) dir = d > 0 ? 1 : -1;
                             if (now - last > (running ? 140 : 200)) { last = now; frame++; Bitmap[] f = running ? run : walk; Bitmap b = f[frame % f.length]; if (b != null) pet.setImageBitmap(b); }
                             pet.setScaleX(-dir);  // 그림은 왼쪽을 봄 → 오른쪽으로 갈 땐 뒤집기
                         }
-                        lp.x = (int) px; lp.y = (int) py; wm.updateViewLayout(pet, lp);
+                        lp.x = (int) px; lp.y = (int) py - (hopping ? (int) (dp(26) * Math.sin(Math.PI * Math.min(1f, Math.abs(ty - py) / Math.max(1f, dp(180))))) : 0); wm.updateViewLayout(pet, lp);
                     } else if (poseFrames != null && now < poseUntil) {
                         if (now - poseLast > 1000 / poseFps) { poseLast = now; poseFi = (poseFi + 1) % poseFrames.length; if (poseFrames[poseFi] != null) pet.setImageBitmap(poseFrames[poseFi]); }
                     } else if (now > nextDecide) { poseFrames = null; decide(now); }
+                    maybeChat(now);
                 }
             } catch (Exception e) { Log.e("HaruPet", "tick", e); }
             h.postDelayed(this, 40);
@@ -336,6 +338,28 @@ public class FloatPetService extends Service {
         bark(Math.random() < 0.5, sp.getFloat("vol", 0.5f));
         Bitmap b = load("소리.webp"); if (b != null && pet != null) { pet.setScaleX(1); pet.setImageBitmap(b); }
     }
+
+    // 💬 말 걸기 (11-07): 설정의 '말 걸고 움직이는 정도' — 자주 5분 · 보통 20분 · 가끔 30분 · 조용히 0
+    long nextChat = 0;
+    String[] CHAT = { "뭐 하고 있어? 나 심심해 🐾", "물 한 잔 마셨어? 💧", "잠깐 기지개 켜 볼까? 🙆", "오늘 하루 어때? 나를 누르고 말해 줘!", "궁금한 거 있으면 물어봐! 내가 찾아 줄게 🔎",
+        "눈이 피곤하면 잠깐 먼 곳을 봐 줘 👀", "나 여기 있어~ 같이 놀자!", "어깨 한 번 쭉 펴 볼까? 💪", "오늘도 잘하고 있어 💛", "심심하면 나를 눌러서 \"만세\" 해 봐!" };
+    void maybeChat(long now) {
+        SharedPreferences sp = getSharedPreferences("pet", 0);
+        int min = sp.getInt("talkMin", 20);
+        if (min <= 0) { nextChat = now + 60000; return; }
+        if (nextChat == 0) { nextChat = now + min * 60000L; return; }
+        if (now < nextChat) return;
+        nextChat = now + min * 60000L;
+        int hr = java.util.Calendar.getInstance().get(java.util.Calendar.HOUR_OF_DAY);
+        if (hr >= 23 || hr < 7) return;
+        if (bub != null && bub.getVisibility() == View.VISIBLE) return;
+        String u = sp.getString("uname", ""); String call = u.isEmpty() ? "" : u + "! ";
+        String line;
+        double r = Math.random();
+        if (r < 0.4) line = hr < 10 ? "좋은 아침이야! ☀️ 아침은 먹었어?" : hr < 14 ? "점심 맛있게 먹어! 🍚" : hr < 18 ? "오후도 힘내! 💪" : "오늘도 수고했어 🌙 푹 쉬자";
+        else line = CHAT[(int) (Math.random() * CHAT.length)];
+        bubble(call + line, 7000);
+    }
     void decide(long now) {
         if (act <= 0) { nextDecide = now + 60000; return; }
         maybeBark(now);
@@ -350,8 +374,15 @@ public class FloatPetService extends Service {
             else {
                 tx = (float) (Math.random() * Math.max(1, sw() - w));
                 int hgt = lp.height > 0 ? lp.height : dp(120);
-                int top = dp(60), bottom = (blp != null ? blp.y - dp(8) : sh() - dp(100)) - hgt;   // 위쪽부터 말창 바로 위까지
+                int top = dp(60), bottom = sh() - dp(110) - hgt;   // 11-07: 말창이 없어졌으니 화면 아래까지
                 ty = top + (float) (Math.random() * Math.max(1, bottom - top));
+                if ("active".equals(tm) && Math.random() < 0.45) {   // 계단처럼 한 칸 뛰어 내리기·오르기
+                    float step = dp(90 + (float) (Math.random() * 90));
+                    boolean down = py < top + (bottom - top) * 0.35f ? true : py > top + (bottom - top) * 0.75f ? false : Math.random() < 0.5;
+                    ty = Math.max(top, Math.min(bottom, py + (down ? step : -step)));
+                    tx = Math.max(0, Math.min(sw() - w, px + (float) ((Math.random() < 0.5 ? -1 : 1) * dp(40 + (float) (Math.random() * 80)))));
+                    hopping = true;
+                }
             }
             if ("normal".equals(tm) && !homeMode) ty = py;   // 평범: 옆으로만
             running = "active".equals(tm) ? Math.random() < 0.75 : act >= 3 ? Math.random() < (act >= 4 ? 0.7 : 0.45) : Math.random() < 0.15;
@@ -454,10 +485,29 @@ public class FloatPetService extends Service {
         }
         if (!ok) { try { Intent i = getPackageManager().getLaunchIntentForPackage("com.kakao.talk"); if (i != null) { i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK); startActivity(i); ok = true; } } catch (Exception ignored) { } }
         if (ok) {
-            replyUntil = System.currentTimeMillis() + 180000;
+            replyUntil = System.currentTimeMillis() + 600000; replyStart = System.currentTimeMillis();
             h.postDelayed(() -> bubble("💬 " + HaruNotiListener.kakaoWho + " 대화방을 열었어!\n나를 누르고 말하면 글로 써 줄게 🎤", 7000), 900);
         } else bubble("카톡을 못 열었어 🥲", 3000);
     }
+
+    // 지금 카톡 대화방이 앞에 있나? (사용 기록 허락 있으면 정확히, 없으면 1분 동안만)
+    boolean inKakaoChat() {
+        long now = System.currentTimeMillis();
+        if (now > replyUntil) return false;
+        try {
+            android.app.usage.UsageStatsManager um = (android.app.usage.UsageStatsManager) getSystemService(Context.USAGE_STATS_SERVICE);
+            android.app.usage.UsageEvents ev = um.queryEvents(now - 15 * 60000, now);
+            android.app.usage.UsageEvents.Event e = new android.app.usage.UsageEvents.Event();
+            String pkg = null, cls = null; boolean any = false;
+            while (ev.hasNextEvent()) {
+                ev.getNextEvent(e);
+                if (e.getEventType() == android.app.usage.UsageEvents.Event.MOVE_TO_FOREGROUND) { pkg = e.getPackageName(); cls = e.getClassName(); any = true; }
+            }
+            if (any) { boolean in = "com.kakao.talk".equals(pkg) && cls != null && cls.toLowerCase().contains("chat"); if (!in) replyUntil = 0; return in; }
+        } catch (Exception ignored) { }
+        return now - replyStart < 60000;   // 허락이 없으면: 대화방을 연 뒤(또는 보낸 뒤) 1분 동안만
+    }
+    long replyStart = 0;
     void confirmReply(String text) {
         replyText = text;
         bubbleK("reply", "💬 " + HaruNotiListener.kakaoWho + "에게 이렇게 보낼까?\n\"" + text + "\"\n👉 여기를 누르면 보내요 (다시 말하려면 나를 눌러)", 20000);
@@ -470,7 +520,7 @@ public class FloatPetService extends Service {
                 for (android.app.RemoteInput ri : a.getRemoteInputs()) res.putCharSequence(ri.getResultKey(), text);
                 android.app.RemoteInput.addResultsToIntent(a.getRemoteInputs(), fill, res);
                 a.actionIntent.send(this, 0, fill);
-                replyUntil = System.currentTimeMillis() + 180000;
+                replyUntil = System.currentTimeMillis() + 600000; replyStart = System.currentTimeMillis();
                 bubble("보냈어! ✓ 더 할 말 있으면 나를 눌러", 4000);
                 return;
             } catch (Exception e) { Log.e("HaruPet", "kakao reply", e); }
@@ -485,14 +535,14 @@ public class FloatPetService extends Service {
     void listen() {
         if (Build.VERSION.SDK_INT >= 23 && checkSelfPermission(android.Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) { open("mic"); return; }
         if (!SpeechRecognizer.isRecognitionAvailable(this)) { open("mic"); return; }
-        bubble(System.currentTimeMillis() < replyUntil ? "🎤 " + HaruNotiListener.kakaoWho + "에게 보낼 말을 해 줘!" : "👂 듣고 있어… 말해 줘!", 9000);
+        bubble(inKakaoChat() ? "🎤 " + HaruNotiListener.kakaoWho + "에게 보낼 말을 해 줘!" : "👂 듣고 있어… 말해 줘!", 9000);
         micRed(true);
         final SpeechRecognizer sr = SpeechRecognizer.createSpeechRecognizer(this);
         sr.setRecognitionListener(new RecognitionListener() {
             public void onResults(Bundle b) {
                 ArrayList<String> m = b.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
                 sr.destroy(); micRed(false); h.postDelayed(() -> beepRestore(FloatPetService.this), 900);
-                if (m != null && !m.isEmpty() && System.currentTimeMillis() < replyUntil && HaruNotiListener.kakaoOpen != null) confirmReply(m.get(0));   // 💬 카톡 답장
+                if (m != null && !m.isEmpty() && HaruNotiListener.kakaoOpen != null && inKakaoChat()) confirmReply(m.get(0));   // 💬 카톡 답장
                 else if (m != null && !m.isEmpty()) { bubble("👂 \"" + m.get(0) + "\"", 2500); submit(m.get(0)); }
                 else bubble("잘 못 들었어 🥲 다시 눌러 줘", 3000);
             }

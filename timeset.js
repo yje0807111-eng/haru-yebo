@@ -49,17 +49,18 @@ function drawSet() {
 ${window.Native ? `<div class="card"><h3>🐶 화면 위 팻</h3><label class="chk"><input type="checkbox" id="s_float" ${S.floatOff ? '' : 'checked'}> 하루 예보를 닫아도 다른 앱 위에 팻 띄우기</label><p class="note small">팻을 끌어서 옮기고, 누르면 하루 예보가 열려요.</p><button class="btn ghost small" id="s_diag">🩺 팻 상태 보기</button><pre id="s_diagOut" style="white-space:pre-wrap;font-size:11px;max-height:300px;overflow:auto"></pre></div>` : ''}
   <div class="card"><h3>🐾 팻 기분</h3><div class="seg" id="s_temper">${[['active', '😆 활발'], ['normal', '🙂 평범'], ['shy', '🥺 소심']].map(([k, n]) => `<button data-tm="${k}" class="${(S.me.temper || 'normal') === k ? 'on' : ''}">${n}</button>`).join('')}</div><p class="note small">활발 = 화면을 아주 신나게 뛰어다녀요 · 소심 = 거의 가만히</p></div>
   <div class="card"><h3>말 걸고 움직이는 정도</h3>
-    <div class="seg" id="s_freq">${[['often', '자주'], ['normal', '보통'], ['rare', '가끔'], ['quiet', '조용히']].map(([k, n]) => `<button data-f="${k}" class="${S.talk.freq === k ? 'on' : ''}">${n}</button>`).join('')}</div>
+    <div class="seg" id="s_freq">${[['often', '자주'], ['normal', '보통'], ['rare', '가끔'], ['quiet', '조용히']].map(([k, n]) => `<button data-f="${k}" class="${S.talk.freq === k ? 'on' : ''}">${n}</button>`).join('')}</div><p class="note small">말 걸기: 자주 = 5분마다 · 보통 = 20분 · 가끔 = 30분 · 조용히 = 말 안 함</p>
     <p class="note" style="margin:12px 0 4px">🎤 마이크 켜질 때 '띵' 소리</p><div class="seg" id="s_mb">${[[2, '보통'], [1, '작게'], [0, '끄기']].map(([k, n]) => `<button data-mb="${k}" class="${(S.talk.micBeep ?? 1) === k ? 'on' : ''}">${n}</button>`).join('')}</div>
     <label class="note" style="display:block;margin-top:10px">🔊 짖는 소리 크기 <input type="range" id="s_vol" min="0" max="100" step="5" value="${Math.round(S.talk.volume * 100)}" style="padding:0;border:0"></label></div>
+${window.Native ? `<div class="card"><h3>💬 카톡 알림</h3><label class="chk"><input type="checkbox" id="s_kakao" ${S.kakaoOff ? '' : 'checked'}> 카톡이 오면 팻이 알려 주기</label><p class="note small" id="s_kakaoSt">확인 중…</p><p class="note small" id="s_usageSt"></p></div>` : ''}
+  <div class="card"><h3>📤 친구·가족에게 알려 주기</h3><p class="note small">카카오톡 등으로 '하루 예보 받기' 주소를 보내요. 받은 사람이 누르면 바로 받을 수 있어요.</p><button class="btn" id="s_share">📤 하루 예보 보내기</button></div>
   <div class="card"><h3>🤖 AI 연결 (선택)</h3>
     <p class="note small">연결하면 팻이 더 똑똑하게 이야기하고 검색 결과도 짧게 정리해 줘요. 열쇠는 이 휴대폰에만 저장돼요. 연결하지 않아도 기본 대화·검색은 돼요.</p>
     <div class="seg" id="s_ai"><button data-p="none" class="${S.ai.provider !== 'claude' ? 'on' : ''}">연결 안 함</button><button data-p="claude" class="${S.ai.provider === 'claude' ? 'on' : ''}">Claude</button></div>
     <input id="s_key" type="password" placeholder="Claude API 열쇠 붙여 넣기 (sk-ant-…)" value="${S.ai.key ? '••••••••' : ''}" style="margin-top:8px" autocomplete="off"></div>
-${window.Native ? `<div class="card"><h3>💬 카톡 알림</h3><label class="chk"><input type="checkbox" id="s_kakao" ${S.kakaoOff ? '' : 'checked'}> 카톡이 오면 팻이 알려 주기</label><p class="note small" id="s_kakaoSt">확인 중…</p></div>` : ''}
   <div class="card"><h3>🔔 알림</h3><button class="btn ghost" id="s_notif">알림 허락하기</button><p class="note small">알람이 울릴 때 휴대폰 알림도 같이 띄워요.</p></div>
-  <div class="card"><h3>📤 친구·가족에게 알려 주기</h3><p class="note small">카카오톡 등으로 '하루 예보 받기' 주소를 보내요. 받은 사람이 누르면 바로 받을 수 있어요.</p><button class="btn" id="s_share">📤 하루 예보 보내기</button></div>
   <div class="card"><h3>📱 이 앱</h3><p class="note small">하루 예보 휴대폰판 <span id="s_ver"></span> · 주소록·대화는 이 휴대폰에만 저장돼요.</p>${window.Native ? `<button class="btn ghost small" id="s_upd">🔄 새 버전 확인${Native.upd ? ' <i class="badge">1</i>' : ''}</button>` : ''}</div>`;
+  if (window.Native && Native.usageCheck) Native.usageCheck().then(ok => { const e = $('#s_usageSt'); if (e && !S.kakaoOff) e.innerHTML = ok ? '✅ 카톡 방을 나오면 바로 알아채요' : '카톡 방을 나오면 바로 알아채려면 <button class="btn small ghost" id="s_usageGo">사용 기록 허락</button> (안 하면 1분 뒤 저절로 끝나요)'; });
   if (window.Native && Native.kakaoCheck) Native.kakaoCheck().then(ok => { const e = $('#s_kakaoSt'); if (e) e.innerHTML = S.kakaoOff ? '꺼져 있어요' : ok ? '✅ 켜져 있어요 — 카톡이 오면 알려 드려요' : '⚠️ 휴대폰 설정에서 허락이 필요해요 <button class="btn small" id="s_kakaoGo">허락하러 가기</button>'; });
   fetch('version.json').then(r => r.json()).then(v => { const e = $('#s_ver'); if (e) e.textContent = '(' + v.build + '판)'; }).catch(() => {});
 }
@@ -70,7 +71,7 @@ $('#setBox').addEventListener('input', e => {
   if (e.target.id === 's_key' && !/^•+$/.test(e.target.value)) dset({ ai: { key: e.target.value.trim() } });
 });
 $('#setBox').addEventListener('click', async e => {
-  { const ub = e.target.closest && e.target.closest('#s_upd, #s_kakaoGo, #s_mute'); if (ub && ub !== e.target) { ub.click(); return; } }   // 11-06: 단추 안 빨간 1·글자를 눌러도 단추로
+  { const ub = e.target.closest && e.target.closest('#s_upd, #s_kakaoGo, #s_mute, #s_usageGo'); if (ub && ub !== e.target) { ub.click(); return; } }   // 11-06: 단추 안 빨간 1·글자를 눌러도 단추로
   const sz = e.target.closest('[data-sz]'); if (sz) { $$('#s_size button').forEach(b => b.classList.toggle('on', b === sz)); dset({ me: { size: +sz.dataset.sz } }); window.prevSize = +sz.dataset.sz; pet._h = 0; }   // 미리 보기만 (저장해야 바뀜)
   const spb = e.target.closest('[data-sp]'); if (spb) { $$('#s_sp button').forEach(b => b.classList.toggle('on', b === spb)); dset({ me: { species: spb.dataset.sp } }); window.prevSp = spb.dataset.sp; pet._h = 0; setPose('joy'); return; }   // 미리 보기만 (저장해야 바뀜)
   if (e.target.id === 's_mute') { setMute(!S.talk.mute); return; }   // 바로 (저장 필요 없음)

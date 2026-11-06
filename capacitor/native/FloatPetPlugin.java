@@ -57,6 +57,8 @@ public class FloatPetPlugin extends Plugin {
             .putInt("micBeep", call.getInt("micBeep", 1))
             .putString("temper", call.getString("temper", "normal"))
             .putBoolean("kakao", call.getBoolean("kakao", true))
+            .putInt("talkMin", call.getInt("talkMin", 20))
+            .putString("uname", call.getString("uname", ""))
             .putString("idle", call.getString("idle", ""))
             .putString("walk", call.getString("walk", ""))
             .putString("run", call.getString("run", ""))
@@ -131,6 +133,21 @@ public class FloatPetPlugin extends Plugin {
     public void openKakao(PluginCall call) {
         try { if (HaruNotiListener.kakaoOpen != null) HaruNotiListener.kakaoOpen.send(); else { Intent i = getContext().getPackageManager().getLaunchIntentForPackage("com.kakao.talk"); if (i != null) { i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK); getContext().startActivity(i); } } } catch (Exception ignored) { }
         call.resolve();
+    }
+    @PluginMethod
+    public void usageAccess(PluginCall call) {   // 카톡 방을 나왔는지 알기 (사용 기록 접근)
+        boolean ok = false;
+        try {
+            android.app.AppOpsManager ao = (android.app.AppOpsManager) getContext().getSystemService(android.content.Context.APP_OPS_SERVICE);
+            int m = ao.checkOpNoThrow(android.app.AppOpsManager.OPSTR_GET_USAGE_STATS, android.os.Process.myUid(), getContext().getPackageName());
+            ok = m == android.app.AppOpsManager.MODE_ALLOWED;
+        } catch (Exception ignored) { }
+        JSObject r = new JSObject(); r.put("granted", ok); call.resolve(r);
+    }
+    @PluginMethod
+    public void openUsageAccess(PluginCall call) {
+        Intent i = new Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS); i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        getContext().startActivity(i); call.resolve();
     }
     @PluginMethod
     public void notiAccess(PluginCall call) {
