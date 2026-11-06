@@ -150,6 +150,11 @@ public class FloatPetPlugin extends Plugin {
         getContext().startActivity(i); call.resolve();
     }
     @PluginMethod
+    public void openAppSettings(PluginCall call) {
+        Intent i = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:" + getContext().getPackageName())); i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        getContext().startActivity(i); call.resolve();
+    }
+    @PluginMethod
     public void notiAccess(PluginCall call) {
         String en = Settings.Secure.getString(getContext().getContentResolver(), "enabled_notification_listeners");
         JSObject r = new JSObject(); r.put("granted", en != null && en.contains(getContext().getPackageName())); call.resolve(r);

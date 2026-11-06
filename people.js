@@ -123,17 +123,32 @@ function addContacts(add) {
   save(); return added;
 }
 async function pickPhoneContacts() {
+  const st = t => { const e = $('#pSt'); if (e) e.innerHTML = t; };
+  const btn = $('#pPick'); if (btn) btn.disabled = true;
+  st('📱 연락처를 가져오는 중… (사람이 많으면 조금 걸려요)');
   if (window.Native && Native.contacts) {   // 앱 파일: 한 번 허락하면 생일까지
-    try { const l = await Native.contacts(); if (l) { const n = addContacts(l); say(l.length ? `📒 ${n}명을 주소록에 넣었어! 생일 있는 사람은 미리 알려 줄게 🎂` : '연락처를 쓰려면 허락이 필요해 🥲', { pose: 'joy', ms: 7000 }); drawPeople(); return; } } catch { }
+    try {
+      const l = await Native.contacts();
+      if (l) {
+        const n = addContacts(l); drawPeople();
+        st(`✅ ${l.length}명을 읽어서 새로 ${n}명을 넣었어요!`);
+        say(`📒 ${n}명을 주소록에 넣었어! 생일 있는 사람은 미리 알려 줄게 🎂`, { pose: 'joy', ms: 7000 });
+        return;
+      }
+    } catch (e) {
+      if (btn) btn.disabled = false;
+      if (e && e.denied) { st('⚠️ 연락처 허락이 꺼져 있어요. <button class="btn small" id="pSet">휴대폰 설정에서 켜기</button><br><span class="small">[권한] → [연락처] → [허용] 을 눌러 주세요</span>'); const b = $('#pSet'); if (b) b.onclick = () => Native.appSettings(); return; }
+      st('⚠️ 연락처를 못 가져왔어요: ' + esc(String((e && e.message) || e)).slice(0, 120)); return;
+    }
   }
-  if (!('contacts' in navigator && 'ContactsManager' in window)) { $('#vcfFile').click(); return; }
+  if (!('contacts' in navigator && 'ContactsManager' in window)) { st('이 화면에서는 휴대폰 연락처를 바로 못 읽어요. 연락처 파일(.vcf)을 골라 주세요.'); if (btn) btn.disabled = false; $('#vcfFile').click(); return; }
   try {
     const props = await navigator.contacts.getProperties();
     const list = await navigator.contacts.select(props.filter(p => ['name', 'tel', 'address'].includes(p)), { multiple: true });
     const n = addContacts(list.map(c => ({ name: (c.name || [])[0] || (c.tel || [])[0] || '이름 없음', phones: (c.tel || []).map(x => ({ type: '휴대폰', num: fmtPhone(x) })), addr: ((c.address || [])[0] || {}).addressLine ? c.address[0].addressLine.join(' ') : '' })));
-    say(`📒 ${n}명을 주소록에 넣었어! 생일은 ✏️ 고치기에서 넣어 주면 미리 알려 줄게 🎂`, { pose: 'joy', ms: 7000 });
-    drawPeople();
-  } catch { say('연락처를 못 가져왔어 🥲 다시 해 볼래?', { ms: 3500 }); }
+    drawPeople(); st(`✅ 새로 ${n}명을 넣었어요!`);
+  } catch { st('⚠️ 연락처를 못 가져왔어요. 다시 눌러 주세요.'); }
+  if (btn) btn.disabled = false;
 }
 $('#vcfFile').onchange = async e => {
   const f = e.target.files[0]; e.target.value = ''; if (!f) return;
@@ -159,8 +174,8 @@ function parseVcf(text) {
 }
 function drawPeople() {
   const all = S.contacts.slice().sort((a, b) => a.name.localeCompare(b.name, 'ko'));
-  $('#pAsk').innerHTML = all.length ? '' : `<h3>📒 너의 핸드폰에 있는 사람들을 내가 관리해 줄까?</h3><p class="note">한 번만 허락하면 전화번호까지 정리해서, 생일도 챙기고 연락도 도와줄게. 이 휴대폰 안에만 저장돼.</p>
-    <div class="row"><button class="btn" id="pPick">📱 휴대폰 연락처 가져오기</button></div><p class="note small">아이폰은 연락처 앱에서 '모든 연락처'를 길게 눌러 내보낸 파일(.vcf)을 고르면 돼요.</p>`;
+  $('#pAsk').innerHTML = all.length ? `<div class="row"><button class="btn small ghost" id="pPick">🔄 휴대폰 연락처 다시 불러오기</button></div><p class="note small" id="pSt"></p>` : `<h3>📒 너의 핸드폰에 있는 사람들을 내가 관리해 줄까?</h3><p class="note">한 번만 허락하면 전화번호까지 정리해서, 생일도 챙기고 연락도 도와줄게. 이 휴대폰 안에만 저장돼.</p>
+    <div class="row"><button class="btn" id="pPick">📱 휴대폰 연락처 가져오기</button></div><p class="note small" id="pSt"></p><p class="note small">아이폰은 연락처 앱에서 '모든 연락처'를 길게 눌러 내보낸 파일(.vcf)을 고르면 돼요.</p>`;
   const q = ($('#pQ').value || '').trim();
   const list = q ? all.filter(c => c.name.includes(q) || c.phones.some(p => p.num.replace(/-/g, '').includes(q.replace(/-/g, '')))) : all;
   $('#pList').innerHTML = list.slice(0, 300).map(c => {

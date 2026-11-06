@@ -21,7 +21,9 @@
   // 📒 연락처: 한 번 허락하면 이름·번호·주소·생일까지
   N.contacts = async () => {
     const CT = Pl.Contacts; if (!CT) return null;
-    const p = await CT.requestPermissions(); if (p.contacts !== 'granted') return [];
+    let p = await CT.checkPermissions().catch(() => ({}));
+    if (p.contacts !== 'granted') p = await CT.requestPermissions();
+    if (p.contacts !== 'granted') { const e = new Error('denied'); e.denied = true; throw e; }   // 11-07: 거부면 알려 주기
     const r = await CT.getContacts({ projection: { name: true, phones: true, birthday: true, postalAddresses: true } });
     return (r.contacts || []).map(c => ({
       name: (c.name && (c.name.display || [c.name.family, c.name.given].filter(Boolean).join(''))) || ((c.phones || [])[0] || {}).number || '이름 없음',
@@ -129,6 +131,7 @@
   if (FP) FP.addListener('kakao', d => { if (document.hidden || S.kakaoOff) return; say(`💬 <b>${esc(d.room && d.room !== d.who ? d.room + '(' + d.who + ')' : d.who)}</b>한테 카톡 왔어!<br>"${esc(d.text)}"`, { pose: 'bark', ms: 15000, buttons: [{ label: '💬 카톡 열기', act: () => { hideBubble(); FP.openKakao().catch(() => {}); } }, { label: '나중에', ghost: true }] }); cry(true); });
   N.kakaoCheck = async () => { if (!FP || !FP.notiAccess) return false; const r = await FP.notiAccess().catch(() => ({ granted: false })); return !!r.granted; };
   N.usageCheck = async () => { if (!FP || !FP.usageAccess) return false; const r = await FP.usageAccess().catch(() => ({ granted: false })); return !!r.granted; };
+  N.appSettings = () => { const F = Pl.FloatPet; if (F && F.openAppSettings) F.openAppSettings().catch(() => {}); };
   N.kakaoAsk = async force => {
     if (!FP || S.kakaoOff) return; if (await N.kakaoCheck()) return;
     if (!force && S.kakaoAsked === today()) return; patch({ kakaoAsked: today() });
