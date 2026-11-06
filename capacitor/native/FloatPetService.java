@@ -426,18 +426,74 @@ public class FloatPetService extends Service {
         } catch (Exception ignored) { }
         savedVol = null;
     }
+
+    // ── 💬 카톡: 노란 말풍선 → 누르면 그 대화방 → 팻 누르고 말하면 글로 써서 보내기(한 번 더 확인)
+    GradientDrawable bubBg;
+    String bubKind = "", nextKind = "";          // "" 보통 · "kakao" 누르면 대화방 · "reply" 누르면 보내기
+    String replyText = "";
+    long replyUntil = 0;          // 이 시간까지는 팻을 누르고 한 말 = 카톡 답장
+    void bubTap() {
+        String k = bubKind; bubKind = "";
+        if (bub != null) bub.setVisibility(View.GONE);
+        if ("kakao".equals(k)) openKakao();
+        else if ("reply".equals(k)) sendReply(replyText);
+    }
+    void bubbleK(String kind, String text, int ms) { nextKind = kind; bubble(text, ms); h.postDelayed(() -> { if (bub == null || bub.getVisibility() != View.VISIBLE) bubKind = ""; }, ms + 100); }
+    void openKakao() {
+        boolean ok = false;
+        PendingIntent pi = HaruNotiListener.kakaoOpen;
+        if (pi != null) {
+            try {
+                if (Build.VERSION.SDK_INT >= 34) {
+                    android.app.ActivityOptions o = android.app.ActivityOptions.makeBasic();
+                    o.setPendingIntentBackgroundActivityStartMode(android.app.ActivityOptions.MODE_BACKGROUND_ACTIVITY_START_ALLOWED);
+                    pi.send(this, 0, null, null, null, null, o.toBundle());
+                } else pi.send();
+                ok = true;
+            } catch (Exception e) { Log.e("HaruPet", "kakao open", e); }
+        }
+        if (!ok) { try { Intent i = getPackageManager().getLaunchIntentForPackage("com.kakao.talk"); if (i != null) { i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK); startActivity(i); ok = true; } } catch (Exception ignored) { } }
+        if (ok) {
+            replyUntil = System.currentTimeMillis() + 180000;
+            h.postDelayed(() -> bubble("💬 " + HaruNotiListener.kakaoWho + " 대화방을 열었어!\n나를 누르고 말하면 글로 써 줄게 🎤", 7000), 900);
+        } else bubble("카톡을 못 열었어 🥲", 3000);
+    }
+    void confirmReply(String text) {
+        replyText = text;
+        bubbleK("reply", "💬 " + HaruNotiListener.kakaoWho + "에게 이렇게 보낼까?\n\"" + text + "\"\n👉 여기를 누르면 보내요 (다시 말하려면 나를 눌러)", 20000);
+    }
+    void sendReply(String text) {
+        Notification.Action a = HaruNotiListener.kakaoReply;
+        if (a != null && a.getRemoteInputs() != null) {
+            try {
+                Intent fill = new Intent(); Bundle res = new Bundle();
+                for (android.app.RemoteInput ri : a.getRemoteInputs()) res.putCharSequence(ri.getResultKey(), text);
+                android.app.RemoteInput.addResultsToIntent(a.getRemoteInputs(), fill, res);
+                a.actionIntent.send(this, 0, fill);
+                replyUntil = System.currentTimeMillis() + 180000;
+                bubble("보냈어! ✓ 더 할 말 있으면 나를 눌러", 4000);
+                return;
+            } catch (Exception e) { Log.e("HaruPet", "kakao reply", e); }
+        }
+        try {   // 답장 단추가 없으면: 글을 복사해 두고 붙여 넣게
+            android.content.ClipboardManager cm = (android.content.ClipboardManager) getSystemService(CLIPBOARD_SERVICE);
+            cm.setPrimaryClip(android.content.ClipData.newPlainText("하루 예보", text));
+            bubble("글을 복사해 뒀어! 📋\n카톡 입력칸을 꾹 눌러 [붙여넣기] 해 줘", 6000);
+        } catch (Exception e) { bubble("못 보냈어 🥲", 3000); }
+    }
     // ── 바탕화면 🎤: 그 자리에서 듣기
     void listen() {
         if (Build.VERSION.SDK_INT >= 23 && checkSelfPermission(android.Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) { open("mic"); return; }
         if (!SpeechRecognizer.isRecognitionAvailable(this)) { open("mic"); return; }
-        bubble("👂 듣고 있어… 말해 줘!", 9000);
+        bubble(System.currentTimeMillis() < replyUntil ? "🎤 " + HaruNotiListener.kakaoWho + "에게 보낼 말을 해 줘!" : "👂 듣고 있어… 말해 줘!", 9000);
         micRed(true);
         final SpeechRecognizer sr = SpeechRecognizer.createSpeechRecognizer(this);
         sr.setRecognitionListener(new RecognitionListener() {
             public void onResults(Bundle b) {
                 ArrayList<String> m = b.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
                 sr.destroy(); micRed(false); h.postDelayed(() -> beepRestore(FloatPetService.this), 900);
-                if (m != null && !m.isEmpty()) { bubble("👂 \"" + m.get(0) + "\"", 2500); submit(m.get(0)); }
+                if (m != null && !m.isEmpty() && System.currentTimeMillis() < replyUntil && HaruNotiListener.kakaoOpen != null) confirmReply(m.get(0));   // 💬 카톡 답장
+                else if (m != null && !m.isEmpty()) { bubble("👂 \"" + m.get(0) + "\"", 2500); submit(m.get(0)); }
                 else bubble("잘 못 들었어 🥲 다시 눌러 줘", 3000);
             }
             public void onError(int err) {
@@ -471,18 +527,19 @@ public class FloatPetService extends Service {
         try {
             if (bub == null) {
                 bub = new TextView(this);
-                GradientDrawable g = new GradientDrawable();
-                g.setColor(Color.WHITE); g.setStroke(dp(2), Color.parseColor("#2B2118")); g.setCornerRadius(dp(18));
-                bub.setBackground(g);
+                bubBg = new GradientDrawable();
+                bubBg.setColor(Color.WHITE); bubBg.setStroke(dp(2), Color.parseColor("#2B2118")); bubBg.setCornerRadius(dp(18));
+                bub.setBackground(bubBg);
                 bub.setPadding(dp(14), dp(10), dp(14), dp(10));
                 bub.setTextColor(Color.parseColor("#2B2118"));
                 bub.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15);
                 bub.setMaxWidth(sw() - dp(40));
                 bubLp = params();
-                bub.setOnClickListener(v -> bub.setVisibility(View.GONE));
+                bub.setOnClickListener(v -> bubTap());
                 wm.addView(bub, bubLp);
             }
-            bub.setText(text);
+            bub.setText(text); bubKind = nextKind; nextKind = "";   // 보통 말풍선이 오면 카톡 표시는 풀림
+            if (bubBg != null) bubBg.setColor(Color.parseColor(bubKind.isEmpty() ? "#FFFFFF" : "#FEE500"));   // 카톡 말풍선은 노랑
             bub.setVisibility(wantShown ? View.VISIBLE : View.GONE);
             bub.measure(View.MeasureSpec.makeMeasureSpec(sw() - dp(40), View.MeasureSpec.AT_MOST), View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED));
             int bw = bub.getMeasuredWidth(), bh = bub.getMeasuredHeight();
@@ -554,11 +611,12 @@ public class FloatPetService extends Service {
 
     static void quitStatic() { if (me != null) me.h.post(() -> { try { me.stopSelf(); } catch (Exception ignored) { } }); }
     // 💬 카톡이 오면 바탕화면 팻이 알려 줌 (하루 예보가 열려 있으면 앱 안에서 알려 줌)
+    static void openKakaoStatic() { if (me != null) me.h.post(me::openKakao); }
     static void kakaoStatic(String who, String msg, String room) {
         if (me == null || !wantShown) return;
         me.h.post(() -> {
-            String head = room != null && !room.isEmpty() && !room.equals(who) ? "💬 카톡 · " + room + "\n" + who : "💬 카톡 · " + who;
-            me.bubble(head + "\n" + msg, 9000);
+            String from = room != null && !room.isEmpty() && !room.equals(who) ? room + "(" + who + ")" : who;
+            me.bubbleK("kakao", "💬 " + from + "한테 카톡 왔어!\n\"" + msg + "\"\n👉 누르면 카톡 열어 줄게", 15000);
             SharedPreferences sp = me.getSharedPreferences("pet", 0);
             if (sp.getBoolean("cries", true)) me.bark(true, sp.getFloat("vol", 0.5f));
         });

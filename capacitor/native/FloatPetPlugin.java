@@ -128,6 +128,11 @@ public class FloatPetPlugin extends Plugin {
         if (inst != null) inst.notifyListeners("kakao", d, true);
     }
     @PluginMethod
+    public void openKakao(PluginCall call) {
+        try { if (HaruNotiListener.kakaoOpen != null) HaruNotiListener.kakaoOpen.send(); else { Intent i = getContext().getPackageManager().getLaunchIntentForPackage("com.kakao.talk"); if (i != null) { i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK); getContext().startActivity(i); } } } catch (Exception ignored) { }
+        call.resolve();
+    }
+    @PluginMethod
     public void notiAccess(PluginCall call) {
         String en = Settings.Secure.getString(getContext().getContentResolver(), "enabled_notification_listeners");
         JSObject r = new JSObject(); r.put("granted", en != null && en.contains(getContext().getPackageName())); call.resolve(r);

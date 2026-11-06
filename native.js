@@ -120,7 +120,7 @@
     window.say = say = function (text, opt = {}) { _say(text, opt); if (document.hidden) FP.say({ text: plain(text), ms: Math.min(opt.ms || (5000 + String(text).length * 80), 15000) }).catch(() => {}); };
   }
   // 💬 카톡이 오면 (하루 예보가 열려 있을 때는 여기서 알려 줌)
-  if (FP) FP.addListener('kakao', d => { if (document.hidden || S.kakaoOff) return; say(`💬 카톡 왔어!<br><b>${esc(d.room && d.room !== d.who ? d.room + ' · ' + d.who : d.who)}</b>: ${esc(d.text)}`, { pose: 'bark', ms: 9000 }); cry(true); });
+  if (FP) FP.addListener('kakao', d => { if (document.hidden || S.kakaoOff) return; say(`💬 <b>${esc(d.room && d.room !== d.who ? d.room + '(' + d.who + ')' : d.who)}</b>한테 카톡 왔어!<br>"${esc(d.text)}"`, { pose: 'bark', ms: 15000, buttons: [{ label: '💬 카톡 열기', act: () => { hideBubble(); FP.openKakao().catch(() => {}); } }, { label: '나중에', ghost: true }] }); cry(true); });
   N.kakaoCheck = async () => { if (!FP || !FP.notiAccess) return false; const r = await FP.notiAccess().catch(() => ({ granted: false })); return !!r.granted; };
   N.kakaoAsk = async force => {
     if (!FP || S.kakaoOff) return; if (await N.kakaoCheck()) return;
