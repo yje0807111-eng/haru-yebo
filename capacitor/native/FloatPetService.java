@@ -461,13 +461,14 @@ public class FloatPetService extends Service {
     // ── 💬 카톡: 노란 말풍선 → 누르면 그 대화방 → 팻 누르고 말하면 글로 써서 보내기(한 번 더 확인)
     GradientDrawable bubBg;
     String bubKind = "", nextKind = "";          // "" 보통 · "kakao" 누르면 대화방 · "reply" 누르면 보내기
-    String replyText = "";
+    String replyText = "", telNum = "";
     long replyUntil = 0;          // 이 시간까지는 팻을 누르고 한 말 = 카톡 답장
     void bubTap() {
         String k = bubKind; bubKind = "";
         if (bub != null) bub.setVisibility(View.GONE);
         if ("kakao".equals(k)) openKakao();
         else if ("reply".equals(k)) sendReply(replyText);
+        else if ("tel".equals(k)) { try { Intent i = new Intent(Intent.ACTION_DIAL, android.net.Uri.parse("tel:" + android.net.Uri.encode(telNum.replaceAll("[^0-9+*#]", "")))); i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK); startActivity(i); } catch (Exception e) { bubble("전화 화면을 못 열었어 🥲", 3000); } }
     }
     void bubbleK(String kind, String text, int ms) { nextKind = kind; bubble(text, ms); h.postDelayed(() -> { if (bub == null || bub.getVisibility() != View.VISIBLE) bubKind = ""; }, ms + 100); }
     void openKakao() {
@@ -491,21 +492,9 @@ public class FloatPetService extends Service {
     }
 
     // 지금 카톡 대화방이 앞에 있나? (사용 기록 허락 있으면 정확히, 없으면 1분 동안만)
-    boolean inKakaoChat() {
+    boolean inKakaoChat() {   // 11-07 권한 줄임: 대화방을 연 뒤(또는 보낸 뒤) 1분 동안만 답장
         long now = System.currentTimeMillis();
-        if (now > replyUntil) return false;
-        try {
-            android.app.usage.UsageStatsManager um = (android.app.usage.UsageStatsManager) getSystemService(Context.USAGE_STATS_SERVICE);
-            android.app.usage.UsageEvents ev = um.queryEvents(now - 15 * 60000, now);
-            android.app.usage.UsageEvents.Event e = new android.app.usage.UsageEvents.Event();
-            String pkg = null, cls = null; boolean any = false;
-            while (ev.hasNextEvent()) {
-                ev.getNextEvent(e);
-                if (e.getEventType() == android.app.usage.UsageEvents.Event.MOVE_TO_FOREGROUND) { pkg = e.getPackageName(); cls = e.getClassName(); any = true; }
-            }
-            if (any) { boolean in = "com.kakao.talk".equals(pkg) && cls != null && cls.toLowerCase().contains("chat"); if (!in) replyUntil = 0; return in; }
-        } catch (Exception ignored) { }
-        return now - replyStart < 60000;   // 허락이 없으면: 대화방을 연 뒤(또는 보낸 뒤) 1분 동안만
+        return now < replyUntil && now - replyStart < 60000;
     }
     long replyStart = 0;
     void confirmReply(String text) {
@@ -671,6 +660,7 @@ public class FloatPetService extends Service {
             if (sp.getBoolean("cries", true)) me.bark(true, sp.getFloat("vol", 0.5f));
         });
     }
+    static void sayTelStatic(String text, String tel, int ms) { if (me != null) me.h.post(() -> { me.telNum = tel; me.bubbleK("tel", text, ms); }); }
     static void sayStatic(String text, int ms) { if (me != null) me.h.post(() -> me.bubble(text, ms)); }
 
     void open(String what) {

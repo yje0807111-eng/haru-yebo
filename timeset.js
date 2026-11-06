@@ -52,7 +52,7 @@ ${window.Native ? `<div class="card"><h3>🐶 화면 위 팻</h3><label class="c
     <div class="seg" id="s_freq">${[['often', '자주'], ['normal', '보통'], ['rare', '가끔'], ['quiet', '조용히']].map(([k, n]) => `<button data-f="${k}" class="${S.talk.freq === k ? 'on' : ''}">${n}</button>`).join('')}</div><p class="note small">말 걸기: 자주 = 5분마다 · 보통 = 20분 · 가끔 = 30분 · 조용히 = 말 안 함</p>
     <p class="note" style="margin:12px 0 4px">🎤 마이크 켜질 때 '띵' 소리</p><div class="seg" id="s_mb">${[[2, '보통'], [1, '작게'], [0, '끄기']].map(([k, n]) => `<button data-mb="${k}" class="${(S.talk.micBeep ?? 1) === k ? 'on' : ''}">${n}</button>`).join('')}</div>
     <label class="note" style="display:block;margin-top:10px">🔊 짖는 소리 크기 <input type="range" id="s_vol" min="0" max="100" step="5" value="${Math.round(S.talk.volume * 100)}" style="padding:0;border:0"></label></div>
-${window.Native ? `<div class="card"><h3>💬 카톡 알림</h3><label class="chk"><input type="checkbox" id="s_kakao" ${S.kakaoOff ? '' : 'checked'}> 카톡이 오면 팻이 알려 주기</label><p class="note small" id="s_kakaoSt">확인 중…</p><p class="note small" id="s_usageSt"></p></div>` : ''}
+${window.Native ? `<div class="card"><h3>💬 카톡 알림</h3><label class="chk"><input type="checkbox" id="s_kakao" ${S.kakaoOff ? '' : 'checked'}> 카톡이 오면 팻이 알려 주기</label><p class="note small" id="s_kakaoSt">확인 중…</p><p class="note small">카톡 대화방을 연 뒤 1분 동안 나를 누르고 말하면 답장이 돼요</p></div>` : ''}
   <div class="card"><h3>📤 친구·가족에게 알려 주기</h3><p class="note small">카카오톡 등으로 '하루 예보 받기' 주소를 보내요. 받은 사람이 누르면 바로 받을 수 있어요.</p><button class="btn" id="s_share">📤 하루 예보 보내기</button></div>
   <div class="card"><h3>🤖 AI 연결 (선택)</h3>
     <p class="note small">연결하면 팻이 더 똑똑하게 이야기하고 검색 결과도 짧게 정리해 줘요. 열쇠는 이 휴대폰에만 저장돼요. 연결하지 않아도 기본 대화·검색은 돼요.</p>
@@ -60,7 +60,6 @@ ${window.Native ? `<div class="card"><h3>💬 카톡 알림</h3><label class="ch
     <input id="s_key" type="password" placeholder="Claude API 열쇠 붙여 넣기 (sk-ant-…)" value="${S.ai.key ? '••••••••' : ''}" style="margin-top:8px" autocomplete="off"></div>
   <div class="card"><h3>🔔 알림</h3><button class="btn ghost" id="s_notif">알림 허락하기</button><p class="note small">알람이 울릴 때 휴대폰 알림도 같이 띄워요.</p></div>
   <div class="card"><h3>📱 이 앱</h3><p class="note small">하루 예보 휴대폰판 <span id="s_ver"></span> · 주소록·대화는 이 휴대폰에만 저장돼요.</p>${window.Native ? `<button class="btn ghost small" id="s_upd">🔄 새 버전 확인${Native.upd ? ' <i class="badge">1</i>' : ''}</button>` : ''}<p class="note small" id="s_updSt"></p></div>`;
-  if (window.Native && Native.usageCheck) Native.usageCheck().then(ok => { const e = $('#s_usageSt'); if (e && !S.kakaoOff) e.innerHTML = ok ? '✅ 카톡 방을 나오면 바로 알아채요' : '카톡 방을 나오면 바로 알아채려면 <button class="btn small ghost" id="s_usageGo">사용 기록 허락</button> (안 하면 1분 뒤 저절로 끝나요)'; });
   if (window.Native && Native.kakaoCheck) Native.kakaoCheck().then(ok => { const e = $('#s_kakaoSt'); if (e) e.innerHTML = S.kakaoOff ? '꺼져 있어요' : ok ? '✅ 켜져 있어요 — 카톡이 오면 알려 드려요' : '⚠️ 휴대폰 설정에서 허락이 필요해요 <button class="btn small" id="s_kakaoGo">허락하러 가기</button>'; });
   fetch('version.json').then(r => r.json()).then(v => { const e = $('#s_ver'); if (e) e.textContent = '(' + v.build + '판)'; }).catch(() => {});
 }

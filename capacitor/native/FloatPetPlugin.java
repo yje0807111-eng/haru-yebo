@@ -14,7 +14,7 @@ import com.getcapacitor.annotation.PermissionCallback;
 import com.getcapacitor.PermissionState;
 
 // 다른 앱 위에 떠 있는 팻 (하루 예보) — 켜기·끄기·크기·권한
-@CapacitorPlugin(name = "FloatPet", permissions = { @Permission(alias = "phone", strings = { android.Manifest.permission.CALL_PHONE }) })
+@CapacitorPlugin(name = "FloatPet", permissions = { @Permission(alias = "contacts", strings = { android.Manifest.permission.READ_CONTACTS }) })
 public class FloatPetPlugin extends Plugin {
     static FloatPetPlugin inst;
 
@@ -157,22 +157,57 @@ public class FloatPetPlugin extends Plugin {
         Intent i = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:" + getContext().getPackageName())); i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
         getContext().startActivity(i); call.resolve();
     }
-    // 📞 전화 걸기 (11-07): 허락이 있으면 바로 걸고, 처음엔 허락을 물은 뒤 걸기. 거부하면 번호가 찍힌 전화 화면
+    // 📞 전화 (11-07 권한 줄임): 번호가 찍힌 전화 화면을 엶 — 초록 단추만 누르면 됨 (전화 걸기 권한 없음)
     @PluginMethod
     public void call(PluginCall call) {
-        if (getPermissionState("phone") != PermissionState.GRANTED) { requestPermissionForAlias("phone", call, "callPermCb"); return; }
-        doCall(call, true);
-    }
-    @PermissionCallback
-    private void callPermCb(PluginCall call) { doCall(call, getPermissionState("phone") == PermissionState.GRANTED); }
-    private void doCall(PluginCall call, boolean direct) {
         String num = call.getString("num", "").replaceAll("[^0-9+*#]", "");
         try {
-            Intent i = new Intent(direct ? Intent.ACTION_CALL : Intent.ACTION_DIAL, Uri.parse("tel:" + Uri.encode(num)));
+            Intent i = new Intent(Intent.ACTION_DIAL, Uri.parse("tel:" + Uri.encode(num)));
             i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
             getContext().startActivity(i);
-            JSObject r = new JSObject(); r.put("direct", direct); call.resolve(r);
+            JSObject r = new JSObject(); r.put("direct", false); call.resolve(r);
         } catch (Exception e) { call.reject("call: " + e); }
+    }
+    // 📒 연락처 읽기 (11-07): 읽기 권한만. 이름·번호·주소·생일
+    @PluginMethod
+    public void readContacts(PluginCall call) {
+        if (getPermissionState("contacts") != PermissionState.GRANTED) { requestPermissionForAlias("contacts", call, "contactsPermCb"); return; }
+        doReadContacts(call);
+    }
+    @PermissionCallback
+    private void contactsPermCb(PluginCall call) {
+        if (getPermissionState("contacts") != PermissionState.GRANTED) { call.reject("denied"); return; }
+        doReadContacts(call);
+    }
+    private void doReadContacts(PluginCall call) {
+        new Thread(() -> {
+            try {
+                android.content.ContentResolver cr = getContext().getContentResolver();
+                java.util.LinkedHashMap<String, JSObject> map = new java.util.LinkedHashMap<>();
+                android.database.Cursor c = cr.query(android.provider.ContactsContract.CommonDataKinds.Phone.CONTENT_URI,
+                        new String[] { android.provider.ContactsContract.CommonDataKinds.Phone.CONTACT_ID, android.provider.ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME, android.provider.ContactsContract.CommonDataKinds.Phone.NUMBER }, null, null, null);
+                if (c != null) {
+                    while (c.moveToNext()) {
+                        String id = c.getString(0), nm = c.getString(1), num = c.getString(2);
+                        JSObject o = map.get(id);
+                        if (o == null) { o = new JSObject(); o.put("name", nm == null ? "" : nm); o.put("phones", new com.getcapacitor.JSArray()); o.put("addr", ""); map.put(id, o); }
+                        if (num != null) ((com.getcapacitor.JSArray) o.get("phones")).put(num);
+                    }
+                    c.close();
+                }
+                android.database.Cursor b = cr.query(android.provider.ContactsContract.Data.CONTENT_URI,
+                        new String[] { android.provider.ContactsContract.Data.CONTACT_ID, android.provider.ContactsContract.CommonDataKinds.Event.START_DATE },
+                        android.provider.ContactsContract.Data.MIMETYPE + "=? AND " + android.provider.ContactsContract.CommonDataKinds.Event.TYPE + "=?",
+                        new String[] { android.provider.ContactsContract.CommonDataKinds.Event.CONTENT_ITEM_TYPE, String.valueOf(android.provider.ContactsContract.CommonDataKinds.Event.TYPE_BIRTHDAY) }, null);
+                if (b != null) { while (b.moveToNext()) { JSObject o = map.get(b.getString(0)); if (o != null && b.getString(1) != null) o.put("bday", b.getString(1)); } b.close(); }
+                android.database.Cursor ad = cr.query(android.provider.ContactsContract.CommonDataKinds.StructuredPostal.CONTENT_URI,
+                        new String[] { android.provider.ContactsContract.CommonDataKinds.StructuredPostal.CONTACT_ID, android.provider.ContactsContract.CommonDataKinds.StructuredPostal.FORMATTED_ADDRESS }, null, null, null);
+                if (ad != null) { while (ad.moveToNext()) { JSObject o = map.get(ad.getString(0)); if (o != null && ad.getString(1) != null) o.put("addr", ad.getString(1)); } ad.close(); }
+                com.getcapacitor.JSArray arr = new com.getcapacitor.JSArray();
+                for (JSObject o : map.values()) arr.put(o);
+                JSObject r = new JSObject(); r.put("contacts", arr); call.resolve(r);
+            } catch (Exception e) { call.reject("read: " + e); }
+        }).start();
     }
     @PluginMethod
     public void notiAccess(PluginCall call) {
@@ -191,7 +226,9 @@ public class FloatPetPlugin extends Plugin {
     }
     @PluginMethod
     public void say(PluginCall call) {
-        FloatPetService.sayStatic(call.getString("text", ""), call.getInt("ms", 6000));
+        String tel = call.getString("tel", "");
+        if (tel != null && !tel.isEmpty()) FloatPetService.sayTelStatic(call.getString("text", ""), tel, call.getInt("ms", 20000));   // 📞 누르면 전화 화면
+        else FloatPetService.sayStatic(call.getString("text", ""), call.getInt("ms", 6000));
         call.resolve();
     }
     @PluginMethod

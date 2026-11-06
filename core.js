@@ -125,7 +125,7 @@ function quitApp() {   // 11-06: 조용히 끝내기 — 팻도 화면에서 사
 function dialNum(num) {
   const n = String(num || '').replace(/[^0-9+*#]/g, ''); if (!n) return;
   const F = window.Capacitor && Capacitor.Plugins && Capacitor.Plugins.FloatPet;
-  if (F && F.call) F.call({ num: n }).then(r => { if (r && !r.direct) say('전화 화면을 열었어. 초록 단추를 눌러 걸어 줘 📞', { ms: 4000 }); }).catch(() => { location.href = 'tel:' + n; });
+  if (F && F.call) F.call({ num: n }).then(r => { say('전화 화면을 열었어. 초록 단추를 누르면 걸려 📞', { ms: 4000 }); }).catch(() => { location.href = 'tel:' + n; });
   else location.href = 'tel:' + n;
 }
 document.addEventListener('click', e => { const a = e.target.closest && e.target.closest('a[href^="tel:"]'); if (a) { e.preventDefault(); dialNum(a.getAttribute('href').slice(4)); } }, true);
@@ -157,7 +157,7 @@ function animalize(t) {   // PC 와 같음
 function say(text, opt = {}) {
   text = animalize(text);
   clearTimeout(bubbleT);
-  bubble.querySelector('.text').innerHTML = text;
+  bubble.querySelector('.text').innerHTML = text; bubble._tap = opt.tap || null;   // 11-07: 말풍선을 누르면 할 일(예: 전화 화면)
   const box = bubble.querySelector('.btns'); box.innerHTML = '';
   for (const b of opt.buttons || []) {
     const el = document.createElement('button'); el.textContent = b.label; if (b.ghost) el.className = 'ghost';
@@ -170,7 +170,7 @@ function say(text, opt = {}) {
   if (view !== 'home' && opt.important) go('home');
 }
 function hideBubble() { bubble.hidden = true; }
-bubble.addEventListener('click', e => { if (!e.target.closest('button')) hideBubble(); });
+bubble.addEventListener('click', e => { if (e.target.closest('button')) return; const f = bubble._tap; bubble._tap = null; hideBubble(); if (f) f(); });
 
 // ── 명령 (PC 와 같은 말)
 function doCommand(id) {

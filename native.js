@@ -19,19 +19,15 @@
     } catch (e) { console.warn('알림', e); }
   };
   // 📒 연락처: 한 번 허락하면 이름·번호·주소·생일까지
-  N.contacts = async () => {
-    const CT = Pl.Contacts; if (!CT) return null;
-    let p = await CT.checkPermissions().catch(() => ({}));
-    if (p.contacts !== 'granted') p = await CT.requestPermissions();
-    if (p.contacts !== 'granted') { const e = new Error('denied'); e.denied = true; throw e; }   // 11-07: 거부면 알려 주기
-    const r = await CT.getContacts({ projection: { name: true, phones: true, birthday: true, postalAddresses: true } });
-    return (r.contacts || []).map(c => ({
-      name: (c.name && (c.name.display || [c.name.family, c.name.given].filter(Boolean).join(''))) || ((c.phones || [])[0] || {}).number || '이름 없음',
-      phones: (c.phones || []).map(x => ({ type: '휴대폰', num: fmtPhone(x.number || '') })).filter(x => x.num),
-      addr: ((c.postalAddresses || [])[0] || {}).street || '',
-      bday: c.birthday && c.birthday.month ? { m: c.birthday.month, d: c.birthday.day } : null,
-    }));
+  N.contacts = async () => {   // 11-07: 직접 만든 읽기(연락처 읽기 권한만)
+    const F = Pl.FloatPet; if (!F || !F.readContacts) return null;
+    let r; try { r = await F.readContacts(); } catch (e) { if (String(e && e.message || e).includes('denied')) { const x = new Error('denied'); x.denied = true; throw x; } throw e; }
+    return (r.contacts || []).map(c => {
+      const m = String(c.bday || '').match(/(\d{4}|-)?-?(\d{2})-(\d{2})$/);
+      return { name: c.name || ((c.phones || [])[0]) || '이름 없음', phones: (c.phones || []).map(n => ({ type: '휴대폰', num: fmtPhone(n || '') })).filter(x => x.num), addr: c.addr || '', bday: m ? { m: +m[2], d: +m[3] } : null };
+    });
   };
+
   // 🎤 말 알아듣기
   N.listen = async () => {
     const SR = Pl.SpeechRecognition; if (!SR) return null;
@@ -72,18 +68,11 @@
       if (!N.upd) { await LN.cancel({ notifications: [{ id: 99 }] }); await LN.removeAllDeliveredNotifications?.(); }
     } catch (e) { }
   };
-  N.install = async () => {
-    upSt('📥 새 버전 받는 중… 잠깐만! (1분쯤 걸려요)'); say('📥 새 버전 받는 중… 잠깐만!', { pose: 'magnify', ms: 120000 });
-    try {
-      const r = await Pl.CapacitorHttp.get({ url: N.apkUrl || APK, responseType: 'blob' });
-      const w = await Pl.Filesystem.writeFile({ path: 'haru-yebo.apk', data: r.data, directory: 'CACHE' });
-      upSt('설치 화면에서 [설치]를 눌러 주세요!'); say('설치 화면에서 [설치]를 눌러 줘! 🐶', { ms: 8000 });
-      await Pl.FileOpener.open({ filePath: w.uri, contentType: 'application/vnd.android.package-archive', openWithDefault: true });
-    } catch (e) {
-      say('바로 설치가 안 돼서 받는 곳을 열게. 받은 뒤 알림을 눌러 설치해 줘!', { ms: 8000 });
-      window.open(N.apkUrl || APK, '_system');
-    }
+  N.install = async () => {   // 11-07 권한 줄임: 앱이 직접 설치하지 않고, 받기 주소를 열어 줌 → 받은 파일을 눌러 설치
+    upSt('📥 받기 화면을 열었어요. 다 받아지면 알림의 파일을 눌러 [설치] 해 주세요.');
+    window.open(N.apkUrl || APK, '_system');
   };
+
   // 🐶 화면 위 팻: 하루 예보를 닫으면 다른 앱 위에 팻이 떠 있고, 누르면 다시 열림
   const FP = Pl.FloatPet;
   // 크기·이름·켜기를 안드로이드에 알려 두면, 앱을 닫는 순간 안드로이드가 직접 팻과 말창을 띄움
@@ -125,7 +114,7 @@
     const _setPose = window.setPose;
     window.setPose = setPose = function (p) { _setPose(p); if (!document.hidden) return; if (p === 'run' || p === 'walk') { FP.pose({ action: p }).catch(() => {}); return; } if (P.frames && P.frames.length > 1) { FP.frames({ files: P.frames, fps: P.fps || 8, ms: p === 'sleep' ? 20000 : 6000 }).catch(() => {}); return; } const f = (pet.getAttribute('src') || '').split('/').pop(); if (f) FP.pose({ file: decodeURIComponent(f), ms: p === 'sleep' || p === 'lie' || p === 'sit' ? 12000 : 6000 }).catch(() => {}); };
     const _say = window.say;
-    window.say = say = function (text, opt = {}) { _say(text, opt); if (document.hidden) FP.say({ text: plain(text), ms: Math.min(opt.ms || (5000 + String(text).length * 80), 15000) }).catch(() => {}); };
+    window.say = say = function (text, opt = {}) { _say(text, opt); if (document.hidden) FP.say({ tel: opt.telNum || '', text: plain(text), ms: Math.min(opt.ms || (5000 + String(text).length * 80), 15000) }).catch(() => {}); };
   }
   // 💬 카톡이 오면 (하루 예보가 열려 있을 때는 여기서 알려 줌)
   if (FP) FP.addListener('kakao', d => { if (document.hidden || S.kakaoOff) return; say(`💬 <b>${esc(d.room && d.room !== d.who ? d.room + '(' + d.who + ')' : d.who)}</b>한테 카톡 왔어!<br>"${esc(d.text)}"`, { pose: 'bark', ms: 15000, buttons: [{ label: '💬 카톡 열기', act: () => { hideBubble(); FP.openKakao().catch(() => {}); } }, { label: '나중에', ghost: true }] }); cry(true); });
