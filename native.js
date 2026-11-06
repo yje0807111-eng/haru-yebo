@@ -42,17 +42,23 @@
   // 🔄 새 버전: 하루 한 번 확인 → "바꿀까?" → [응] 이면 받아서 바로 설치 화면
   const REL = 'https://api.github.com/repos/yje0807111-eng/haru-yebo/releases/latest';
   const APK = 'https://github.com/yje0807111-eng/haru-yebo/releases/latest/download/haru-yebo.apk';
+  // 🔄 새 버전 확인 (11-07: 결과를 설정 단추 바로 아래에 보여 줌 · GitHub 확인이 막히면 다른 길로)
+  const upSt = t => { const e = document.getElementById('s_updSt'); if (e) e.innerHTML = t; };
+  async function latestBuild() {
+    try { const rel = await (await fetch(REL)).json(); const n = +String(rel.tag_name || '').replace(/\D/g, ''); const a = (rel.assets || []).find(x => /haru-yebo-\d+\.apk$/.test(x.name)); if (a) N.apkUrl = a.browser_download_url; if (n) return n; } catch (e) { }
+    try { const r = await Pl.CapacitorHttp.get({ url: 'https://github.com/yje0807111-eng/haru-yebo/releases/latest' }); const m = String(r.url || '').match(/app-(\d+)/) || String(r.data || '').match(/releases\/tag\/app-(\d+)/); if (m) return +m[1]; } catch (e) { }
+    return 0;
+  }
   N.checkUpdate = async manual => {
-    try {
-      const mine = (await (await fetch('version.json')).json()).build;
-      const rel = await (await fetch(REL)).json();
-      const latest = +String(rel.tag_name || '').replace(/\D/g, '');
-      const asset = (rel.assets || []).find(x => /haru-yebo-\d+\.apk$/.test(x.name)); if (asset) N.apkUrl = asset.browser_download_url;
-      if (!latest || !(+mine) || latest <= +mine) { N.setUpd(0); if (manual) say('지금이 제일 새 버전이야! 🐶', { ms: 3000 }); return; }
-      N.setUpd(latest);
-      if (!manual) return;   // 11-06: 저절로 확인할 때는 '1' 표시만 (아이콘 · 메뉴 설정 · 새 버전 확인)
-      say(`🔄 하루 예보 새 버전이 나왔어! (${latest}판)<br>지금 바꿀까?`, { pose: 'joy', ms: 60000, important: true, buttons: [{ label: '응, 바꿔 줘', act: () => N.install() }, { label: '나중에', ghost: true }] });
-    } catch (e) { if (manual) say('지금은 새 버전을 확인하지 못했어 🥲<br>바로 받아서 깔아 볼까?', { ms: 30000, important: true, buttons: [{ label: '📥 앱 파일 받기', act: () => window.open(APK, '_system') }, { label: '나중에', ghost: true }] }); }
+    if (manual) upSt('🔎 확인하는 중…');
+    const mine = +((await (await fetch('version.json')).json().catch(() => ({}))).build) || 0;
+    const latest = await latestBuild();
+    if (!latest) { if (manual) { upSt(`⚠️ 지금은 확인을 못 했어요. <button class="btn small" id="s_apk">📥 앱 파일 바로 받기</button>`); const b = document.getElementById('s_apk'); if (b) b.onclick = () => window.open(APK, '_system'); } return; }
+    if (latest <= mine) { N.setUpd(0); if (manual) upSt(`✅ 지금이 제일 새 버전이에요 (${mine}판)`); return; }
+    N.setUpd(latest);
+    if (!manual) return;   // 저절로 확인할 때는 '1' 표시만
+    upSt(`🔴 새 버전(${latest}판)이 있어요! <button class="btn small" id="s_doUpd">지금 바꾸기</button>`);
+    const b = document.getElementById('s_doUpd'); if (b) b.onclick = () => N.install();
   };
   // 🔴 새 버전 '1': 휴대폰 아이콘(알림 하나) → 메뉴 ⚙️ 설정 → 🔄 새 버전 확인 으로 이어짐
   N.upd = 0;
@@ -65,11 +71,11 @@
     } catch (e) { }
   };
   N.install = async () => {
-    say('📥 새 버전 받는 중… 잠깐만!', { pose: 'magnify', ms: 120000 });
+    upSt('📥 새 버전 받는 중… 잠깐만! (1분쯤 걸려요)'); say('📥 새 버전 받는 중… 잠깐만!', { pose: 'magnify', ms: 120000 });
     try {
       const r = await Pl.CapacitorHttp.get({ url: N.apkUrl || APK, responseType: 'blob' });
       const w = await Pl.Filesystem.writeFile({ path: 'haru-yebo.apk', data: r.data, directory: 'CACHE' });
-      say('설치 화면에서 [설치]를 눌러 줘! 🐶', { ms: 8000 });
+      upSt('설치 화면에서 [설치]를 눌러 주세요!'); say('설치 화면에서 [설치]를 눌러 줘! 🐶', { ms: 8000 });
       await Pl.FileOpener.open({ filePath: w.uri, contentType: 'application/vnd.android.package-archive', openWithDefault: true });
     } catch (e) {
       say('바로 설치가 안 돼서 받는 곳을 열게. 받은 뒤 알림을 눌러 설치해 줘!', { ms: 8000 });
