@@ -54,6 +54,7 @@ public class FloatPetPlugin extends Plugin {
             .putBoolean("cries", call.getBoolean("cries", true))
             .putFloat("vol", call.getFloat("vol", 0.5f))
             .putString("sp", call.getString("sp", "dog"))
+            .putInt("micBeep", call.getInt("micBeep", 1))
             .putString("idle", call.getString("idle", ""))
             .putString("walk", call.getString("walk", ""))
             .putString("run", call.getString("run", ""))
@@ -73,6 +74,11 @@ public class FloatPetPlugin extends Plugin {
         call.resolve();
         if (getActivity() != null) getActivity().runOnUiThread(() -> getActivity().finishAndRemoveTask());
     }
+
+    @PluginMethod
+    public void micQuiet(PluginCall call) { FloatPetService.beepQuiet(getContext(), call.getInt("level", 1)); call.resolve(); }
+    @PluginMethod
+    public void micRestore(PluginCall call) { FloatPetService.beepRestore(getContext()); call.resolve(); }
 
     @PluginMethod
     public void stop(PluginCall call) {

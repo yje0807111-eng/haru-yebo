@@ -394,6 +394,30 @@ public class FloatPetService extends Service {
         h.postDelayed(() -> { if (!ack) { FloatPetPlugin.pending = t; open("talk"); } }, 3500);
     }
 
+
+    // 11-06: 마이크 켜질 때·꺼질 때 '띵' 소리 줄이기 (micBeep 2 보통 · 1 작게 · 0 끄기) — 잠깐 소리 크기를 낮췄다가 되돌림
+    static int[] savedVol = null;
+    static final int[] BEEP_STREAMS = { android.media.AudioManager.STREAM_MUSIC, android.media.AudioManager.STREAM_SYSTEM, android.media.AudioManager.STREAM_NOTIFICATION };
+    static void beepQuiet(Context c, int level) {
+        if (level >= 2 || savedVol != null) return;
+        try {
+            android.media.AudioManager am = (android.media.AudioManager) c.getSystemService(Context.AUDIO_SERVICE);
+            savedVol = new int[BEEP_STREAMS.length];
+            for (int k = 0; k < BEEP_STREAMS.length; k++) {
+                savedVol[k] = am.getStreamVolume(BEEP_STREAMS[k]);
+                int to = level <= 0 ? 0 : Math.max(1, am.getStreamMaxVolume(BEEP_STREAMS[k]) / 6);
+                if (to < savedVol[k]) { try { am.setStreamVolume(BEEP_STREAMS[k], to, 0); } catch (Exception ignored) { } }
+            }
+        } catch (Exception e) { savedVol = null; }
+    }
+    static void beepRestore(Context c) {
+        if (savedVol == null) return;
+        try {
+            android.media.AudioManager am = (android.media.AudioManager) c.getSystemService(Context.AUDIO_SERVICE);
+            for (int k = 0; k < BEEP_STREAMS.length; k++) { try { am.setStreamVolume(BEEP_STREAMS[k], savedVol[k], 0); } catch (Exception ignored) { } }
+        } catch (Exception ignored) { }
+        savedVol = null;
+    }
     // ── 바탕화면 🎤: 그 자리에서 듣기
     void listen() {
         if (Build.VERSION.SDK_INT >= 23 && checkSelfPermission(android.Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) { open("mic"); return; }
@@ -404,12 +428,12 @@ public class FloatPetService extends Service {
         sr.setRecognitionListener(new RecognitionListener() {
             public void onResults(Bundle b) {
                 ArrayList<String> m = b.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
-                sr.destroy(); micRed(false);
+                sr.destroy(); micRed(false); h.postDelayed(() -> beepRestore(FloatPetService.this), 900);
                 if (m != null && !m.isEmpty()) { bubble("👂 \"" + m.get(0) + "\"", 2500); submit(m.get(0)); }
                 else bubble("잘 못 들었어 🥲 다시 눌러 줘", 3000);
             }
             public void onError(int err) {
-                sr.destroy(); micRed(false); Log.i("HaruPet", "listen err " + err); note("listen err " + err);
+                sr.destroy(); micRed(false); h.postDelayed(() -> beepRestore(FloatPetService.this), 900); Log.i("HaruPet", "listen err " + err); note("listen err " + err);
                 if (err == SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS || err == SpeechRecognizer.ERROR_AUDIO) open("mic");
                 else bubble("잘 못 들었어 🥲 다시 눌러 줘", 3000);
             }
@@ -427,7 +451,8 @@ public class FloatPetService extends Service {
         i.putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 1);
         i.putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true);
         i.putExtra(RecognizerIntent.EXTRA_CALLING_PACKAGE, getPackageName());
-        try { sr.startListening(i); } catch (Exception e) { micRed(false); open("mic"); }
+        beepQuiet(this, getSharedPreferences("pet", 0).getInt("micBeep", 1));
+        try { sr.startListening(i); } catch (Exception e) { micRed(false); beepRestore(this); open("mic"); }
     }
 
     // ── 바탕화면 팻 말풍선

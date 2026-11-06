@@ -41,7 +41,7 @@ function setUndo(quiet) { const had = Object.keys(draft).length; draft = {}; win
 function drawSet() {
   draft = {}; $('#setSave').disabled = true; $('#setSave').classList.remove('dirty'); $('#saveBar').hidden = true;
   $('#setBox').innerHTML = `
-  <div class="card"><h3>나와 팻</h3>
+  <div class="card"><h3>나와 팻 <button class="mutebtn ${S.talk.mute ? 'on' : ''}" id="s_mute">${S.talk.mute ? '🔇 소리 꺼짐' : '🔊 소리 켜짐'}</button></h3>
     <label class="note">내 이름 <input id="s_name" value="${esc(S.me.name)}" placeholder="예: 푸른이"></label>
     <label class="note">팻 이름 <input id="s_bname" value="${esc(S.me.buddyName)}" placeholder="예: 사랑이"></label></div>
   <div class="card"><h3>🐾 팻 종류</h3><div class="seg" id="s_sp">${[['dog', '🐶 강아지'], ['cat', '🐱 고양이'], ['pig', '🐷 돼지']].map(([k, n]) => `<button data-sp="${k}" class="${(S.me.species || 'dog') === k ? 'on' : ''}">${n}</button>`).join('')}</div><p class="note small">누르면 바로 바뀌어요</p></div>
@@ -50,6 +50,7 @@ ${window.Native ? `<div class="card"><h3>🐶 화면 위 팻</h3><label class="c
   <div class="card"><h3>🐾 팻 기분</h3><div class="seg" id="s_temper">${[['active', '😆 활발'], ['normal', '🙂 평범'], ['shy', '🥺 소심']].map(([k, n]) => `<button data-tm="${k}" class="${(S.me.temper || 'normal') === k ? 'on' : ''}">${n}</button>`).join('')}</div><p class="note small">활발 = 화면을 아주 신나게 뛰어다녀요 · 소심 = 거의 가만히</p></div>
   <div class="card"><h3>말 걸고 움직이는 정도</h3>
     <div class="seg" id="s_freq">${[['often', '자주'], ['normal', '보통'], ['rare', '가끔'], ['quiet', '조용히']].map(([k, n]) => `<button data-f="${k}" class="${S.talk.freq === k ? 'on' : ''}">${n}</button>`).join('')}</div>
+    <p class="note" style="margin:12px 0 4px">🎤 마이크 켜질 때 '띵' 소리</p><div class="seg" id="s_mb">${[[2, '보통'], [1, '작게'], [0, '끄기']].map(([k, n]) => `<button data-mb="${k}" class="${(S.talk.micBeep ?? 1) === k ? 'on' : ''}">${n}</button>`).join('')}</div>
     <label class="note" style="display:block;margin-top:10px">🔊 짖는 소리 크기 <input type="range" id="s_vol" min="0" max="100" step="5" value="${Math.round(S.talk.volume * 100)}" style="padding:0;border:0"></label></div>
   <div class="card"><h3>🤖 AI 연결 (선택)</h3>
     <p class="note small">연결하면 팻이 더 똑똑하게 이야기하고 검색 결과도 짧게 정리해 줘요. 열쇠는 이 휴대폰에만 저장돼요. 연결하지 않아도 기본 대화·검색은 돼요.</p>
@@ -69,6 +70,8 @@ $('#setBox').addEventListener('input', e => {
 $('#setBox').addEventListener('click', async e => {
   const sz = e.target.closest('[data-sz]'); if (sz) { $$('#s_size button').forEach(b => b.classList.toggle('on', b === sz)); dset({ me: { size: +sz.dataset.sz } }); window.prevSize = +sz.dataset.sz; pet._h = 0; }   // 미리 보기만 (저장해야 바뀜)
   const spb = e.target.closest('[data-sp]'); if (spb) { $$('#s_sp button').forEach(b => b.classList.toggle('on', b === spb)); dset({ me: { species: spb.dataset.sp } }); window.prevSp = spb.dataset.sp; pet._h = 0; setPose('joy'); return; }   // 미리 보기만 (저장해야 바뀜)
+  if (e.target.id === 's_mute') { setMute(!S.talk.mute); return; }   // 바로 (저장 필요 없음)
+  const mb = e.target.closest('[data-mb]'); if (mb) { $$('#s_mb button').forEach(b => b.classList.toggle('on', b === mb)); dset({ talk: { micBeep: +mb.dataset.mb } }); }
   const tm = e.target.closest('[data-tm]'); if (tm) { $$('#s_temper button').forEach(b => b.classList.toggle('on', b === tm)); dset({ me: { temper: tm.dataset.tm } }); }
   const f = e.target.closest('[data-f]'); if (f) { $$('#s_freq button').forEach(b => b.classList.toggle('on', b === f)); dset({ talk: { freq: f.dataset.f } }); }
   const p = e.target.closest('[data-p]'); if (p) { $$('#s_ai button').forEach(b => b.classList.toggle('on', b === p)); dset({ ai: { provider: p.dataset.p } }); }

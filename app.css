@@ -145,3 +145,11 @@ body.petonly .ground { opacity: .35; }
 #saveBar[hidden] { display: none; }
 #saveBar span { flex: 1; font-size: 13px; font-weight: 700; }
 #saveBar .btn { padding: 6px 12px; }
+
+/* 11-06: 말창 팻 얼굴 = 음소거 (꺼지면 ✕) · 설정 🔇 단추 */
+.talk .tfw { position: relative; flex: none; display: inline-flex; }
+.talk .tfw i { display: none; position: absolute; left: 50%; top: 55%; transform: translate(-50%, -50%); color: #E02424; font-style: normal; font-weight: 900; font-size: 20px; text-shadow: 0 0 3px #fff, 0 0 3px #fff; pointer-events: none; }
+.talk.muted .tfw i { display: block; }
+.talk.muted .tface { opacity: .55; }
+.mutebtn { float: right; border: 2px solid var(--ink); background: #fff; border-radius: 999px; padding: 2px 10px; font: inherit; font-size: 13px; font-weight: 800; }
+.mutebtn.on { background: #FFE1E1; }

@@ -2,6 +2,7 @@
 (function () {
   const C = window.Capacitor; if (!C || !C.isNativePlatform || !C.isNativePlatform()) return;
   const Pl = C.Plugins || {};
+  const FP0 = Pl.FloatPet;
   const N = window.Native = {};
   // ⏰ 알람: 휴대폰 알림으로 예약 (앱이 꺼져 있어도 울림)
   N.schedule = async alarms => {
@@ -34,7 +35,8 @@
     const SR = Pl.SpeechRecognition; if (!SR) return null;
     const ok = await SR.available(); if (!ok.available) return null;
     await SR.requestPermissions();
-    const r = await SR.start({ language: 'ko-KR', maxResults: 1, partialResults: false, popup: false });
+    if (FP0 && FP0.micQuiet) await FP0.micQuiet({ level: S.talk.micBeep ?? 1 }).catch(() => {});
+    let r; try { r = await SR.start({ language: 'ko-KR', maxResults: 1, partialResults: false, popup: false }); } finally { if (FP0 && FP0.micRestore) setTimeout(() => FP0.micRestore().catch(() => {}), 900); }
     return (r.matches || [])[0] || '';
   };
   // 🔄 새 버전: 하루 한 번 확인 → "바꿀까?" → [응] 이면 받아서 바로 설치 화면
@@ -77,7 +79,7 @@
     const L = SOUNDS[sp] || SOUNDS.dog;
     return { sp, idle: idle.join('|'), walk: walk.join('|'), run: run.join('|'), home: one('기쁨') || idle[0], sndC: L[0].join('|'), sndH: L[1].join('|') };
   };
-  N.floatConfig = () => { if (FP) FP.config({ size: S.me.size || 100, name: bn(), on: !S.floatOff, act: petAct(), cries: S.talk.cries !== false && Date.now() >= (quietUntil || 0), vol: Math.max(0.2, S.talk.volume || 0.4), ...petLists() }).catch(() => {}); };
+  N.floatConfig = () => { if (FP) FP.config({ size: S.me.size || 100, name: bn(), on: !S.floatOff, act: petAct(), cries: !S.talk.mute && S.talk.cries !== false && Date.now() >= (quietUntil || 0), micBeep: S.talk.micBeep ?? 1, vol: Math.max(0.2, S.talk.volume || 0.4), ...petLists() }).catch(() => {}); };
   N.quit = () => { if (FP && FP.quit) FP.quit().catch(() => {}); };
   N.petAction = id => { if (FP && document.hidden) FP.pose({ action: id === 'home' ? 'home' : 'free' }).catch(() => {}); };
   N.petSize = s => { if (FP) { FP.setSize({ size: s }).catch(() => {}); N.floatConfig(); } };
@@ -91,14 +93,14 @@
     if (document.hidden || !FP) return;
     petOnly(true);   // 앱을 열면 → 앱 안 팻만
     setTimeout(() => { if (!document.hidden && bubble.hidden) petMenu(); }, 500);   // 11-06: 들어오자마자 메뉴
-    const r = await FP.takePending().catch(() => null); if (r && r.text) send(r.text);   // 바탕화면에서 하던 말 이어서
+    const r = await FP.takePending().catch(() => null); if (r && r.text) send(r.text, { talk: true });   // 바탕화면에서 하던 말 이어서
   });
   // 💬 바탕화면 말창에서 쓴 말 → 여기서 생각해서 → 바탕화면 팻 말풍선으로 대답
   if (FP) {
-    FP.addListener('overlayText', d => { FP.ack().catch(() => {}); if (d && d.text) send(d.text); });
+    FP.addListener('overlayText', d => { FP.ack().catch(() => {}); if (d && d.text) send(d.text, { talk: true }); });
     const plain = x => String(x || '').replace(/<br\s*\/?>/gi, '\n').replace(/<[^>]+>/g, '').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"');
     const _cry = window.cry;
-    window.cry = cry = function (happy, loud) { if (document.hidden) { if (!loud && (S.talk.cries === false)) return; FP.bark({ happy: !!happy, vol: loud ? 1 : Math.max(0.3, S.talk.volume) }).catch(() => {}); } else _cry(happy, loud); };
+    window.cry = cry = function (happy, loud) { if (document.hidden) { if (S.talk.mute || (!loud && (S.talk.cries === false))) return; FP.bark({ happy: !!happy, vol: loud ? 1 : Math.max(0.3, S.talk.volume) }).catch(() => {}); } else _cry(happy, loud); };
     const _setPose = window.setPose;
     window.setPose = setPose = function (p) { _setPose(p); if (!document.hidden) return; if (p === 'run' || p === 'walk') { FP.pose({ action: p }).catch(() => {}); return; } if (P.frames && P.frames.length > 1) { FP.frames({ files: P.frames, fps: P.fps || 8, ms: p === 'sleep' ? 20000 : 6000 }).catch(() => {}); return; } const f = (pet.getAttribute('src') || '').split('/').pop(); if (f) FP.pose({ file: decodeURIComponent(f), ms: p === 'sleep' || p === 'lie' || p === 'sit' ? 12000 : 6000 }).catch(() => {}); };
     const _say = window.say;

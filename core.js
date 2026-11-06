@@ -111,6 +111,7 @@ function tick(now) {
 const SOUNDS = { dog: [['dog_bark1', 'dog_bark2', 'dog_bark3', 'dog_bark4'], ['dog_happy1', 'dog_happy2', 'dog_happy3']], cat: [['cat_meow1', 'cat_meow2', 'cat_meow3', 'cat_meow4'], ['cat_meow1', 'cat_meow3']], pig: [['pig_oink1', 'pig_oink2', 'pig_oink3', 'pig_oink4', 'pig_oink5'], ['pig_oink1', 'pig_oink3', 'pig_oink4']] };
 let quietUntil = 0;
 function cry(happy, loud) {
+  if (S.talk.mute) return;   // 11-06: 🔇 음소거면 어떤 소리도 안 냄
   if (!loud && (S.talk.cries === false || Date.now() < quietUntil)) return;
   const L = SOUNDS[SP()] || SOUNDS.dog; const a = new Audio(`sounds/${pick(happy ? L[1] : L[0])}.mp3`);
   a.volume = Math.max(0, Math.min(1, loud ? Math.max(0.8, S.talk.volume) : S.talk.volume));
@@ -131,7 +132,7 @@ function petMenu() {
 }
 pet.addEventListener('click', petMenu);
 // 팻만 보기 ↔ 말창·메뉴
-function petOnly(on) { document.body.classList.toggle('petonly', on); $('#backPet').hidden = on; if (on) { go('home'); if (smode) setSmode(false); } }
+function petOnly(on) { document.body.classList.toggle('petonly', on); $('#backPet').hidden = on; if (on) { go('home'); if (!smode) setSmode(true); } }
 function openView(v) { hideBubble(); petOnly(false); go(v); }
 $('#backPet').onclick = () => { petOnly(true); hideBubble(); };
 document.addEventListener('click', e => { const b = e.target.closest('#tabs [data-go="home"]'); if (b) setTimeout(() => petOnly(true), 0); });
@@ -185,9 +186,10 @@ function doCommand(id) {
 }
 
 // ── 말창
-const t = $('#t'), modeBtn = $('#modeBtn'); let smode = false, busy = false, lastUser = '', lastSearch = '';
+const t = $('#t'), modeBtn = $('#modeBtn'); let smode = true, busy = false, lastUser = '', lastSearch = '';
 function setSmode(on) { smode = on; document.body.classList.toggle('smode', on); modeBtn.textContent = on ? '🔎' : '♥'; t.placeholder = on ? '무엇이든 찾아볼게…' : `${bn()}에게 말 걸기…`; }
 modeBtn.onclick = () => { setSmode(!smode); say(smode ? '🔎 검색창이야! 궁금한 걸 쓰면 찾아서 알려 줄게' : '다시 나랑 이야기하자 🐶', { ms: 2200 }); };
+setSmode(true);   // 11-06: 팻방 말창은 처음부터 검색창
 t.addEventListener('focus', () => hideBubble());   // 11-06: 말창을 누르면 = 말하려는 것 → 노란 메뉴 바로 닫기
 t.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.isComposing) { e.preventDefault(); send(t.value); } });
 function markSign() { patch({ guard: { lastSign: new Date().toISOString() } }); }
@@ -198,7 +200,7 @@ function isSearch(text) {
   if (/(너|니가|네가|기분|어때|뭐\s*해|뭐하|좋아해|심심|놀자|힘들|슬퍼|행복)/.test(text)) return false;
   return /(알려\s*(줘|줄래)|(이|가|은|는)\s*뭐야|뜻이\s*뭐|누구야|누군지|어디(에|야|있|인)|언제(야|였|예|인|부터|까지|태어)|얼마(야|예|나|에|인)|방법|어떻게\s*(하|해|돼|되)는)/.test(text);
 }
-async function send(text) {
+async function send(text, opt = {}) {   // opt.talk = 바탕화면 팻에게 한 말(검색 말고 대화)
   text = String(text || '').trim(); if (!text) return;
   t.value = ''; markSign();
   if (view !== 'home') go('home');   // 대답은 다루 마당에서
@@ -206,7 +208,7 @@ async function send(text) {
   const em = stripName(text).match(/^(119|112|1394|일일구|일일이|구급차|소방서|경찰)\s*(에|로|번|을|를|좀)?\s*(전화|신고|불러)/);
   if (em && window.sosCall) { sosCall(/^(119|일일구|구급차|소방서)/.test(em[1]) ? '119' : /^(112|일일이|경찰)/.test(em[1]) ? '112' : '1394'); return; }
   if (busy) { say('잠깐만, 아직 생각 중이야 💭', { ms: 2000 }); return; }
-  if (smode) { lastSearch = text; return doSearch(text); }
+  if (smode && !opt.talk) { const c0 = findCommand(stripName(text) || text); if (c0) { doCommand(c0.id); return; } lastSearch = text; return doSearch(text); }   // 팻방 말창 = 검색 (명령은 그대로)
   if (window.pmode && pmode) return pmodeSend(text);
   if (/^(아니[,\s]*)?(너|다루)?(한테|에게)?\s*(한|하는)\s*말이(야|었어|라고)/.test(text) && lastSearch) { const q = lastSearch; lastSearch = ''; return chatWith(q, true); }
   if (/^(그거\s*)?(찾아\s*봐|찾아\s*줘|검색해\s*줘|검색)[!~.?\s]*$/.test(text) && lastUser) { lastSearch = lastUser; return doSearch(lastUser); }
@@ -349,7 +351,15 @@ function schedNotify() { if (window.Native && Native.schedule) Native.schedule(S
 
 // ── 말로 하기 (휴대폰 음성 인식)
 const SR = window.SpeechRecognition || window.webkitSpeechRecognition; let rec = null;
-$('#tFace').onclick = () => $('#micBtn').click();
+function setMute(on) {   // 11-06: 팻 소리 끄기/켜기 (말창 팻 얼굴 · 설정 🔇)
+  patch({ talk: { mute: !!on } }); quietUntil = 0;
+  $('#talk').classList.toggle('muted', !!on); const mb = $('#s_mute'); if (mb) { mb.textContent = on ? '🔇 소리 꺼짐' : '🔊 소리 켜짐'; mb.classList.toggle('on', !!on); }
+  if (window.Native && Native.floatConfig) Native.floatConfig();
+  say(on ? '쉿… 이제 조용히 할게 🤫 (내 얼굴을 다시 누르면 소리 켜져)' : '다시 소리 낼게! 🔊', { ms: 2600 });
+  if (!on) setTimeout(() => cry(true), 300);
+}
+$('#tFace').onclick = () => setMute(!S.talk.mute);
+$('#talk').classList.toggle('muted', !!S.talk.mute);
 { const f = $('#tFace'); if (f && CH && CH.sprites) f.onerror = () => { f.onerror = null; f.src = DIR() + CH.sprites['정면'].file; }; f.src = DIR() + '말창얼굴.webp'; }   // 말창 얼굴도 고른 동물로
 $('#micBtn').onclick = async () => {
   if (window.Native && Native.listen) { $('#micBtn').classList.add('rec'); say('👂 듣고 있어… 말해 줘!', { pose: 'up', ms: 6000 }); try { const txt = await Native.listen(); if (txt) { say(`👂 "${esc(txt)}"`, { ms: 1500 }); send(txt); } } catch { say('잘 못 들었어 🥲 다시 해 볼래?', { ms: 3000 }); } $('#micBtn').classList.remove('rec'); return; }
@@ -378,7 +388,7 @@ function homeInfo() { const g = S.mood.date === today() ? `오늘 마음: ${S.mo
 // 지금 몇 판인지 날짜 옆에 (앱 파일이면 "11판", 인터넷 웹앱이면 "웹")
 fetch('version.json').then(r => r.json()).then(v => { window.APPVER = (window.Capacitor && Capacitor.isNativePlatform && Capacitor.isNativePlatform()) ? '버전(' + v.build + ')' : '버전(웹)'; homeInfo(); }).catch(() => {});
 function boot() {
-  setBuddyName(bn()); $('#tabPet').textContent = bn(); setSmode(false);
+  setBuddyName(bn()); $('#tabPet').textContent = bn(); setSmode(true);
   setPose('idle'); requestAnimationFrame(tick);
   homeInfo(); setInterval(homeInfo, 60e3);
   setInterval(checkTimes, 10e3); setTimeout(checkTimes, 3000);
