@@ -79,7 +79,7 @@
     const L = SOUNDS[sp] || SOUNDS.dog;
     return { sp, idle: idle.join('|'), walk: walk.join('|'), run: run.join('|'), home: one('기쁨') || idle[0], sndC: L[0].join('|'), sndH: L[1].join('|') };
   };
-  N.floatConfig = () => { if (FP) FP.config({ size: S.me.size || 100, name: bn(), on: !S.floatOff, act: petAct(), cries: !S.talk.mute && S.talk.cries !== false && Date.now() >= (quietUntil || 0), micBeep: S.talk.micBeep ?? 1, vol: Math.max(0.2, S.talk.volume || 0.4), ...petLists() }).catch(() => {}); };
+  N.floatConfig = () => { if (FP) FP.config({ size: S.me.size || 100, name: bn(), on: !S.floatOff, act: petAct(), cries: !S.talk.mute && S.talk.cries !== false && Date.now() >= (quietUntil || 0), micBeep: S.talk.micBeep ?? 1, temper: S.me.temper || 'normal', vol: Math.max(0.2, S.talk.volume || 0.4), ...petLists() }).catch(() => {}); };
   N.quit = () => { if (FP && FP.quit) FP.quit().catch(() => {}); };
   N.petAction = id => { if (FP && document.hidden) FP.pose({ action: id === 'home' ? 'home' : 'free' }).catch(() => {}); };
   N.petSize = s => { if (FP) { FP.setSize({ size: s }).catch(() => {}); N.floatConfig(); } };

@@ -153,3 +153,15 @@ body.petonly .ground { opacity: .35; }
 .talk.muted .tface { opacity: .55; }
 .mutebtn { float: right; border: 2px solid var(--ink); background: #fff; border-radius: 999px; padding: 2px 10px; font: inherit; font-size: 13px; font-weight: 800; }
 .mutebtn.on { background: #FFE1E1; }
+
+/* 11-06: 처음 켤 때 고양이 안내 */
+#intro { position: fixed; inset: 0; z-index: 100; background: rgba(43,33,24,.45); display: flex; align-items: center; justify-content: center; padding: 18px; }
+#intro[hidden] { display: none; }
+#intro .ibox { background: #FFFBF0; border: 3px solid #2B2118; border-radius: 24px; padding: 18px 16px 14px; width: 100%; max-width: 380px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,.25); }
+#intro img { height: 150px; object-fit: contain; display: block; margin: 0 auto 6px; }
+#intro .itext { font-size: 17px; line-height: 1.65; min-height: 84px; }
+#intro .idots { display: flex; gap: 6px; justify-content: center; margin: 10px 0; }
+#intro .idots i { width: 8px; height: 8px; border-radius: 50%; background: #E2D6BF; }
+#intro .idots i.on { background: #2B2118; }
+#intro .ibtns { display: flex; gap: 8px; }
+#intro .ibtns .btn { flex: 1; padding: 10px; font-size: 15px; }

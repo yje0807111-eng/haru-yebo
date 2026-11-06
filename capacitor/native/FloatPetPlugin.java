@@ -55,6 +55,7 @@ public class FloatPetPlugin extends Plugin {
             .putFloat("vol", call.getFloat("vol", 0.5f))
             .putString("sp", call.getString("sp", "dog"))
             .putInt("micBeep", call.getInt("micBeep", 1))
+            .putString("temper", call.getString("temper", "normal"))
             .putString("idle", call.getString("idle", ""))
             .putString("walk", call.getString("walk", ""))
             .putString("run", call.getString("run", ""))

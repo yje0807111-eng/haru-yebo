@@ -335,7 +335,9 @@ public class FloatPetService extends Service {
         if (act <= 0) { nextDecide = now + 60000; return; }
         maybeBark(now);
         double r = Math.random();
-        double moveP = act >= 4 ? 0.92 : act == 3 ? 0.75 : act == 2 ? 0.45 : 0.2;
+        // 11-06 팻 기분: 활발 = 화면 전체 · 평범 = 놓은 높이에서 옆으로만 · 소심 = 그 자리에서만
+        String tm = getSharedPreferences("pet", 0).getString("temper", "normal");
+        double moveP = "shy".equals(tm) ? 0 : "active".equals(tm) ? 0.95 : act >= 4 ? 0.92 : act == 3 ? 0.75 : act == 2 ? 0.45 : 0.2;
         if (r < moveP) {
             int w = lp.width > 0 ? lp.width : dp(120);
             if (py < 0) py = lp.y;
@@ -346,9 +348,10 @@ public class FloatPetService extends Service {
                 int top = dp(60), bottom = (blp != null ? blp.y - dp(8) : sh() - dp(100)) - hgt;   // 위쪽부터 말창 바로 위까지
                 ty = top + (float) (Math.random() * Math.max(1, bottom - top));
             }
-            running = act >= 3 ? Math.random() < (act >= 4 ? 0.7 : 0.45) : Math.random() < 0.15;
+            if ("normal".equals(tm) && !homeMode) ty = py;   // 평범: 옆으로만
+            running = "active".equals(tm) ? Math.random() < 0.75 : act >= 3 ? Math.random() < (act >= 4 ? 0.7 : 0.45) : Math.random() < 0.15;
             moving = true;
-        } else { pet.setImageBitmap(pick(idle, now)); nextDecide = now + restMs(); }
+        } else { pet.setImageBitmap(pick(idle, now)); nextDecide = now + ("active".equals(tm) ? 500 + (long) (Math.random() * 1200) : restMs()); }
     }
 
     // ── 바탕화면 말창에서 바로 쓰기
@@ -523,7 +526,8 @@ public class FloatPetService extends Service {
         if ("home".equals(action)) { goHome(); return; }
         if ("free".equals(action) || "run".equals(action)) leaveHome();
         lastPoseAt = System.currentTimeMillis(); poseFrames = null;
-        if ("run".equals(action) || "walk".equals(action)) { int w = lp.width > 0 ? lp.width : dp(120); if (py < 0) py = lp.y; tx = (float) (Math.random() * Math.max(1, sw() - w)); if (Math.abs(tx - px) < dp(80)) tx = px > sw() / 2f ? dp(10) : sw() - w - dp(10); int hgt = lp.height > 0 ? lp.height : dp(120); int bottom = (blp != null ? blp.y - dp(8) : sh() - dp(100)) - hgt; ty = dp(60) + (float) (Math.random() * Math.max(1, bottom - dp(60))); running = "run".equals(action); moving = true; return; }
+        if (("run".equals(action) || "walk".equals(action)) && "shy".equals(getSharedPreferences("pet", 0).getString("temper", "normal"))) { Bitmap[] f = "run".equals(action) ? run : walk; if (f != null && f.length > 0) showFramesB(f, 6, ms); return; }
+        if ("run".equals(action) || "walk".equals(action)) { int w = lp.width > 0 ? lp.width : dp(120); if (py < 0) py = lp.y; tx = (float) (Math.random() * Math.max(1, sw() - w)); if (Math.abs(tx - px) < dp(80)) tx = px > sw() / 2f ? dp(10) : sw() - w - dp(10); int hgt = lp.height > 0 ? lp.height : dp(120); int bottom = (blp != null ? blp.y - dp(8) : sh() - dp(100)) - hgt; ty = dp(60) + (float) (Math.random() * Math.max(1, bottom - dp(60))); if ("normal".equals(getSharedPreferences("pet", 0).getString("temper", "normal"))) ty = py; running = "run".equals(action); moving = true; return; }
         Bitmap b = file == null ? null : load(file);
         if (b != null) { moving = false; pet.setScaleX(1); pet.setImageBitmap(b); nextDecide = System.currentTimeMillis() + ms; poseUntil = nextDecide; }
     }
@@ -532,6 +536,11 @@ public class FloatPetService extends Service {
         Bitmap[] f = new Bitmap[files.length]; for (int i = 0; i < files.length; i++) f[i] = load(files[i]);
         lastPoseAt = System.currentTimeMillis(); moving = false; pet.setScaleX(1);
         poseFrames = f; poseFps = Math.max(2, fps); poseFi = 0; poseUntil = lastPoseAt + ms; nextDecide = poseUntil;
+        if (f[0] != null) pet.setImageBitmap(f[0]);
+    }
+    void showFramesB(Bitmap[] f, int fps, int ms) {   // 소심: 그 자리에서 걷는 시늉만
+        lastPoseAt = System.currentTimeMillis(); moving = false; pet.setScaleX(1);
+        poseFrames = f; poseFps = Math.max(2, fps); poseFi = 0; poseUntil = lastPoseAt + Math.max(ms, 3000); nextDecide = poseUntil;
         if (f[0] != null) pet.setImageBitmap(f[0]);
     }
     static void framesStatic(String[] files, int fps, int ms) { if (me != null) me.h.post(() -> me.showFrames(files, fps, ms)); }

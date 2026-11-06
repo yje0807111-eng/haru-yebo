@@ -1,0 +1,83 @@
+// 📖 안내소식 + 처음 켤 때 고양이 팻 안내 (11-06)
+const GUIDE = [
+  ['🐾 하루 예보는 어떤 앱인가요?', `휴대폰 속에 사는 <b>말을 알아듣는 팻 친구</b>예요.<br>말로 부르면 대답하고, 궁금한 것을 찾아 주고, 알람·생일·연락·안부까지 챙겨 줘요.<br>팻은 🐶 강아지 · 🐱 고양이 · 🐷 돼지 중에서 고를 수 있어요.`],
+  ['📱 바탕화면 팻 (다른 앱 위)', `하루 예보를 닫아도 팻이 휴대폰 화면 위에서 놀아요.<br>
+    • <b>팻을 한 번 누르면</b> 바로 말로 이야기해요. 마이크가 켜지면 하고 싶은 말을 하세요.<br>
+    • <b>꾹 눌러 끌면</b> 원하는 곳으로 옮겨요.<br>
+    • 움직임은 설정의 <b>팻 기분</b>으로 정해요.<br>
+    &nbsp;&nbsp;😆 활발 = 화면 전체를 신나게 돌아다녀요<br>
+    &nbsp;&nbsp;🙂 평범 = 옮겨 놓은 높이에서 옆으로만 왔다 갔다 해요<br>
+    &nbsp;&nbsp;🥺 소심 = 옮겨 놓은 그 자리에서만 놀아요<br>
+    • 처음에 "다른 앱 위에 표시"를 허락해야 보여요.`],
+  ['🏠 팻방 (하루 예보 아이콘을 누르면)', `• 들어오면 노란 메뉴가 떠요. 동네 날씨 · 내 방 · 주소록 · 지킴이 · 시간·알람 · 설정 · 안내소식 · 끝내기<br>
+    • 아래 말창은 <b>🔎 검색창</b>이에요. 궁금한 것을 쓰면 찾아 드려요. (말창을 누르면 메뉴는 저절로 닫혀요)<br>
+    • 🎤 를 누르면 말로 찾을 수 있어요.<br>
+    • 말창 왼쪽 <b>팻 얼굴을 누르면 음소거</b>예요. (빨간 ✕ 가 보이면 소리 꺼짐, 다시 누르면 켜짐)`],
+  ['🗣️ 이렇게 말해 보세요', `<b>팻 놀이</b>: 앉아 · 엎드려 · 점프 · 손 · 굴러 · 만세 · 기지개 · 발라당 · 춤춰 · 짖어 · 이리 와 · 달려 · 자자 · 사랑해 · 하트 · 윙크 · 웃어<br>
+    <b>먹기</b>: 밥 먹자 · 물 먹자 · 간식 · 양치하자 · 세수하자<br>
+    <b>마음</b>: 슬퍼 · 기뻐 · 궁금해 · 배고파 · 아파 · 화났어<br>
+    <b>조용히</b>라고 하면 하루 동안 짖지 않아요.`],
+  ['🔎 날씨 · 뉴스 · 궁금한 것', `"오늘 날씨 알려 줘", "오늘 뉴스", "이순신은 언제 태어났어?"처럼 물어보세요.<br>
+    인터넷(위키백과 등)에서 찾아 짧게 알려 주고, <b>🌐 더 보기</b>를 누르면 자세한 내용을 바로 볼 수 있어요.<br>
+    설정에서 <b>AI 연결</b>을 하면 더 똑똑하게 정리해서 알려 줘요. (연결하지 않아도 기본 검색은 돼요)`],
+  ['⏰ 시간 · 알람 · 생일', `"10분 뒤에 알려 줘", "내일 아침 7시에 깨워 줘", "매일 9시에 약 먹으라고 알려 줘"<br>
+    점심·퇴근 시간 알림도 있어요. 주소록을 허락하면 가족·친구 <b>생일</b>도 미리 알려 드려요.`],
+  ['📒 주소록 · 연락', `주소록을 허락하면 "엄마한테 전화해 줘"처럼 말로 연락할 수 있어요.<br>
+    하루 예보를 쓰는 가족·친구에게 <b>초대 코드</b>를 보내 연결하면 "아빠한테 ~라고 전해 줘" 하고 팻끼리 말을 전해 줘요.<br>
+    (카톡이 오면 알려 주는 기능은 지금은 PC판에서 돼요. 휴대폰판은 준비 중이에요)`],
+  ['🏘️ 동네 날씨 · 이웃 톡', `내 <b>취미</b>와 오늘의 <b>마음 날씨</b>(맑음·흐림·비…)를 열어 두면, 우리 동네와 전국 이웃의 마음 날씨가 지도로 보여요.<br>
+    같은 취미·비슷한 마음의 이웃을 찾아 <b>이웃 톡</b>으로 이야기할 수 있어요. 열지 않으면 아무도 나를 볼 수 없어요.`],
+  ['🛡️ 지킴이', `• 급할 때 "도와주세요"를 세 번 말하면 119·112에 전화하도록 도와줘요. (몇 초 안에 취소 가능)<br>
+    • 가족에게 하루 한 번 <b>안부</b>를 전해요.<br>
+    • 이상한 문자를 붙여 넣으면 <b>사기 문자</b>인지 살펴봐 줘요.`],
+  ['🎨 내 방', `사진과 가구로 나만의 방을 꾸미고, 연결된 친구에게 구경시켜 줄 수 있어요.`],
+  ['⚙️ 설정', `내 이름 · 팻 이름 · 팻 종류 · 팻 크기 · 팻 기분 · 말 거는 정도 · 소리 크기 · 마이크 '띵' 소리 · AI 연결을 바꿀 수 있어요.<br>
+    바꾼 뒤 <b>💾 저장</b>을 눌러야 바뀌어요. 저장하지 않고 나가면 예전 그대로예요.<br>
+    "나와 팻" 옆 <b>🔊/🔇 단추</b>는 누르면 바로 소리를 끄고 켜요.`],
+  ['🌙 끝내기', `메뉴의 <b>끝내기</b>를 누르면 팻이 인사하고 조용히 사라져요. 하루 예보 아이콘을 다시 누르면 다시 나타나요.`],
+  ['🔒 내 정보는?', `주소록·대화·설정은 <b>이 휴대폰 안에만</b> 저장돼요. 이웃 톡과 친구 연결은 내가 연 것만 보여지고, 말은 암호로 바꿔서 주고받아요.`],
+];
+function drawGuide() {
+  $('#guideBox').innerHTML = GUIDE.map(([h, b]) => `<div class="card"><h3>${h}</h3><p class="note" style="line-height:1.7">${b}</p></div>`).join('') +
+    '<div class="card" style="text-align:center"><button class="btn" id="g_intro">🐱 고양이 안내 다시 보기</button></div>';
+  $('#g_intro').onclick = () => startIntro(true);
+}
+function openGuide() { hideBubble(); petOnly(false); go('guide'); drawGuide(); }
+
+// ── 처음 켤 때: 고양이 팻이 안내
+const INTRO = [
+  '안녕하세요! 저는 <b>말을 알아듣는 팻</b>이에요 🐾<br>오늘부터 친구가 되어 줄게요!',
+  '날씨·뉴스, 궁금한 것을 물어보시면<br><b>바로 찾아서 알려 드려요</b> 🔎',
+  '주소록을 허락해 주시면<br><b>가족·친구에게 말로 연락</b>하고, 생일도 챙겨 드려요 📒',
+  '취미와 마음 날씨를 열어 두시면<br><b>같은 마음의 이웃과 채팅</b>도 할 수 있어요 🏘️',
+  '화면 위의 저를 <b>누르면 바로 말로 대화</b>해요.<br>하루 예보 아이콘을 누르면 제 방으로 와요 🏠',
+  '자세한 것은 <b>📖 안내소식</b>을 참고하세요!<br>그럼 시작해 볼까요? 💛',
+];
+let introI = 0, introT = 0;
+function startIntro(again) {
+  if (!again && S.introDone) return;
+  let ov = $('#intro');
+  if (!ov) {
+    ov = document.createElement('div'); ov.id = 'intro';
+    ov.innerHTML = '<div class="ibox"><img id="iCat" alt="고양이 팻"><div class="itext" id="iText"></div><div class="idots" id="iDots"></div><div class="ibtns" id="iBtns"></div></div>';
+    document.body.appendChild(ov);
+  }
+  ov.hidden = false; introI = 0; showIntro();
+  // 고양이 인사 움직임
+  const C = (window.CHARS || {}).cat, an = C && (C.anims['인사_오른손'] || C.anims['인사_왼손'] || C.anims['기쁨']);
+  clearInterval(introT);
+  if (an) { let k = 0; const fr = an.frames; $('#iCat').src = 'chars/cat/' + fr[0]; introT = setInterval(() => { k = (k + 1) % fr.length; const im = $('#iCat'); if (im) im.src = 'chars/cat/' + fr[k]; }, 1000 / (an.fps || 6)); }
+  else $('#iCat').src = 'chars/cat/정면.webp';
+}
+function showIntro() {
+  $('#iText').innerHTML = INTRO[introI];
+  $('#iDots').innerHTML = INTRO.map((_, k) => `<i class="${k === introI ? 'on' : ''}"></i>`).join('');
+  const last = introI === INTRO.length - 1;
+  $('#iBtns').innerHTML = last
+    ? '<button class="btn ghost" id="iGuide">📖 안내소식 보기</button><button class="btn" id="iGo">시작하기</button>'
+    : '<button class="btn ghost" id="iSkip">건너뛰기</button><button class="btn" id="iNext">다음 ▶</button>';
+  const end = () => { clearInterval(introT); $('#intro').hidden = true; patch({ introDone: true }); };
+  if (last) { $('#iGuide').onclick = () => { end(); openGuide(); }; $('#iGo').onclick = () => { end(); setTimeout(petMenu, 300); }; }
+  else { $('#iNext').onclick = () => { introI++; showIntro(); }; $('#iSkip').onclick = end; }
+}
+window.addEventListener('load', () => setTimeout(() => startIntro(false), 900));
