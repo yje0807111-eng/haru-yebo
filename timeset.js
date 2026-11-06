@@ -70,6 +70,7 @@ $('#setBox').addEventListener('input', e => {
   if (e.target.id === 's_key' && !/^•+$/.test(e.target.value)) dset({ ai: { key: e.target.value.trim() } });
 });
 $('#setBox').addEventListener('click', async e => {
+  { const ub = e.target.closest && e.target.closest('#s_upd, #s_kakaoGo, #s_mute'); if (ub && ub !== e.target) { ub.click(); return; } }   // 11-06: 단추 안 빨간 1·글자를 눌러도 단추로
   const sz = e.target.closest('[data-sz]'); if (sz) { $$('#s_size button').forEach(b => b.classList.toggle('on', b === sz)); dset({ me: { size: +sz.dataset.sz } }); window.prevSize = +sz.dataset.sz; pet._h = 0; }   // 미리 보기만 (저장해야 바뀜)
   const spb = e.target.closest('[data-sp]'); if (spb) { $$('#s_sp button').forEach(b => b.classList.toggle('on', b === spb)); dset({ me: { species: spb.dataset.sp } }); window.prevSp = spb.dataset.sp; pet._h = 0; setPose('joy'); return; }   // 미리 보기만 (저장해야 바뀜)
   if (e.target.id === 's_mute') { setMute(!S.talk.mute); return; }   // 바로 (저장 필요 없음)

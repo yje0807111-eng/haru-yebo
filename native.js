@@ -52,7 +52,7 @@
       N.setUpd(latest);
       if (!manual) return;   // 11-06: 저절로 확인할 때는 '1' 표시만 (아이콘 · 메뉴 설정 · 새 버전 확인)
       say(`🔄 하루 예보 새 버전이 나왔어! (${latest}판)<br>지금 바꿀까?`, { pose: 'joy', ms: 60000, important: true, buttons: [{ label: '응, 바꿔 줘', act: () => N.install() }, { label: '나중에', ghost: true }] });
-    } catch (e) { if (manual) say('지금은 확인을 못 했어. 인터넷을 확인해 줘 🥲', { ms: 3000 }); }
+    } catch (e) { if (manual) say('지금은 새 버전을 확인하지 못했어 🥲<br>바로 받아서 깔아 볼까?', { ms: 30000, important: true, buttons: [{ label: '📥 앱 파일 받기', act: () => window.open(APK, '_system') }, { label: '나중에', ghost: true }] }); }
   };
   // 🔴 새 버전 '1': 휴대폰 아이콘(알림 하나) → 메뉴 ⚙️ 설정 → 🔄 새 버전 확인 으로 이어짐
   N.upd = 0;
