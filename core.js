@@ -121,6 +121,14 @@ function quitApp() {   // 11-06: 조용히 끝내기 — 팻도 화면에서 사
   say(pick(['잘 자~ 또 불러 줘 🐾', '응, 조용히 있을게. 또 봐! 💛', '오늘도 고마웠어. 안녕~']), { pose: 'wave', ms: 1500 });
   setTimeout(() => { if (window.Native && Native.quit) Native.quit(); else { hideBubble(); petOnly(true); } }, 1200);
 }
+// 📞 전화 걸기 (11-07): 앱 파일이면 안드로이드가 바로 걸고, 아니면 전화 화면
+function dialNum(num) {
+  const n = String(num || '').replace(/[^0-9+*#]/g, ''); if (!n) return;
+  const F = window.Capacitor && Capacitor.Plugins && Capacitor.Plugins.FloatPet;
+  if (F && F.call) F.call({ num: n }).then(r => { if (r && !r.direct) say('전화 화면을 열었어. 초록 단추를 눌러 걸어 줘 📞', { ms: 4000 }); }).catch(() => { location.href = 'tel:' + n; });
+  else location.href = 'tel:' + n;
+}
+document.addEventListener('click', e => { const a = e.target.closest && e.target.closest('a[href^="tel:"]'); if (a) { e.preventDefault(); dialNum(a.getAttribute('href').slice(4)); } }, true);
 function petMenu() {
   setPose(pick(['joy', 'love', 'wave', 'laugh'])); fx('hop'); cry(true); P.until = performance.now() + 3000; P.target = null; markSign();
   const b = [['🏘️ 동네 날씨', () => openView('town')], ['🎨 내 방', () => openView('room')], ['📒 주소록', () => openView('people')], ['🛡️ 지킴이', () => openView('safe')], ['⏰ 시간·알람', () => openView('time')], ['⚙️ 설정', () => openView('set'), 'setb'], ['📖 안내소식', () => openGuide()], ['🌙 끝내기', quitApp]];
@@ -153,7 +161,7 @@ function say(text, opt = {}) {
   const box = bubble.querySelector('.btns'); box.innerHTML = '';
   for (const b of opt.buttons || []) {
     const el = document.createElement('button'); el.textContent = b.label; if (b.ghost) el.className = 'ghost';
-    el.onclick = ev => { ev.stopPropagation(); if (b.url) window.open(b.url, '_blank'); else if (b.tel) location.href = 'tel:' + b.tel; else if (b.act) b.act(); else hideBubble(); };
+    el.onclick = ev => { ev.stopPropagation(); if (b.url) window.open(b.url, '_blank'); else if (b.tel) dialNum(b.tel); else if (b.act) b.act(); else hideBubble(); };
     box.appendChild(el);
   }
   bubble.hidden = false;

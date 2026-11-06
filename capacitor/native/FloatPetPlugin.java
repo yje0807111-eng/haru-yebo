@@ -9,9 +9,12 @@ import com.getcapacitor.Plugin;
 import com.getcapacitor.PluginCall;
 import com.getcapacitor.PluginMethod;
 import com.getcapacitor.annotation.CapacitorPlugin;
+import com.getcapacitor.annotation.Permission;
+import com.getcapacitor.annotation.PermissionCallback;
+import com.getcapacitor.PermissionState;
 
 // 다른 앱 위에 떠 있는 팻 (하루 예보) — 켜기·끄기·크기·권한
-@CapacitorPlugin(name = "FloatPet")
+@CapacitorPlugin(name = "FloatPet", permissions = { @Permission(alias = "phone", strings = { android.Manifest.permission.CALL_PHONE }) })
 public class FloatPetPlugin extends Plugin {
     static FloatPetPlugin inst;
 
@@ -153,6 +156,23 @@ public class FloatPetPlugin extends Plugin {
     public void openAppSettings(PluginCall call) {
         Intent i = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:" + getContext().getPackageName())); i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
         getContext().startActivity(i); call.resolve();
+    }
+    // 📞 전화 걸기 (11-07): 허락이 있으면 바로 걸고, 처음엔 허락을 물은 뒤 걸기. 거부하면 번호가 찍힌 전화 화면
+    @PluginMethod
+    public void call(PluginCall call) {
+        if (getPermissionState("phone") != PermissionState.GRANTED) { requestPermissionForAlias("phone", call, "callPermCb"); return; }
+        doCall(call, true);
+    }
+    @PermissionCallback
+    private void callPermCb(PluginCall call) { doCall(call, getPermissionState("phone") == PermissionState.GRANTED); }
+    private void doCall(PluginCall call, boolean direct) {
+        String num = call.getString("num", "").replaceAll("[^0-9+*#]", "");
+        try {
+            Intent i = new Intent(direct ? Intent.ACTION_CALL : Intent.ACTION_DIAL, Uri.parse("tel:" + Uri.encode(num)));
+            i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            getContext().startActivity(i);
+            JSObject r = new JSObject(); r.put("direct", direct); call.resolve(r);
+        } catch (Exception e) { call.reject("call: " + e); }
     }
     @PluginMethod
     public void notiAccess(PluginCall call) {

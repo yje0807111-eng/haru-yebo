@@ -29,7 +29,7 @@ function sosCall(num, auto) {
     clearInterval(sosI);
     if (auto) for (const g of S.guard.guardians || []) { const c = S.contacts.find(x => x.id === g); if (c && c.pk) nsend(c.pk, 'guard', `${nameOf() || '사용자'}님이 "도와주세요"를 외쳐서 119에 전화했어요`, { name: nameOf(), sos: true, days: 0 }); }
     say(`📞 ${num}에 전화하는 중…`, { pose: 'bark', ms: 15000 });
-    location.href = 'tel:' + num;
+    dialNum(num);
   }, n * 1000 + 300);
 }
 const SOS_RE = /(도와\s*주세요|도와\s*줘요|도와줘|살려\s*주세요|살려\s*줘|사람\s*살려|구해\s*주세요)/;
