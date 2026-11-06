@@ -86,7 +86,8 @@
     const rk = (C.runList || []).concat(['run', '네발뛰기', 'dash']).find(k => A[k]);
     const run = sp === 'dog' ? ['뛰기1.webp', '뛰기2.webp'] : rk ? uniq(A[rk].frames) : walk;
     const L = SOUNDS[sp] || SOUNDS.dog;
-    return { sp, idle: idle.join('|'), walk: walk.join('|'), run: run.join('|'), home: one('기쁨') || idle[0], sndC: L[0].join('|'), sndH: L[1].join('|') };
+    const hk = ['인사_오른손', '인사_왼손', '기쁨', '만세'].find(k => A[k]); const hello = hk ? uniq(A[hk].frames) : [one('기쁨') || idle[0]];
+    return { sp, hello: hello.join('|'), idle: idle.join('|'), walk: walk.join('|'), run: run.join('|'), home: one('기쁨') || idle[0], sndC: L[0].join('|'), sndH: L[1].join('|') };
   };
   N.floatConfig = () => { if (FP) FP.config({ size: S.me.size || 100, name: bn(), on: !S.floatOff, act: petAct(), cries: !S.talk.mute && S.talk.cries !== false && Date.now() >= (quietUntil || 0), micBeep: S.talk.micBeep ?? 1, temper: S.me.temper || 'normal', kakao: !S.kakaoOff, talkMin: ({ often: 5, normal: 20, rare: 30, quiet: 0 })[S.talk.freq || 'normal'] ?? 20, uname: S.me.name || '', vol: Math.max(0.2, S.talk.volume || 0.4), ...petLists() }).catch(() => {}); };
   N.quit = () => { if (FP && FP.quit) FP.quit().catch(() => {}); };

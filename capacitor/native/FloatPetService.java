@@ -174,6 +174,27 @@ public class FloatPetService extends Service {
 
     void note(String s) { getSharedPreferences("pet", 0).edit().putString("err", s).apply(); }
 
+    // 👋 휴대폰 화면을 켜고 잠금을 풀면 팻이 반갑게 인사 (11-07)
+    android.content.BroadcastReceiver screenRx;
+    long lastHello = 0;
+    void greet() {
+        if (pet == null || !wantShown) return;
+        long now = System.currentTimeMillis();
+        if (now - lastHello < 20000) return;   // 너무 자주는 말고
+        lastHello = now;
+        moving = false; hopping = false;
+        Bitmap[] hf = list("hello", new String[] { "기쁨.webp" });
+        if (hf.length > 1) showFramesB(hf, 6, 4000); else if (hf.length == 1 && hf[0] != null) { pet.setScaleX(1); pet.setImageBitmap(hf[0]); nextDecide = now + 4000; }
+        SharedPreferences sp = getSharedPreferences("pet", 0);
+        String u = sp.getString("uname", ""); String call = u.isEmpty() ? "" : u + "! ";
+        int hr = java.util.Calendar.getInstance().get(java.util.Calendar.HOUR_OF_DAY);
+        String[] lines = hr < 5 ? new String[] { "늦었는데 안 자? 🌙", "아직 깨어 있구나! 나도 있어~" }
+            : hr < 11 ? new String[] { "좋은 아침이야! ☀️", "왔구나! 오늘도 잘 부탁해 🐾", "일어났어? 반가워!" }
+            : hr < 18 ? new String[] { "왔구나! 반가워 🐾", "헤헤 보고 싶었어!", "어서 와~ 나 여기 있어!" }
+            : new String[] { "왔구나! 오늘 하루 어땠어? 🌙", "반가워~ 고생 많았어 💛", "어서 와! 보고 싶었어 🐾" };
+        bubble(call + lines[(int) (Math.random() * lines.length)], 4500);
+        if (sp.getBoolean("cries", true)) bark(true, sp.getFloat("vol", 0.5f));
+    }
     void build() {
         wm = (WindowManager) getSystemService(WINDOW_SERVICE);
         SharedPreferences sp = getSharedPreferences("pet", 0);
@@ -265,6 +286,11 @@ public class FloatPetService extends Service {
             Log.i("HaruPet", "bar added x=" + blp.x + " y=" + blp.y);
         } catch (Exception e) { Log.e("HaruPet", "bar", e); note("bar " + e); }
         h.post(tick);
+        try {
+            screenRx = new android.content.BroadcastReceiver() { @Override public void onReceive(Context c, Intent i) { if (Intent.ACTION_USER_PRESENT.equals(i.getAction())) h.postDelayed(() -> greet(), 400); } };
+            android.content.IntentFilter f = new android.content.IntentFilter(Intent.ACTION_USER_PRESENT);
+            if (Build.VERSION.SDK_INT >= 33) registerReceiver(screenRx, f, Context.RECEIVER_EXPORTED); else registerReceiver(screenRx, f);
+        } catch (Exception e) { Log.e("HaruPet", "screenRx", e); }
     }
 
     // 끌면 옮기고, 살짝 누르면 onTap
@@ -683,6 +709,7 @@ public class FloatPetService extends Service {
 
     @Override
     public void onDestroy() {
+        try { if (screenRx != null) unregisterReceiver(screenRx); } catch (Exception ignored) { }
         Log.i("HaruPet", "service destroy");
         h.removeCallbacksAndMessages(null);
         try { if (pet != null) wm.removeView(pet); } catch (Exception ignored) { }

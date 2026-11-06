@@ -173,19 +173,20 @@ function parseVcf(text) {
   return out;
 }
 function drawPeople() {
-  const all = S.contacts.slice().sort((a, b) => a.name.localeCompare(b.name, 'ko'));
+  const ordOf = c => c.ord == null ? 1e9 : c.ord;   // 11-07: 끌어 올린 순서 먼저, 나머지는 가나다
+  const all = S.contacts.slice().sort((a, b) => ordOf(a) - ordOf(b) || a.name.localeCompare(b.name, 'ko'));
   $('#pAsk').innerHTML = all.length ? `<div class="row"><button class="btn small ghost" id="pPick">🔄 휴대폰 연락처 다시 불러오기</button></div><p class="note small" id="pSt"></p>` : `<h3>📒 너의 핸드폰에 있는 사람들을 내가 관리해 줄까?</h3><p class="note">한 번만 허락하면 전화번호까지 정리해서, 생일도 챙기고 연락도 도와줄게. 이 휴대폰 안에만 저장돼.</p>
     <div class="row"><button class="btn" id="pPick">📱 휴대폰 연락처 가져오기</button></div><p class="note small" id="pSt"></p><p class="note small">아이폰은 연락처 앱에서 '모든 연락처'를 길게 눌러 내보낸 파일(.vcf)을 고르면 돼요.</p>`;
   const q = ($('#pQ').value || '').trim();
   const list = q ? all.filter(c => c.name.includes(q) || c.phones.some(p => p.num.replace(/-/g, '').includes(q.replace(/-/g, '')))) : all;
   $('#pList').innerHTML = list.slice(0, 300).map(c => {
     const p = c.phones[0], open = pOpen === c.id, tk = pTalk === c.id;
-    return `<div class="prow" data-c="${c.id}"><div class="top"><span class="nm">${esc(c.name)}${c.pk ? ' 🔗' : ''}</span><span class="ph">${p ? esc(p.num) : ''}</span></div>
-      <div class="acts">${p ? `<a class="btn small ghost" href="tel:${esc(p.num.replace(/-/g, ''))}">📞 전화</a>` : ''}${c.pk ? `<button class="btn small" data-a="talk">💬 대화</button>` : `<button class="btn small ghost" data-a="invite">🔗 초대</button>`}<button class="btn small ghost" data-a="edit">✏️ 고치기</button>${c.bday ? `<span class="note small">🎂 ${c.bday.m}/${c.bday.d}</span>` : ''}</div>
+    return `<div class="prow" data-c="${c.id}"><div class="top">${q ? '' : '<span class="grip" title="끌어서 순서 바꾸기">☰</span>'}<span class="nm">${esc(c.name)}${c.pk ? ' 🔗' : ''}</span><span class="ph">${p ? esc(p.num) : ''}</span></div>
+      <div class="acts">${p ? `<a class="btn small ghost" href="tel:${esc(p.num.replace(/-/g, ''))}">📞 전화</a>` : ''}${c.pk ? `<button class="btn small" data-a="talk">💬 대화</button>` : `<button class="btn small ghost" data-a="invite">🔗 초대</button>`}<button class="btn small ghost" data-a="edit">✏️ 수정</button><button class="btn small ghost" data-a="del">🗑 삭제</button>${c.bday ? `<span class="note small">🎂 ${c.bday.m}/${c.bday.d}</span>` : ''}</div>
       ${tk ? `<div class="msgs">${(S.pchats[c.id] || []).slice(-30).map(m => `<div class="m ${m.who}">${esc(m.text)}</div>`).join('') || '<p class="note small">첫 마디를 보내 봐!</p>'}</div><div class="row"><input data-f="pm" placeholder="${esc(c.name)}에게 보낼 말"><button class="btn small" data-a="psend">보내기</button></div>` : ''}
       ${open ? `<div class="edit"><input data-f="name" value="${esc(c.name)}" placeholder="이름"><input data-f="phones" value="${esc(c.phones.map(x => x.num).join(', '))}" placeholder="전화번호" inputmode="tel">
         <div class="row">생일 <select data-f="bm"><option value="">-</option>${Array.from({ length: 12 }, (_, i) => `<option ${c.bday && c.bday.m === i + 1 ? 'selected' : ''} value="${i + 1}">${i + 1}월</option>`).join('')}</select><select data-f="bd"><option value="">-</option>${Array.from({ length: 31 }, (_, i) => `<option ${c.bday && c.bday.d === i + 1 ? 'selected' : ''} value="${i + 1}">${i + 1}일</option>`).join('')}</select></div>
-        <div class="row"><button class="btn small ghost" data-a="del">🗑 지우기</button><button class="btn small" data-a="close">다 됐어</button></div></div>` : ''}</div>`;
+        <div class="row"><button class="btn small" data-a="close">다 됐어</button></div></div>` : ''}</div>`;
   }).join('') || (all.length ? '<p class="note">찾는 사람이 없어.</p>' : '');
   const pk = $('#pPick'); if (pk) pk.onclick = pickPhoneContacts;
 }
@@ -212,3 +213,33 @@ $('#pList').addEventListener('change', e => {
   save();
 });
 window.addEventListener('load', () => setTimeout(startNostr, 800));
+
+// ☰ 끌어서 순서 바꾸기 (11-07): 손잡이를 꾹 잡고 위아래로 끌면 그 자리로. 바꾼 순서는 저장됨
+(function pDragInit() {
+  const L = $('#pList'); let drag = null;
+  L.addEventListener('pointerdown', e => {
+    const g = e.target.closest('.grip'); if (!g) return;
+    const row = g.closest('.prow'); e.preventDefault(); g.setPointerCapture(e.pointerId);
+    const r = row.getBoundingClientRect();
+    drag = { row, g, y0: e.clientY, h: r.height + 8, id: row.dataset.c };
+    row.classList.add('dragging');
+  });
+  L.addEventListener('pointermove', e => {
+    if (!drag) return;
+    const dy = e.clientY - drag.y0; drag.row.style.transform = `translateY(${dy}px)`;
+    const rows = [...L.querySelectorAll('.prow')], i = rows.indexOf(drag.row);
+    let to = i;
+    rows.forEach((x, k) => { if (x === drag.row) return; const rr = x.getBoundingClientRect(), mid = rr.top + rr.height / 2; if (k < i && e.clientY < mid) to = Math.min(to, k); if (k > i && e.clientY > mid) to = Math.max(to, k); });
+    rows.forEach(x => x.classList.toggle('dropat', rows.indexOf(x) === to && x !== drag.row));
+    drag.to = to;
+    const v = L.closest('.view'); if (v) { const vr = v.getBoundingClientRect(); if (e.clientY < vr.top + 60) v.scrollTop -= 12; else if (e.clientY > vr.bottom - 60) v.scrollTop += 12; }
+  });
+  const end = () => {
+    if (!drag) return;
+    const rows = [...L.querySelectorAll('.prow')].map(x => x.dataset.c), i = rows.indexOf(drag.id), to = drag.to == null ? i : drag.to;
+    rows.splice(i, 1); rows.splice(to, 0, drag.id);
+    rows.forEach((id, k) => { const c = S.contacts.find(x => x.id === id); if (c) c.ord = k; });
+    save(); drag = null; drawPeople();
+  };
+  L.addEventListener('pointerup', end); L.addEventListener('pointercancel', end);
+})();

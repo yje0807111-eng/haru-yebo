@@ -216,7 +216,12 @@ async function send(text, opt = {}) {   // opt.talk = 바탕화면 팻에게 한
   const em = stripName(text).match(/^(119|112|1394|일일구|일일이|구급차|소방서|경찰)\s*(에|로|번|을|를|좀)?\s*(전화|신고|불러)/);
   if (em && window.sosCall) { sosCall(/^(119|일일구|구급차|소방서)/.test(em[1]) ? '119' : /^(112|일일이|경찰)/.test(em[1]) ? '112' : '1394'); return; }
   if (busy) { say('잠깐만, 아직 생각 중이야 💭', { ms: 2000 }); return; }
-  if (smode && !opt.talk) { const c0 = findCommand(stripName(text) || text); if (c0) { doCommand(c0.id); return; } lastSearch = text; return doSearch(text); }   // 팻방 말창 = 검색 (명령은 그대로)
+  if (smode && !opt.talk) {   // 팻방 말창 = 검색. 단, 알람·시간·전화·명령은 먼저 알아들음 (11-07)
+    if (window.peopleTalk && await peopleTalk(text)) return;
+    if (await timeTalk(text)) return;
+    const c0 = findCommand(stripName(text) || text); if (c0) { doCommand(c0.id); return; }
+    lastSearch = text; return doSearch(text);
+  }   // 팻방 말창 = 검색 (명령은 그대로)
   if (window.pmode && pmode) return pmodeSend(text);
   if (/^(아니[,\s]*)?(너|다루)?(한테|에게)?\s*(한|하는)\s*말이(야|었어|라고)/.test(text) && lastSearch) { const q = lastSearch; lastSearch = ''; return chatWith(q, true); }
   if (/^(그거\s*)?(찾아\s*봐|찾아\s*줘|검색해\s*줘|검색)[!~.?\s]*$/.test(text) && lastUser) { lastSearch = lastUser; return doSearch(lastUser); }

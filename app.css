@@ -168,3 +168,8 @@ body.petonly .ground { opacity: .35; }
 
 /* 11-06 새 버전 1 */
 .badge { pointer-events: none; display: inline-block; min-width: 18px; height: 18px; line-height: 18px; border-radius: 9px; background: #F04452; color: #fff; font-style: normal; font-size: 12px; font-weight: 800; text-align: center; padding: 0 5px; vertical-align: middle; }
+
+/* 11-07 주소록 순서 바꾸기 */
+.prow .grip { touch-action: none; cursor: grab; font-size: 20px; color: #8a7a6a; padding: 0 8px 0 2px; user-select: none; }
+.prow.dragging { position: relative; z-index: 5; box-shadow: 0 8px 20px rgba(0,0,0,.25); opacity: .95; }
+.prow.dropat { border-color: #3182f6; border-style: dashed; }
