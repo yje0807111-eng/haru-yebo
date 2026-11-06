@@ -115,9 +115,13 @@ function cry(happy, loud) {
   a.volume = Math.max(0, Math.min(1, loud ? Math.max(0.8, S.talk.volume) : S.talk.volume));
   a.play().catch(() => {});
 }
+function quitApp() {   // 11-06: 조용히 끝내기 — 팻도 화면에서 사라짐(하루 예보를 다시 누르면 다시 나옴)
+  say(pick(['잘 자~ 또 불러 줘 🐾', '응, 조용히 있을게. 또 봐! 💛', '오늘도 고마웠어. 안녕~']), { pose: 'wave', ms: 1500 });
+  setTimeout(() => { if (window.Native && Native.quit) Native.quit(); else { hideBubble(); petOnly(true); } }, 1200);
+}
 function petMenu() {
   setPose(pick(['joy', 'love', 'wave', 'laugh'])); fx('hop'); cry(true); P.until = performance.now() + 3000; P.target = null; markSign();
-  const b = [['🏘️ 동네 날씨', () => openView('town')], ['🎨 내 방', () => openView('room')], ['📒 주소록', () => openView('people')], ['🛡️ 지킴이', () => openView('safe')], ['⏰ 시간·알람', () => openView('time')], ['⚙️ 설정', () => openView('set')]];
+  const b = [['🏘️ 동네 날씨', () => openView('town')], ['🎨 내 방', () => openView('room')], ['📒 주소록', () => openView('people')], ['🛡️ 지킴이', () => openView('safe')], ['⏰ 시간·알람', () => openView('time')], ['⚙️ 설정', () => openView('set')], ['🌙 끝내기', quitApp, 'ghost']];
   clearTimeout(bubbleT);
   bubble.querySelector('.text').innerHTML = animalize(pick([`멍! 뭐 할까? 🐾`, `불렀어? 헤헤 🐶`, `${S.me.name ? esc(S.me.name) + '! ' : ''}뭐 도와줄까?`]));
   const box = bubble.querySelector('.btns'); box.innerHTML = '<div class="petmenu"></div>';
@@ -183,6 +187,7 @@ function doCommand(id) {
 const t = $('#t'), modeBtn = $('#modeBtn'); let smode = false, busy = false, lastUser = '', lastSearch = '';
 function setSmode(on) { smode = on; document.body.classList.toggle('smode', on); modeBtn.textContent = on ? '🔎' : '♥'; t.placeholder = on ? '무엇이든 찾아볼게…' : `${bn()}에게 말 걸기…`; }
 modeBtn.onclick = () => { setSmode(!smode); say(smode ? '🔎 검색창이야! 궁금한 걸 쓰면 찾아서 알려 줄게' : '다시 나랑 이야기하자 🐶', { ms: 2200 }); };
+t.addEventListener('focus', () => hideBubble());   // 11-06: 말창을 누르면 = 말하려는 것 → 노란 메뉴 바로 닫기
 t.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.isComposing) { e.preventDefault(); send(t.value); } });
 function markSign() { patch({ guard: { lastSign: new Date().toISOString() } }); }
 

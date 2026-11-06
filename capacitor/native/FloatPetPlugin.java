@@ -65,6 +65,15 @@ public class FloatPetPlugin extends Plugin {
         call.resolve();
     }
 
+    // 11-06: 🌙 끝내기 — 이번에는 팻을 띄우지 않고 앱을 닫음 (다시 열면 다시 나옴)
+    @PluginMethod
+    public void quit(PluginCall call) {
+        getContext().getSharedPreferences("pet", 0).edit().putBoolean("on", false).commit();
+        getContext().stopService(new Intent(getContext(), FloatPetService.class));
+        call.resolve();
+        if (getActivity() != null) getActivity().runOnUiThread(() -> getActivity().finishAndRemoveTask());
+    }
+
     @PluginMethod
     public void stop(PluginCall call) {
         getContext().stopService(new Intent(getContext(), FloatPetService.class));

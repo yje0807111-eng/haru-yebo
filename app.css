@@ -100,6 +100,7 @@ body.petonly .ground { opacity: .35; }
 .petmenu { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; }
 .petmenu button { border: 2.5px solid var(--ink); background: #fff; border-radius: 16px; padding: 12px 4px; font: inherit; font-size: 16px; font-weight: 800; }
 .petmenu button.talkb { grid-column: 1 / -1; background: var(--sun); }
+.petmenu button.ghost { grid-column: 1 / -1; background: #f4f1ea; font-size: 15px; }   /* 11-06 🌙 끝내기 */
 .sizes { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; }
 .sizes button { border: 2px solid var(--ink); background: #fff; border-radius: 10px; padding: 7px 0; font: inherit; font-size: 14px; }
 .sizes button.on { background: var(--sun); font-weight: 800; }

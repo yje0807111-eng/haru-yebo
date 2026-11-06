@@ -77,8 +77,9 @@ public class FloatPetService extends Service {
     void applyShown() {
         Log.i("HaruPet", "shown=" + wantShown + " pet=" + (pet != null) + " bar=" + (bar != null));
         int vis = wantShown ? View.VISIBLE : View.GONE;
+        if (wantShown) { SharedPreferences ps = getSharedPreferences("pet", 0); String k = ps.getString("sp", "dog") + "|" + ps.getString("walk", ""); if (!k.equals(loadedSp)) loadLists(); }   // 고른 동물 다시 확인
         if (pet != null) pet.setVisibility(vis);
-        if (bar != null) bar.setVisibility(vis);
+        if (bar != null) bar.setVisibility(View.GONE);
         if (bub != null && !wantShown) bub.setVisibility(View.GONE);
         if (!wantShown) endEdit();
     }
@@ -181,7 +182,7 @@ public class FloatPetService extends Service {
             lp.y = sp.getInt("y", sh() - dp(330));
             px = tx = lp.x;
             sizeLp();
-            pet.setOnTouchListener(dragger(pet, lp, "", () -> open("pet"), true));
+            pet.setOnTouchListener(dragger(pet, lp, "", () -> listen(), true));   // 11-06: 누르면 바로 말로 대화
             wm.addView(pet, lp);
             Log.i("HaruPet", "pet added");
         } catch (Exception e) { Log.e("HaruPet", "pet", e); note("pet " + e); }
@@ -254,7 +255,7 @@ public class FloatPetService extends Service {
             blp.y = sp.getInt("by", sh() - dp(78));
             bar.setOnTouchListener(dragger(bar, blp, "b", () -> startEdit(), false));
             mic.setOnTouchListener(dragger(bar, blp, "b", () -> listen(), false));
-            wm.addView(bar, blp);
+            // 11-06 사용자: 바탕화면에는 말창 없이 팻만 (말창이 화면을 가림) — 팻을 누르면 바로 음성 대화
             Log.i("HaruPet", "bar added x=" + blp.x + " y=" + blp.y);
         } catch (Exception e) { Log.e("HaruPet", "bar", e); note("bar " + e); }
         h.post(tick);
@@ -512,6 +513,7 @@ public class FloatPetService extends Service {
     static void barkStatic(boolean happy, float vol) { if (me != null) me.h.post(() -> me.bark(happy, vol)); }
     static void poseStatic(String file, String action, int ms) { if (me != null) me.h.post(() -> me.showPose(file, action, ms)); }
 
+    static void quitStatic() { if (me != null) me.h.post(() -> { try { me.stopSelf(); } catch (Exception ignored) { } }); }
     static void sayStatic(String text, int ms) { if (me != null) me.h.post(() -> me.bubble(text, ms)); }
 
     void open(String what) {

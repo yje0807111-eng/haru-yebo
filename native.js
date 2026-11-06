@@ -78,6 +78,7 @@
     return { sp, idle: idle.join('|'), walk: walk.join('|'), run: run.join('|'), home: one('기쁨') || idle[0], sndC: L[0].join('|'), sndH: L[1].join('|') };
   };
   N.floatConfig = () => { if (FP) FP.config({ size: S.me.size || 100, name: bn(), on: !S.floatOff, act: petAct(), cries: S.talk.cries !== false && Date.now() >= (quietUntil || 0), vol: Math.max(0.2, S.talk.volume || 0.4), ...petLists() }).catch(() => {}); };
+  N.quit = () => { if (FP && FP.quit) FP.quit().catch(() => {}); };
   N.petAction = id => { if (FP && document.hidden) FP.pose({ action: id === 'home' ? 'home' : 'free' }).catch(() => {}); };
   N.petSize = s => { if (FP) { FP.setSize({ size: s }).catch(() => {}); N.floatConfig(); } };
   N.askFloat = async () => {
@@ -89,6 +90,7 @@
   document.addEventListener('visibilitychange', async () => {
     if (document.hidden || !FP) return;
     petOnly(true);   // 앱을 열면 → 앱 안 팻만
+    setTimeout(() => { if (!document.hidden && bubble.hidden) petMenu(); }, 500);   // 11-06: 들어오자마자 메뉴
     const r = await FP.takePending().catch(() => null); if (r && r.text) send(r.text);   // 바탕화면에서 하던 말 이어서
   });
   // 💬 바탕화면 말창에서 쓴 말 → 여기서 생각해서 → 바탕화면 팻 말풍선으로 대답
