@@ -32,6 +32,7 @@ const bn = () => S.me.buddyName || '다루';
 // ── 화면 바꾸기
 let view = 'home';
 function go(v) {
+  if (view === 'set' && v !== 'set' && typeof setUndo === 'function') setUndo();   // 11-06: 저장 안 하고 나가면 예전 그대로
   view = v;
   $$('.view').forEach(e => e.classList.toggle('on', e.dataset.v === v));
   $$('#tabs button').forEach(b => b.classList.toggle('on', b.dataset.go === v));
@@ -46,7 +47,7 @@ document.addEventListener('click', e => { const b = e.target.closest('[data-go]'
 
 // ── 다루 마당: 그림·움직임
 // 11-06: 강아지·고양이·돼지 — 그림·동작은 PC 에서 관리(build_assets.py 로 복사)
-const SP = () => (S.me.species && (window.CHARS || {})[S.me.species]) ? S.me.species : 'dog';
+const SP = () => { const v = window.prevSp || S.me.species; return v && (window.CHARS || {})[v] ? v : 'dog'; };   // prevSp = 설정에서 미리 보기
 let CH = (window.CHARS || {})[SP()];
 const DIR = () => 'chars/' + SP() + '/';
 const POSES = {
@@ -59,7 +60,7 @@ const POSES = {
 const pet = $('#pet'), yard = $('#yard');
 const P = { x: 0.5, dir: 1, target: null, speed: 0.08, pose: 'idle', frames: null, fi: 0, fps: 8, until: 0, mode: 'idle', lastT: 0 };
 function setPose(p) {
-  P.pose = p;
+  P.pose = p; CH = (window.CHARS || {})[SP()];
   // 강아지 걷기·뛰기: 얼굴·뒤통수가 안 잘린 그림 두 장을 번갈아 (11-05) — 고양이·돼지는 PC 와 같은 움직이는 그림
   const CYC = SP() === 'dog' ? { walk: [['걷기1.webp', '걷기2.webp'], 5], run: [['뛰기1.webp', '뛰기2.webp'], 7] } : {};
   if (CYC[p]) { P.frames = CYC[p][0]; P.fps = CYC[p][1]; P.fi = 0; P.face = -1; P.hk = 1; pet.src = DIR() + P.frames[0]; return; }
@@ -98,7 +99,7 @@ function tick(now) {
     else { P.dir = d > 0 ? 1 : -1; P.x += Math.sign(d) * Math.min(Math.abs(d), P.speed * dt); }
   } else if (now > P.until) decide();
   if (P.frames && now - frameT > 1000 / P.fps) { frameT = now; P.fi = (P.fi + 1) % P.frames.length; pet.src = DIR() + P.frames[P.fi]; }
-  const hh = petPx(S.me.size || 100);   // 크기 단계 → 화면 크기
+  const hh = petPx(window.prevSize || S.me.size || 100);   // 크기 단계 → 화면 크기
   const hp = Math.round(hh * (P.hk || 1)); if (pet._h !== hp) { pet._h = hp; pet.style.height = hp + 'px'; }
   const w = pet.getBoundingClientRect().width || 100, W = yard.clientWidth;
   pet.style.left = Math.round(P.x * W - w / 2) + 'px';

@@ -136,3 +136,12 @@ body.petonly .ground { opacity: .35; }
 .talk .tface { width: 30px; height: 30px; object-fit: contain; flex: none; }
 .talk .mic[hidden] { display: none; }
 .talk.rec { box-shadow: 0 0 0 4px #FF8A8A; }
+
+/* 11-06: 설정은 저장을 눌러야 바뀜 — 위 머리줄 고정 + 바꾸면 아래 저장 줄 */
+.view[data-v="set"] > header { position: sticky; top: 0; z-index: 5; background: #FFFBF0; padding: 6px 0; }
+.btn.dirty { animation: savePulse 1.3s ease-in-out infinite; }
+@keyframes savePulse { 50% { transform: scale(1.06); } }
+#saveBar { position: fixed; left: 10px; right: 10px; bottom: calc(76px + env(safe-area-inset-bottom)); z-index: 30; display: flex; align-items: center; gap: 8px; background: #fff; border: 2.5px solid #2B2118; border-radius: 16px; padding: 8px 10px; box-shadow: 0 6px 18px rgba(0,0,0,.18); }
+#saveBar[hidden] { display: none; }
+#saveBar span { flex: 1; font-size: 13px; font-weight: 700; }
+#saveBar .btn { padding: 6px 12px; }

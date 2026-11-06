@@ -35,9 +35,11 @@ $('#timeBox').addEventListener('change', e => {
 
 // ⚙️ 설정: 바꾼 것을 모아 두었다가 💾 저장
 let draft = {};
-function dset(p) { merge(draft, p); $('#setSave').disabled = false; $('#setSave').classList.add('dirty'); }
+function dset(p) { merge(draft, p); $('#setSave').disabled = false; $('#setSave').classList.add('dirty'); $('#saveBar').hidden = false; }
+// 저장 안 하고 나가거나 [되돌리기] → 예전 그대로 (미리 보기도 되돌림)
+function setUndo(quiet) { const had = Object.keys(draft).length; draft = {}; window.prevSize = null; window.prevSp = null; pet._h = 0; setPose('idle'); $('#setSave').disabled = true; $('#setSave').classList.remove('dirty'); $('#saveBar').hidden = true; if (had && !quiet) say('저장을 안 눌러서 예전 그대로 둘게 🐾', { ms: 2600 }); return had; }
 function drawSet() {
-  draft = {}; $('#setSave').disabled = true; $('#setSave').classList.remove('dirty');
+  draft = {}; $('#setSave').disabled = true; $('#setSave').classList.remove('dirty'); $('#saveBar').hidden = true;
   $('#setBox').innerHTML = `
   <div class="card"><h3>나와 팻</h3>
     <label class="note">내 이름 <input id="s_name" value="${esc(S.me.name)}" placeholder="예: 푸른이"></label>
@@ -65,8 +67,8 @@ $('#setBox').addEventListener('input', e => {
   if (e.target.id === 's_key' && !/^•+$/.test(e.target.value)) dset({ ai: { key: e.target.value.trim() } });
 });
 $('#setBox').addEventListener('click', async e => {
-  const sz = e.target.closest('[data-sz]'); if (sz) { $$('#s_size button').forEach(b => b.classList.toggle('on', b === sz)); dset({ me: { size: +sz.dataset.sz } }); S.me.size = +sz.dataset.sz; pet._h = 0; }   // 바로 보여 주기 (저장해야 남음)
-  const spb = e.target.closest('[data-sp]'); if (spb) { $$('#s_sp button').forEach(b => b.classList.toggle('on', b === spb)); setSpecies(spb.dataset.sp); say({ dog: '멍! 이제 강아지야 🐶', cat: '야옹~ 이제 고양이야 🐱', pig: '꿀꿀! 이제 아기 돼지야 🐷' }[spb.dataset.sp], { pose: 'joy', ms: 3000 }); return; }
+  const sz = e.target.closest('[data-sz]'); if (sz) { $$('#s_size button').forEach(b => b.classList.toggle('on', b === sz)); dset({ me: { size: +sz.dataset.sz } }); window.prevSize = +sz.dataset.sz; pet._h = 0; }   // 미리 보기만 (저장해야 바뀜)
+  const spb = e.target.closest('[data-sp]'); if (spb) { $$('#s_sp button').forEach(b => b.classList.toggle('on', b === spb)); dset({ me: { species: spb.dataset.sp } }); window.prevSp = spb.dataset.sp; pet._h = 0; setPose('joy'); return; }   // 미리 보기만 (저장해야 바뀜)
   const tm = e.target.closest('[data-tm]'); if (tm) { $$('#s_temper button').forEach(b => b.classList.toggle('on', b === tm)); dset({ me: { temper: tm.dataset.tm } }); }
   const f = e.target.closest('[data-f]'); if (f) { $$('#s_freq button').forEach(b => b.classList.toggle('on', b === f)); dset({ talk: { freq: f.dataset.f } }); }
   const p = e.target.closest('[data-p]'); if (p) { $$('#s_ai button').forEach(b => b.classList.toggle('on', b === p)); dset({ ai: { provider: p.dataset.p } }); }
@@ -84,9 +86,10 @@ $('#setBox').addEventListener('click', async e => {
   if (e.target.id === 's_upd' && window.Native) return Native.checkUpdate(true);
   if (e.target.id === 's_notif') { try { const r = await Notification.requestPermission(); say(r === 'granted' ? '알림을 켰어! 🔔' : '알림을 못 켰어. 휴대폰 설정에서 허락해 줘', { ms: 3500 }); } catch { say('이 브라우저는 알림을 못 해 🥲', { ms: 3000 }); } }
 });
-$('#setSave').onclick = () => {
+$('#setSave').onclick = $('#setSave2').onclick = () => {
   if (draft.me && 'buddyName' in draft.me) draft.me.buddyName = draft.me.buddyName.slice(0, 10) || '다루';
-  const oldB = bn(); patch(draft); draft = {};
+  const oldB = bn(), spChanged = draft.me && draft.me.species && draft.me.species !== S.me.species; patch(draft); draft = {}; window.prevSize = null; window.prevSp = null; pet._h = 0; $('#saveBar').hidden = true;
+  if (spChanged) setSpecies(S.me.species); else setPose('joy');
   setBuddyName(bn()); $('#tabPet').textContent = bn(); setSmode(smode);
   $('#setSave').disabled = true; $('#setSave').classList.remove('dirty');
   if (window.Native && Native.petSize) Native.petSize(S.me.size);
@@ -94,3 +97,5 @@ $('#setSave').onclick = () => {
   petOnly(true);
   say(bn() !== oldB ? `이제 내 이름은 '${esc(bn())}'야! "${esc(callName(bn()))}" 하고 불러 줘 🐶` : '설정을 저장했어! ✓', { pose: 'joy' });
 };
+
+$('#setUndo').onclick = () => { setUndo(true); drawSet(); say('예전 그대로 되돌렸어 🐾', { ms: 2200 }); };
