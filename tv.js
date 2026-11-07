@@ -161,7 +161,10 @@ async function tvBroadcast(name) {
   say(`지금은 ${esc(name)} 생방송을 못 찾았어 🥲 ${name === 'JTBC' || name === 'MBN' || name === 'TV조선' ? '' : ''}`, { ms: 3500 });
 }
 // 🎬 옛날 드라마 "장금이 1편 틀어 줘" → 방송사 공식 채널에서 그 회를 찾아 틀기, "다음 회"
-const TV_DRAMA_CH = () => TV().chans.filter(c => c.cat === '옛날드라마' || c.cat === '드라마').map(c => c.id || 'UC' + c.list.slice(2));
+// 방송사 공식 드라마 채널 (앱에 고정 — 채널 목록을 아직 못 받아도 됨)
+const TV_DRAMA_OFFICIAL = ['UCG5bAssl2H0wjLG4BEv5ScQ', 'UCn0nlepACCBD6rxj-GUwn5A', 'UC41Vyqs1wSY0FTMqDsLsELA'];   // 옛드(MBC) · KBS Drama Classic · 빽드(SBS)
+const TV_DRAMA_CH = () => [...new Set([...TV_DRAMA_OFFICIAL, ...TV().chans.filter(c => c.cat === '옛날드라마' || c.cat === '드라마').map(c => c.id || 'UC' + c.list.slice(2))])];
+const TV_DRAMA_NAME = /(옛드|KBS Drama|KBS 드라마|빽드|MBC ?드라마|MBCdrama|SBS ?Drama|SBS 드라마|JTBC Drama|tvN DRAMA|KBS2? ?Drama)/i;   // 채널 번호가 바뀌어도 이름으로
 let tvDramaNow = null;
 function epRange(title) {
   const m = title.match(/(\d{1,3})\s*[-~]\s*(\d{1,3})\s*(회|화|부)/); if (m) return [+m[1], +m[2]];
@@ -173,8 +176,10 @@ async function tvDrama(title, n) {
   tvFront(); say(`🎬 "${esc(title)}" ${n}회 찾는 중…`, { ms: 4000 });
   const ok = TV_DRAMA_CH(), core = title.length >= 3 ? title.replace(/이$/, '') : title;   // 장금이 → 장금 (겨울연가 의 '가'는 그대로)
   const has = v => { const nt = norm(v.title), nc = norm(core); return nt.includes(nc); };   // 제목 전체가 들어 있어야 (비슷한 다른 드라마 막기)
-  let list = (await ytFind(`${title} ${n}회`)).filter(v => !v.live && ok.includes(v.chId) && has(v));
-  if (!list.length) list = (await ytFind(`${title} ${n}회 full`)).filter(v => !v.live && ok.includes(v.chId) && has(v));
+  const isOk = v => (ok.includes(v.chId) || TV_DRAMA_NAME.test(v.ch)) && !v.live && has(v);
+  let raw = await ytFind(`${title} ${n}회`), list = raw.filter(isOk);
+  if (!list.length) { const raw2 = await ytFind(`${title} ${n}회 full`); raw = raw.concat(raw2); list = raw2.filter(isOk); }
+  if (!raw.length) { say('🥲 지금 유튜브 찾기가 안 됐어. 인터넷을 확인하고 다시 말해 줘!', { ms: 5000, important: true }); return; }
   const exact = list.find(v => { const r = epRange(v.title); return r && n >= r[0] && n <= r[1]; });
   const pickv = exact || list[0];
   if (!pickv) {
