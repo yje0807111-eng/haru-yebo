@@ -327,7 +327,9 @@ public class FloatPetService extends Service {
             if (pet == null) return;
             long now = System.currentTimeMillis();
             try {
-                if (!held && wantShown) {
+                if (HaruBall.on && !wantShown && now - HaruBall.startedAt > 2500) HaruBall.stop(FloatPetService.this, false);   // 하루 예보를 열면 게임 끝
+                if (!held && wantShown && HaruBall.on) HaruBall.tick(FloatPetService.this, now);   // 🎾 공 던지기 중
+                else if (!held && wantShown) {
                     if (moving) {
                         float speed = dp(hopping ? 11 : running ? (act >= 4 ? 7 : 5) : 2.2f);
                         if (py < 0) py = ty = lp.y;
@@ -725,6 +727,7 @@ public class FloatPetService extends Service {
         i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_REORDER_TO_FRONT | Intent.FLAG_ACTIVITY_SINGLE_TOP);
         try { c.startActivity(i); } catch (Exception ignored) { }
     }
+    static boolean ballStatic(boolean start) { if (me == null) return false; me.h.post(() -> { if (start) HaruBall.start(me); else HaruBall.stop(me, true); }); return true; }
     static void sayStatic(String text, int ms) { if (me != null) me.h.post(() -> me.bubble(text, ms)); }
 
     void open(String what) {
@@ -750,6 +753,7 @@ public class FloatPetService extends Service {
         try { if (screenRx != null) unregisterReceiver(screenRx); } catch (Exception ignored) { }
         Log.i("HaruPet", "service destroy");
         h.removeCallbacksAndMessages(null);
+        try { HaruBall.stop(this, false); } catch (Exception ignored) { }
         try { if (pet != null) wm.removeView(pet); } catch (Exception ignored) { }
         try { if (bar != null) wm.removeView(bar); } catch (Exception ignored) { }
         try { if (bub != null) wm.removeView(bub); } catch (Exception ignored) { }

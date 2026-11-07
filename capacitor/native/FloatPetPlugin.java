@@ -444,4 +444,15 @@ public class FloatPetPlugin extends Plugin {
     public void smsDaily(PluginCall call) { JSObject r = new JSObject(); r.put("sent", HaruSms.daily(getContext())); r.put("day", HaruSms.lastDay(getContext())); call.resolve(r); }
     @PluginMethod
     public void smsSend(PluginCall call) { JSObject r = new JSObject(); r.put("ok", HaruSms.send(getContext(), call.getString("num", ""), call.getString("text", ""))); call.resolve(r); }
+    // 🎾 공 던지기 게임 (11-07): 하루 예보가 앞에 있으면 뒤로 보내고 화면 위 팻과 놀기
+    @PluginMethod
+    public void ballGame(PluginCall call) {
+        boolean start = Boolean.TRUE.equals(call.getBoolean("on", true));
+        JSObject r = new JSObject();
+        if (start && Build.VERSION.SDK_INT >= 23 && !Settings.canDrawOverlays(getContext())) { r.put("ok", false); r.put("why", "perm"); call.resolve(r); return; }
+        if (start && getActivity() != null) { try { getActivity().moveTaskToBack(true); } catch (Exception ignored) { } }
+        if (start && FloatPetService.me == null) FloatPetService.maybeStart(getContext());
+        new android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(() -> FloatPetService.ballStatic(start), start ? 900 : 0);
+        r.put("ok", true); call.resolve(r);
+    }
 }
