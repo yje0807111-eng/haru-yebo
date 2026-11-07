@@ -118,8 +118,9 @@
     if (document.hidden || !FP) return;
     setTimeout(() => N.checkUpdate(false), 2500);
     N.alarmSync();
-    petOnly(true);   // 앱을 열면 → 앱 안 팻만
-    setTimeout(() => { if (!document.hidden && bubble.hidden) petMenu(); }, 500);   // 11-06: 들어오자마자 메뉴
+    if (window.tvWantAt && Date.now() - window.tvWantAt < 8000) { if (view !== 'tv') go('tv'); }   // 11-07: TV 를 틀려고 앞으로 온 것 → TV 그대로
+    else { petOnly(true);   // 앱을 열면 → 앱 안 팻만
+    setTimeout(() => { if (!document.hidden && bubble.hidden) petMenu(); }, 500); }   // 11-06: 들어오자마자 메뉴
     const r = await FP.takePending().catch(() => null); if (r && r.text) send(r.text, { talk: true });   // 바탕화면에서 하던 말 이어서
   });
   // 💬 바탕화면 말창에서 쓴 말 → 여기서 생각해서 → 바탕화면 팻 말풍선으로 대답

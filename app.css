@@ -327,3 +327,11 @@ body.smode .talk { background: #fff; border: 0; box-shadow: 0 2px 12px rgba(49,1
 .tvset.big .tvbar { position: absolute; left: 0; right: 0; bottom: 0; padding: 10px 12px calc(10px + env(safe-area-inset-bottom)); background: linear-gradient(transparent, rgba(0,0,0,.75)); opacity: .9; }
 .tvset.big .tvpet { right: 10px; bottom: 58px; height: 56px; }
 .tvset.big.rot { inset: auto; left: 50%; top: 50%; width: 100vh; height: 100vw; transform: translate(-50%, -50%) rotate(90deg); }
+
+/* TV 안 팻: 누르면 말 듣기 */
+.tvpet { pointer-events: auto !important; cursor: pointer; transition: transform .2s; }
+.tvpet:active { transform: scale(.92); }
+.tvpet.hearing { animation: pulse 1s infinite; filter: drop-shadow(0 0 8px #3182f6); }
+.tvhear { position: absolute; right: 74px; bottom: 70px; z-index: 4; background: rgba(255,255,255,.95); color: #191f28; border-radius: 14px; padding: 7px 11px; font-size: 13.5px; font-weight: 700; box-shadow: 0 4px 14px rgba(0,0,0,.25); max-width: 70%; }
+.tvset:not(.big) .tvhear { bottom: 20px; }
+.tvhear[hidden] { display: none; }
