@@ -69,7 +69,7 @@ function tvSrc(c) {
 function tvLoad() { const f = $('#tvFrame'); if (f && tvNow) f.src = tvSrc(tvNow); else drawTV(); }
 function tvStep(d) { if (tvQ.length) { tvI = Math.max(0, Math.min(tvQ.length - 1, tvI + d)); tvLoad(); } else tvCmd(d > 0 ? 'nextVideo' : 'previousVideo'); }
 async function tvPlay(c, quiet) {
-  if (!c) return; tvFront(); tvNow = c; tvQ = []; tvI = 0; TV().last = c.list; save();
+  if (!c) return; stopOthers('tv'); tvFront(); tvNow = c; tvQ = []; tvI = 0; TV().last = c.list; save();
   if (c.kind === 'live') { const w = await tvLiveId(c); if (w) { tvQ = [w]; tvI = 0; } }   // 📡 지금 생방송
   else if (c.kind === 'video') { tvQ = c.ids || [c.vid]; tvI = 0; }
   else { const ids = await tvIds(c); if (ids) { tvQ = ids.slice(); tvI = Math.floor(Math.random() * Math.min(8, ids.length)); } }   // 최근 영상 중에서 시작

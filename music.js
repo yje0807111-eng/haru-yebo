@@ -17,9 +17,16 @@ function songs(withHidden) {
   return (musicCache || []).map(x => { const o = m[x.id] || {}; return { ...x, A: o.a || x.a || '알 수 없는 가수', G: o.g || x.g || '', fav: !!o.fav, hid: !!o.hid }; }).filter(x => withHidden || !x.hid);
 }
 function setMeta(id, p) { const m = MM(); m[id] = { ...(m[id] || {}), ...p }; save(); }
+// 🔇 하나만 나오게: 새로 틀기 전에 다른 것 끄기 (keep = 'music' | 'yt' | 'tv')
+function stopOthers(keep) {
+  if (keep !== 'yt' && typeof wStop === 'function') wStop();
+  if (keep !== 'tv' && typeof tvNow !== 'undefined' && tvNow) { tvNow = null; tvQ = []; tvBig = false; if (typeof drawTV === 'function') try { drawTV(); } catch { } }
+  if (keep !== 'music') { const F = MF(); if (F && F.musicCtl) F.musicCtl({ cmd: 'stopall' }).catch(() => {}); }
+}
 async function playList(list, start = 0, label) {
   const F = MF(); if (!F || !F.musicPlay) { say('갤럭시 앱에서 쓸 수 있어 🎵', { ms: 2500 }); return; }
   if (!list.length) { say('들을 노래가 없어 🥲', { ms: 2500 }); return; }
+  stopOthers('music');   // 11-07: 새로 틀면 먼저 나오던 유튜브·TV 끄기
   window.mQueue = list.map(x => x.id);
   await F.musicPlay({ list: list.slice(0, 500).map(x => ({ id: x.id, t: x.t, a: x.A })), start }).catch(() => {});
   setPose('dance'); P.until = performance.now() + 8000;

@@ -61,7 +61,7 @@ public class HaruMusic {
             mp.setOnCompletionListener(m -> next());
             mp.setOnErrorListener((m, w, x) -> { next(); return true; });
             mp.prepare(); mp.start(); paused = false;
-            ((AudioManager) app.getSystemService(Context.AUDIO_SERVICE)).requestAudioFocus(null, AudioManager.STREAM_MUSIC, AudioManager.AUDIOFOCUS_GAIN);
+            ((AudioManager) app.getSystemService(Context.AUDIO_SERVICE)).requestAudioFocus(FOCUS, AudioManager.STREAM_MUSIC, AudioManager.AUDIOFOCUS_GAIN);   // 11-07: 다른 소리(유튜브·TV·다른 앱)가 나오면 멈춤
             FloatPetPlugin.musicEvent(qt[qi], qa[qi], true, q[qi]);
             FloatPetService.musicStatic(qt[qi], qa[qi], true);
         } catch (Exception e) { next(); }
@@ -70,6 +70,7 @@ public class HaruMusic {
     static void prev() { if (q.length == 0) return; qi = (qi - 1 + q.length) % q.length; startCur(); }
     static void stopPlayer() { if (mp != null) { try { mp.stop(); } catch (Exception ignored) { } try { mp.release(); } catch (Exception ignored) { } mp = null; } }
     static boolean ours() { return mp != null; }
+    static final AudioManager.OnAudioFocusChangeListener FOCUS = ch -> { if (ch == AudioManager.AUDIOFOCUS_LOSS && mp != null) { stopPlayer(); q = new long[0]; FloatPetPlugin.musicEvent("", "", false, 0); FloatPetService.musicStatic("", "", false); } };
 
     // ── 지금 나오는 노래 조절 (우리 것이면 직접, 아니면 음악 앱에 단추 신호)
     static String control(Context c, String cmd) {

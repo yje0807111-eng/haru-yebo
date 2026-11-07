@@ -4,9 +4,9 @@ const BIBLE = ['창세기', '출애굽기', '레위기', '민수기', '신명기
 const BIBLE_SHORT = { 창: '창세기', 출: '출애굽기', 마태: '마태복음', 마가: '마가복음', 누가: '누가복음', 요한: '요한복음', 행전: '사도행전', 로마: '로마서', 계시록: '요한계시록', 시: '시편', 잠: '잠언', 애가: '예레미야애가', 고전: '고린도전서', 고후: '고린도후서', 롬: '로마서' };
 let wNow = null;   // { kind: 'hymn'|'bible'|'gospel', n, book, ch, q, label }
 function wPlayer(ids, label, info) {
+  stopOthers('yt');
   const M = window.mYT = { ids, i: 0, label };
   wNow = info;
-  { const F = window.Capacitor && Capacitor.Plugins && Capacitor.Plugins.FloatPet; if (F && F.musicCtl) F.musicCtl({ cmd: 'stopall' }).catch(() => {}); }   // 휴대폰 노래는 멈추고
   if (typeof drawMusic === 'function') { if (typeof tvFront === 'function') tvFront(); hideBubble(); petOnly(false); mTab = 'worship'; go('music'); drawMusic(); }
   setPose('dance'); P.until = performance.now() + 6000;
 }
