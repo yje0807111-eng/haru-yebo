@@ -1,0 +1,448 @@
+{
+ "ver": "202611071015",
+ "note": "하루 예보 TV방 기본 채널 (유튜브 채널 검색 구독자 순, 11-07)",
+ "cats": [
+  "뮤직영상",
+  "영화",
+  "개그",
+  "춤",
+  "짤",
+  "낚시",
+  "도서",
+  "요리",
+  "동물",
+  "뉴스"
+ ],
+ "chans": [
+  {
+   "kind": "channel",
+   "list": "UUbD8EppRX3ZwJSou-TVo90A",
+   "id": "UCbD8EppRX3ZwJSou-TVo90A",
+   "name": "Mnet K-POP",
+   "cat": "뮤직영상",
+   "image": "https://yt3.ggpht.com/xPBuFrafbL_6Opr8UVDVKinGSQRqv1432LMo-7tRojZpdOd7N3hLeCegoQPX45iKEvQnnIrx=s176-c-k-c0x00ffffff-no-rj-mo",
+   "subs": "구독자 2260만명",
+   "def": true
+  },
+  {
+   "kind": "channel",
+   "list": "UUzw-C7fNfs018R1FzIKnlaA",
+   "id": "UCzw-C7fNfs018R1FzIKnlaA",
+   "name": "BIGBANG",
+   "cat": "뮤직영상",
+   "image": "https://yt3.ggpht.com/ytc/AIdro_n0J82ENLVh_wfaD7eOSjwfqloqGswqBxH4H-gg8PscRKw=s176-c-k-c0x00ffffff-no-rj-mo",
+   "subs": "구독자 1700만명",
+   "def": true
+  },
+  {
+   "kind": "channel",
+   "list": "UU-Fnix71vRP64WXeo0ikd0Q",
+   "id": "UC-Fnix71vRP64WXeo0ikd0Q",
+   "name": "IVE",
+   "cat": "뮤직영상",
+   "image": "https://yt3.ggpht.com/NpVoBA5_lK6kUVkMC90rGuN-7KueeDPA5x3FAqhlf_fPAEvskLzzfzG-zp0SDZXbxpI6KbZVkf0=s176-c-k-c0x00ffffff-no-rj-mo",
+   "subs": "구독자 537만명",
+   "def": true
+  },
+  {
+   "kind": "channel",
+   "list": "UUhhKBlh_wvspTh5n4mL0b5g",
+   "id": "UChhKBlh_wvspTh5n4mL0b5g",
+   "name": "BOYNEXTDOOR",
+   "cat": "뮤직영상",
+   "image": "https://yt3.ggpht.com/fHImL9mm_mmZMRpn9mKciWCnvxsQ5_enwggEso4cM-DSGg83bssI0iRBj4O2ZkD6xVmG5YvhdQ=s176-c-k-c0x00ffffff-no-rj-mo",
+   "subs": "구독자 255만명",
+   "def": true
+  },
+  {
+   "kind": "channel",
+   "list": "UU8C6QOPDVYwmuaSBZksefdg",
+   "id": "UC8C6QOPDVYwmuaSBZksefdg",
+   "name": "TWS",
+   "cat": "뮤직영상",
+   "image": "https://yt3.ggpht.com/gdAxjU-fzfoBy_RywmRUzNTAJ-Ggn9BEb9XpUFMzU8dEeIWfYy6vJfSRoSM-5kFrwwdBDzPy=s176-c-k-c0x00ffffff-no-rj-mo",
+   "subs": "구독자 239만명",
+   "def": true
+  },
+  {
+   "kind": "channel",
+   "list": "UUaHGOzOyeYzLQeKsVkfLEGA",
+   "id": "UCaHGOzOyeYzLQeKsVkfLEGA",
+   "name": "지무비 : G Movie",
+   "cat": "영화",
+   "image": "https://yt3.ggpht.com/7Tnxb_PQu3oLQj1IYv3IJ3rv_S4YyyqY3fazd4yCg_kePd9DKalomOPIz6DBR-l_ItHyPHF6Pko=s176-c-k-c0x00ffffff-no-rj-mo",
+   "subs": "구독자 419만명",
+   "def": true
+  },
+  {
+   "kind": "channel",
+   "list": "UUpcft4FJXgUjnxWoQYsl7Ug",
+   "id": "UCpcft4FJXgUjnxWoQYsl7Ug",
+   "name": "고몽",
+   "cat": "영화",
+   "image": "https://yt3.googleusercontent.com/ytc/AIdro_n2VEZCHj55JE9Ppw79uhETNd-JVDibC-WBxWnLXQSUIMs=s176-c-k-c0x00ffffff-no-rj-mo",
+   "subs": "구독자 257만명",
+   "def": true
+  },
+  {
+   "kind": "channel",
+   "list": "UU79hJz6y1EEiIkwfHOuWC4w",
+   "id": "UC79hJz6y1EEiIkwfHOuWC4w",
+   "name": "김시선",
+   "cat": "영화",
+   "image": "https://yt3.ggpht.com/uEfu3W7jqDujg1rYIExDy2dznGAp_v00sRjNk6ZzUCTt7tJwAasH0bvlovTbMO86SQ5-1Jy0=s176-c-k-c0x00ffffff-no-rj-mo",
+   "subs": "구독자 215만명",
+   "def": true
+  },
+  {
+   "kind": "channel",
+   "list": "UUuK80YHBZyyKrr2B1oHrgrw",
+   "id": "UCuK80YHBZyyKrr2B1oHrgrw",
+   "name": "어퍼컷Tube",
+   "cat": "영화",
+   "image": "https://yt3.ggpht.com/nb6bsir1C6cxHpSjqnWyuGSylZu4fvDUofk89Nl4lueaXNaCWQuR4r1V3GD4emOcJxvdacFDeYk=s176-c-k-c0x00ffffff-no-rj-mo",
+   "subs": "구독자 160만명",
+   "def": true
+  },
+  {
+   "kind": "channel",
+   "list": "UUxn_EHVOJnrEJBZY2p3E6Sg",
+   "id": "UCxn_EHVOJnrEJBZY2p3E6Sg",
+   "name": "어바웃타임 (About time)",
+   "cat": "영화",
+   "image": "https://yt3.ggpht.com/0tUyFEaT597o-nsFKIA14rdhR-cZthjB1-_B1WKDB2komfx4_vUeKgnL7pf-6M9f-MVyuMnntw=s176-c-k-c0x00ffffff-no-rj-mo",
+   "subs": "구독자 126만명",
+   "def": true
+  },
+  {
+   "kind": "channel",
+   "list": "UUXTQWsvCnuKxqnbBFMYhrSA",
+   "id": "UCXTQWsvCnuKxqnbBFMYhrSA",
+   "name": "별놈들",
+   "cat": "개그",
+   "image": "https://yt3.ggpht.com/lqQIvcqJYn5g2xQmpS8OWW_hVuT1ohInMCiRhDBe8BsCsXO139q8UzS7DzbqvqvklTpiuqnWa_s=s176-c-k-c0x00ffffff-no-rj-mo",
+   "subs": "구독자 145만명",
+   "def": true
+  },
+  {
+   "kind": "channel",
+   "list": "UUzT7nHtzVqwiarTH8sqHaJA",
+   "id": "UCzT7nHtzVqwiarTH8sqHaJA",
+   "name": "개그콘서트",
+   "cat": "개그",
+   "image": "https://yt3.ggpht.com/Mff01km4IFf4BBnHcZOz2YKthXJzhqfq-Is92wVeFw8ZDQ8wzS17FCdbjrRhSxW-uYMCU_wrJg=s176-c-k-c0x00ffffff-no-rj-mo",
+   "subs": "구독자 139만명",
+   "def": true
+  },
+  {
+   "kind": "channel",
+   "list": "UU3zQwS0Ioduks5DqvMWFd5Q",
+   "id": "UC3zQwS0Ioduks5DqvMWFd5Q",
+   "name": "재훍 영상툰",
+   "cat": "개그",
+   "image": "https://yt3.ggpht.com/NLw3RLURDPlShnBc7nsmcuGrn0Iyr7VJ_8ommzihzpVrcz1k46q4lxfNpf67B5D_st6DI5N2=s176-c-k-c0x00ffffff-no-rj-mo",
+   "subs": "구독자 112만명",
+   "def": true
+  },
+  {
+   "kind": "channel",
+   "list": "UUwTg-6vuMNVKQYX-TgSiC8A",
+   "id": "UCwTg-6vuMNVKQYX-TgSiC8A",
+   "name": "코미꼬",
+   "cat": "개그",
+   "image": "https://yt3.ggpht.com/0nTEbP6uTEibY8mvJu_Ti8coKQSz7MdpfRS7kO6sI5hFhIaF0i_74t3XHWfI-L2yOvsH5wyt=s176-c-k-c0x00ffffff-no-rj-mo",
+   "subs": "구독자 107만명",
+   "def": true
+  },
+  {
+   "kind": "channel",
+   "list": "UUXVfodmlGhUpLREncSjuYAw",
+   "id": "UCXVfodmlGhUpLREncSjuYAw",
+   "name": "KBS COMEDY: 크큭티비",
+   "cat": "개그",
+   "image": "https://yt3.ggpht.com/W8dwCXTUX9ZwsRufGW3zNpdB2J178RzsdA97WqYaColzGLgxBIYCM6guRvSu6Y7b90bS6lV0vA=s176-c-k-c0x00ffffff-no-rj-mo",
+   "subs": "구독자 102만명",
+   "def": true
+  },
+  {
+   "kind": "channel",
+   "list": "UUEIi7zFR_wE23jFncVtd6-A",
+   "id": "UCEIi7zFR_wE23jFncVtd6-A",
+   "name": "STUDIO CHOOM [스튜디오 춤]",
+   "cat": "춤",
+   "image": "https://yt3.ggpht.com/3ZjSjNuOP8ho8qlpEsOMT_KbbK6lLs4EFBgVMZg1fK3nnJipRoJ4Pq1sSIKbf-rEdcu5CmAnvQ=s176-c-k-c0x00ffffff-no-rj-mo",
+   "subs": "구독자 638만명",
+   "def": true
+  },
+  {
+   "kind": "channel",
+   "list": "UUgZlBRLRB1-0l-qL9BkecLQ",
+   "id": "UCgZlBRLRB1-0l-qL9BkecLQ",
+   "name": "ARTBEAT",
+   "cat": "춤",
+   "image": "https://yt3.ggpht.com/uoQTYdC9DPKQjQcqfHEGKWrBPZyC2K4SOS5SgmSw3VuAQqdtEL32gaXBxvHGjcG3tv4gVrHJ9A=s176-c-k-c0x00ffffff-no-rj-mo",
+   "subs": "구독자 508만명",
+   "def": true
+  },
+  {
+   "kind": "channel",
+   "list": "UUmjNKt6kITwaZTqvWuaSPLg",
+   "id": "UCmjNKt6kITwaZTqvWuaSPLg",
+   "name": "SBS Entertainment",
+   "cat": "짤",
+   "image": "https://yt3.ggpht.com/3A8COy3FuJc7voZpNhG_Ao1gGj8O-C_edb40_IjhX4l0UBc1rCYtICQs1w2EWnUqVmF7ZpSiubM=s176-c-k-c0x00ffffff-no-rj-mo",
+   "subs": "구독자 752만명",
+   "def": true
+  },
+  {
+   "kind": "channel",
+   "list": "UUvRIeQeTZDHRcqVZRu0XBug",
+   "id": "UCvRIeQeTZDHRcqVZRu0XBug",
+   "name": "SBS 옛날 예능 - 빽능",
+   "cat": "짤",
+   "image": "https://yt3.ggpht.com/Kaq0NtwTAlVRykUt0UEYRErTrTalRM86AjKob4uHJGj4JyHuSXhbOEgnZgK1ra5T2W4aSFqj7yI=s176-c-k-c0x00ffffff-no-rj-mo",
+   "subs": "구독자 193만명",
+   "def": true
+  },
+  {
+   "kind": "channel",
+   "list": "UU271vX3c3kYZsgpz7-zPBoA",
+   "id": "UC271vX3c3kYZsgpz7-zPBoA",
+   "name": "KBS Entertain: 깔깔티비",
+   "cat": "짤",
+   "image": "https://yt3.ggpht.com/GXDGQrt4PmCt3Z0vaUeeSLiRD2xxTVXvs4XVUbmKAIiCdre87Ai9bY_dQMuVs0E3TEi4MQU8Sg=s176-c-k-c0x00ffffff-no-rj-mo",
+   "subs": "구독자 114만명",
+   "def": true
+  },
+  {
+   "kind": "channel",
+   "list": "UUY2uWQDCzn_ZE-JpTfDRR2A",
+   "id": "UCY2uWQDCzn_ZE-JpTfDRR2A",
+   "name": "입질의추억TV jiminTV",
+   "cat": "낚시",
+   "image": "https://yt3.ggpht.com/mg2altY9bqf5DHCRaYfgwDH0vTgHzkZVlDHlpY0JppBIisWvqRAuCRrYsg69qeh-dQdJzyjpkg=s176-c-k-c0x00ffffff-no-rj-mo",
+   "subs": "구독자 133만명",
+   "def": true
+  },
+  {
+   "kind": "channel",
+   "list": "UUQ_2Uzf0pXNBPkEaoNgvmUg",
+   "id": "UCQ_2Uzf0pXNBPkEaoNgvmUg",
+   "name": "앵쩡TV",
+   "cat": "낚시",
+   "image": "https://yt3.googleusercontent.com/ytc/AIdro_mdUjiRT6azfePNrGMVXVkg2XJf28lRienpgPzXDi_mJ14=s176-c-k-c0x00ffffff-no-rj-mo",
+   "subs": "구독자 74.8만명",
+   "def": true
+  },
+  {
+   "kind": "channel",
+   "list": "UU12YJZLancDKojjbRunyhZA",
+   "id": "UC12YJZLancDKojjbRunyhZA",
+   "name": "진석기시대",
+   "cat": "낚시",
+   "image": "https://yt3.ggpht.com/2mRz43NEALa45WmduZL8KlQ2Wg1E2zfkutqx2g8uMWT_Z6_uX2YczSoYYGO579YwkUa7uAxGz7w=s176-c-k-c0x00ffffff-no-rj-mo",
+   "subs": "구독자 66.5만명",
+   "def": true
+  },
+  {
+   "kind": "channel",
+   "list": "UUuVEqkHMAEDT9xotLrs7_pA",
+   "id": "UCuVEqkHMAEDT9xotLrs7_pA",
+   "name": "유시민낚시아카데미",
+   "cat": "낚시",
+   "image": "https://yt3.ggpht.com/bZW09YeJNLZpkOwqCmv7uJKPBUvM7fHZcKqb2aB3TeqpXXJ9hkJU9holt3SuODZ1Jokbd1V8Uw=s176-c-k-c0x00ffffff-no-rj-mo",
+   "subs": "구독자 17.4만명",
+   "def": true
+  },
+  {
+   "kind": "channel",
+   "list": "UUwaKj1D0aU0p8gzG8hm6p4w",
+   "id": "UCwaKj1D0aU0p8gzG8hm6p4w",
+   "name": "낚시가자!설튜브",
+   "cat": "낚시",
+   "image": "https://yt3.ggpht.com/pa95_sdrMu9O8WSQLrWwEERT0TnHyvXCya-MNvWxKHfsIjRf8UDpdPxRXNhshVxG4WyZZLz8tQ=s176-c-k-c0x00ffffff-no-rj-mo",
+   "subs": "구독자 13만명",
+   "def": true
+  },
+  {
+   "kind": "channel",
+   "list": "UUrBpV_pG2kyMMEHCMTNzjAQ",
+   "id": "UCrBpV_pG2kyMMEHCMTNzjAQ",
+   "name": "리뷰엉이: Owl's Review",
+   "cat": "도서",
+   "image": "https://yt3.googleusercontent.com/ytc/AIdro_nYk3wFdXFRA5zdIfi9yDHX5B56fKB1lTeFyCs9KgoOoc0=s176-c-k-c0x00ffffff-no-rj-mo",
+   "subs": "구독자 187만명",
+   "def": true
+  },
+  {
+   "kind": "channel",
+   "list": "UUwzLJSRcPOIPXTRt77HI6iA",
+   "id": "UCwzLJSRcPOIPXTRt77HI6iA",
+   "name": "따듯한 목소리 현준",
+   "cat": "도서",
+   "image": "https://yt3.googleusercontent.com/ytc/AIdro_mITJgIQAqUPmgfjVMS8lNfQXir6E7vDOgCFRD_ttR_nuw=s176-c-k-c0x00ffffff-no-rj-mo",
+   "subs": "구독자 51.9만명",
+   "def": true
+  },
+  {
+   "kind": "channel",
+   "list": "UUPhvyjw3ZrfxjEv6d5xE-7Q",
+   "id": "UCPhvyjw3ZrfxjEv6d5xE-7Q",
+   "name": "책읽는 자작나무",
+   "cat": "도서",
+   "image": "https://yt3.ggpht.com/UzLutZCRGqQoBOg158fxpjDo4J3tPwPNe5zxBFcEIppVAzWUdduIE7_N5FK2VkBrv8xXItmq6A=s176-c-k-c0x00ffffff-no-rj-mo",
+   "subs": "구독자 49.2만명",
+   "def": true
+  },
+  {
+   "kind": "channel",
+   "list": "UUmBrqo-FoqugP5Q4bmLWAEw",
+   "id": "UCmBrqo-FoqugP5Q4bmLWAEw",
+   "name": "이혜성의 1% 북클럽",
+   "cat": "도서",
+   "image": "https://yt3.ggpht.com/I1mOdfos_ZO1-UocrnkJDc2-FbOImmP8IBBdvxnX3PDC8MZVAi8KvvuuYdF3TLfmI_pa1eLDYFg=s176-c-k-c0x00ffffff-no-rj-mo",
+   "subs": "구독자 45.8만명",
+   "def": true
+  },
+  {
+   "kind": "channel",
+   "list": "UU65evG4j_5AX9R2VHj4uG7Q",
+   "id": "UC65evG4j_5AX9R2VHj4uG7Q",
+   "name": "훔친책",
+   "cat": "도서",
+   "image": "https://yt3.ggpht.com/Q1yw5K7dFI0muaRqaKLBTPWB9jLCkn7-s03301Xm5a_7PSccvuzmAR-FzqFfYCldTLFhng1E3g=s176-c-k-c0x00ffffff-no-rj-mo",
+   "subs": "구독자 30.2만명",
+   "def": true
+  },
+  {
+   "kind": "channel",
+   "list": "UUtby6rJtBGgUm-2oD_E7bzw",
+   "id": "UCtby6rJtBGgUm-2oD_E7bzw",
+   "name": "Cooking tree 쿠킹트리",
+   "cat": "요리",
+   "image": "https://yt3.googleusercontent.com/ytc/AIdro_n7OHI5bBU6Y9DZKeBydgHIsLQPqiW_nlfsMKV8zYcxlek=s176-c-k-c0x00ffffff-no-rj-mo",
+   "subs": "구독자 520만명",
+   "def": true
+  },
+  {
+   "kind": "channel",
+   "list": "UUPWFxcwPliEBMwJjmeFIDIg",
+   "id": "UCPWFxcwPliEBMwJjmeFIDIg",
+   "name": "하루한끼 one meal a day",
+   "cat": "요리",
+   "image": "https://yt3.googleusercontent.com/ytc/AIdro_loTXlkLeirbpOF-9ruDPMBtV28vfLxSBEE9AalRTp9Lg=s176-c-k-c0x00ffffff-no-rj-mo",
+   "subs": "구독자 418만명",
+   "def": true
+  },
+  {
+   "kind": "channel",
+   "list": "UU0htUSwcxfSGNfK_5Q28JkA",
+   "id": "UC0htUSwcxfSGNfK_5Q28JkA",
+   "name": "1분요리 뚝딱이형",
+   "cat": "요리",
+   "image": "https://yt3.ggpht.com/MHTy5jXZQPwKwrGtAV-gLL6ei9YTOgR8Z6GESkhAAIz0kkG4d6B6vu6CUPNNsLOzqcGxGfBK=s176-c-k-c0x00ffffff-no-rj-mo",
+   "subs": "구독자 305만명",
+   "def": true
+  },
+  {
+   "kind": "channel",
+   "list": "UUyG7zAV_2JlPnxhwDxZN6sA",
+   "id": "UCyG7zAV_2JlPnxhwDxZN6sA",
+   "name": "지현꿍",
+   "cat": "요리",
+   "image": "https://yt3.googleusercontent.com/ytc/AIdro_mCi8Gu1erATq_rGi8fA1CytkiLVXIXDl36V8ZEezChiw=s176-c-k-c0x00ffffff-no-rj-mo",
+   "subs": "구독자 299만명",
+   "def": true
+  },
+  {
+   "kind": "channel",
+   "list": "UU1g9JaEVLOFGhH8hpaK--Jg",
+   "id": "UC1g9JaEVLOFGhH8hpaK--Jg",
+   "name": "김대석 셰프TV",
+   "cat": "요리",
+   "image": "https://yt3.ggpht.com/SF3QHGXgicuzBG4TbGUYZ9H47bPaAWZIdiGx3u_svGNYqJuN1tMlOdX-ifjKELx6I6CQwChKyw=s176-c-k-c0x00ffffff-no-rj-mo",
+   "subs": "구독자 286만명",
+   "def": true
+  },
+  {
+   "kind": "channel",
+   "list": "UU22go5LdQEw-iDuxFb4C0hw",
+   "id": "UC22go5LdQEw-iDuxFb4C0hw",
+   "name": "SBS TV동물농장x애니멀봐 공식 유튜브 채널입니다!",
+   "cat": "동물",
+   "image": "https://yt3.ggpht.com/jBozf7lxshwY133mW-tLqAqyhCUz7e_cfukiYB1GIMX3xQVGPZ1oC2R1mdGl6KYP0XZdhY7a4A=s176-c-k-c0x00ffffff-no-rj-mo",
+   "subs": "구독자 503만명",
+   "def": true
+  },
+  {
+   "kind": "channel",
+   "list": "UUAhKKbDO9-ymWZ_7iAFLBQQ",
+   "id": "UCAhKKbDO9-ymWZ_7iAFLBQQ",
+   "name": "KBS동물티비 : 애니멀포유 animal4u",
+   "cat": "동물",
+   "image": "https://yt3.ggpht.com/yG3lmmkYXXsVBm6Wm76ZF0STnAvfxbGwyJh4-7JRsXF9egocuFzSUBjzjR_jrHZZkq_HCrdkT8w=s176-c-k-c0x00ffffff-no-rj-mo",
+   "subs": "구독자 159만명",
+   "def": true
+  },
+  {
+   "kind": "channel",
+   "list": "UUVvPi6vztLioOiuEg5JYavw",
+   "id": "UCVvPi6vztLioOiuEg5JYavw",
+   "name": "티몬과품바 X 포캣멍GO",
+   "cat": "동물",
+   "image": "https://yt3.ggpht.com/tzXLFQSRRlMJqauK0nzLQh1SVz44qTilPKux2y0r2JogOrEyhUUDwXb49zc2_3UqcH2A4THrNw=s176-c-k-c0x00ffffff-no-rj-mo",
+   "subs": "구독자 57.8만명",
+   "def": true
+  },
+  {
+   "kind": "channel",
+   "list": "UUFcqNiSjbOpnYCTCACZ7bhQ",
+   "id": "UCFcqNiSjbOpnYCTCACZ7bhQ",
+   "name": "EBS 세나개 x 고부해 - 왜그러냥? 귀엽개!",
+   "cat": "동물",
+   "image": "https://yt3.ggpht.com/5inob8doEJIIiMwSdFSwBO2BR6fFJpmTrTduxFUTnkPWLVemdF39kIZHlgFGIZ01gAkJdQfVYQ=s176-c-k-c0x00ffffff-no-rj-mo",
+   "subs": "구독자 42.4만명",
+   "def": true
+  },
+  {
+   "kind": "channel",
+   "list": "UU8qIqSZl5GZcfv2S_z64xdA",
+   "id": "UC8qIqSZl5GZcfv2S_z64xdA",
+   "name": "무인도그",
+   "cat": "동물",
+   "image": "https://yt3.googleusercontent.com/ytc/AIdro_kR9WhIsmi2vBY5JTgwyWmH8nvISdU-_tIK205PC1SFoJw=s176-c-k-c0x00ffffff-no-rj-mo",
+   "subs": "구독자 34.9만명",
+   "def": true
+  },
+  {
+   "kind": "channel",
+   "list": "UUF4Wxdo3inmxP-Y59wXDsFw",
+   "id": "UCF4Wxdo3inmxP-Y59wXDsFw",
+   "name": "MBCNEWS",
+   "cat": "뉴스",
+   "image": "https://yt3.googleusercontent.com/ytc/AIdro_nKpBrT7zzqTfdlfUHzw60wMU5KqV-kBmiFjU9dvMI8ePo=s176-c-k-c0x00ffffff-no-rj-mo",
+   "subs": "구독자 621만명",
+   "def": true
+  },
+  {
+   "kind": "channel",
+   "list": "UUhlgI3UHCOnwUGzWzbJ3H5w",
+   "id": "UChlgI3UHCOnwUGzWzbJ3H5w",
+   "name": "YTN",
+   "cat": "뉴스",
+   "image": "https://yt3.ggpht.com/Sd77hfGXNh1K4VgLCnYVrzWVkUKh04N5VDClPweoP-sbaZXzH3llUz2W1N_-Z4RX5_XauYpvSQ=s176-c-k-c0x00ffffff-no-rj-mo",
+   "subs": "구독자 543만명",
+   "def": true
+  },
+  {
+   "kind": "channel",
+   "list": "UUkinYTS9IHqOEwR1Sze2JTw",
+   "id": "UCkinYTS9IHqOEwR1Sze2JTw",
+   "name": "SBS 뉴스",
+   "cat": "뉴스",
+   "image": "https://yt3.ggpht.com/SqFZwlQcqLs4JMZd3lthkg79kCHi68eerNpkkahvEYSPWhm2afUNqFkbMC6J6JJcy9JJ_DzQ8w=s176-c-k-c0x00ffffff-no-rj-mo",
+   "subs": "구독자 530만명",
+   "def": true
+  }
+ ]
+}

@@ -5,7 +5,7 @@ const TV_APPS = [['유튜브', 'com.google.android.youtube', 'https://www.youtub
 const TV = () => (S.tv = S.tv || { cats: TV_CATS0.slice(), chans: [] });
 let tvCat = '', tvAdd = false, tvNow = null, tvBig = false, tvPetT = 0;
 const YT = () => window.Capacitor && Capacitor.Plugins && Capacitor.Plugins.FloatPet;
-function openTV(cat) { hideBubble(); petOnly(false); go('tv'); if (cat) tvCat = cat; drawTV(); }
+function openTV(cat) { hideBubble(); petOnly(false); go('tv'); if (cat) tvCat = cat; drawTV(); tvDefaults(false); }
 
 // 주소 → { kind, list(재생목록 번호), name }
 async function tvParse(url) {
@@ -33,7 +33,8 @@ function drawTV() {
   h += `<div class="card tvadd">${tvAdd ? `<h3>+ 채널 넣기</h3><p class="note small">유튜브 앱에서 채널(또는 재생목록) → 공유 → <b>링크 복사</b> 후 붙여 넣기. @이름 만 써도 돼요.</p>
       <input id="tvUrl" placeholder="https://youtube.com/@채널  또는  재생목록 주소"><div class="row"><select id="tvCatSel">${cats.map(c => `<option ${c === tvCat ? 'selected' : ''}>${esc(c)}</option>`).join('')}</select><button class="btn" id="tvSave">넣기</button><button class="btn ghost" id="tvCancel">닫기</button></div><p class="note small" id="tvSt"></p>`
     : `<button class="btn" id="tvOpenAdd">+ 채널 추가</button>`}</div>`;
-  h += `<div class="tvlist">${inCat.map(c => `<div class="tvrow ${tvNow && tvNow.list === c.list ? 'cur' : ''}" data-ch="${c.list}">${c.image ? `<img src="${esc(c.image)}" alt="">` : '<i>📺</i>'}<div class="info" data-t="play"><b>${esc(c.name)}</b><span>${esc(c.cat)} · ${c.kind === 'playlist' ? '재생목록' : '채널'}</span></div><button data-t="play">▶</button><select data-t="cat">${cats.map(x => `<option ${x === c.cat ? 'selected' : ''}>${esc(x)}</option>`).join('')}</select><button data-t="del">✕</button></div>`).join('') || (chans.length ? '<p class="note">이 주제에는 아직 채널이 없어요</p>' : '')}</div>`;
+  h += `<div class="tvlist">${inCat.map(c => `<div class="tvrow ${tvNow && tvNow.list === c.list ? 'cur' : ''}" data-ch="${c.list}">${c.image ? `<img src="${esc(c.image)}" alt="">` : '<i>📺</i>'}<div class="info" data-t="play"><b>${esc(c.name)}</b><span>${esc(c.cat)} · ${c.kind === 'playlist' ? '재생목록' : '채널'}${c.subs ? ' · ' + esc(c.subs) : ''}${c.def ? ' · ⭐기본' : ''}</span></div><button data-t="play">▶</button><select data-t="cat">${cats.map(x => `<option ${x === c.cat ? 'selected' : ''}>${esc(x)}</option>`).join('')}</select><button data-t="del">✕</button></div>`).join('') || (chans.length ? '<p class="note">이 주제에는 아직 채널이 없어요</p>' : '')}</div>`;
+  if ((T.removed || []).length) h += `<p class="note small" style="text-align:center"><button class="btn small ghost" id="tvRestore">뺀 기본 채널 ${T.removed.length}개 다시 넣기</button></p>`;
   h += `<div class="card"><h3>📱 다른 영상 앱 열기</h3><div class="tvapps">${TV_APPS.map(([n, p]) => `<button data-app="${p}">${n}</button>`).join('')}</div><p class="note small">틱톡·인스타·넷플릭스 같은 앱은 하루 예보 안에서 틀 수 없어서 그 앱을 열어 줘요. "넷플릭스 열어 줘" 라고 말해도 돼요.</p></div>`;
   box.innerHTML = h;
   const f = $('#tvFrame'); if (f) f.onload = () => { try { f.contentWindow.postMessage(JSON.stringify({ event: 'listening', id: 'tv', channel: 'widget' }), '*'); } catch { } };   // 다음 영상 등 명령을 받게
@@ -87,6 +88,7 @@ document.addEventListener('click', async e => {
   if (e.target.id === 'tvOpenAdd') { tvAdd = true; drawTV(); const i = $('#tvUrl'); if (i) i.focus(); return; }
   if (e.target.id === 'tvCancel') { tvAdd = false; return drawTV(); }
   if (e.target.id === 'tvPlayCat') return tvPlayCat(tvCat);
+  if (e.target.id === 'tvRestore') { tvDefaults(true); return; }
   if (e.target.id === 'tvSave') {
     const st = $('#tvSt'); st.textContent = '📡 채널을 찾는 중…'; e.target.disabled = true;
     const c = await tvParse($('#tvUrl').value); e.target.disabled = false;
@@ -98,9 +100,9 @@ document.addEventListener('click', async e => {
   const row = e.target.closest('.tvrow'), t = e.target.closest('[data-t]'); if (!row || !t) return;
   const c = T.chans.find(x => x.list === row.dataset.ch); if (!c) return;
   if (t.dataset.t === 'play') return tvPlay(c, true);
-  if (t.dataset.t === 'del') { if (confirm(`"${c.name}" 채널을 뺄까?`)) { T.chans = T.chans.filter(x => x !== c); if (tvNow && tvNow.list === c.list) tvNow = null; save(); drawTV(); } }
+  if (t.dataset.t === 'del') { if (confirm(`"${c.name}" 채널을 뺄까?`)) { if (c.def) { T.removed = T.removed || []; T.removed.push(c.list); } T.chans = T.chans.filter(x => x !== c); if (tvNow && tvNow.list === c.list) tvNow = null; save(); drawTV(); } }
 });
-document.addEventListener('change', e => { const row = e.target.closest && e.target.closest('.tvrow'); if (!row || e.target.dataset.t !== 'cat') return; const c = TV().chans.find(x => x.list === row.dataset.ch); if (c) { c.cat = e.target.value; save(); drawTV(); } });
+document.addEventListener('change', e => { const row = e.target.closest && e.target.closest('.tvrow'); if (!row || e.target.dataset.t !== 'cat') return; const c = TV().chans.find(x => x.list === row.dataset.ch); if (c) { c.cat = e.target.value; c.mine = true; save(); drawTV(); } });
 
 // 말 알아듣기 → 처리했으면 true
 function tvTalk(text) {
@@ -132,3 +134,26 @@ function tvTalk(text) {
 }
 // 노래 이벤트처럼 뷰가 바뀌면 팻 반복 멈춤
 document.addEventListener('visibilitychange', () => { if (document.hidden) clearInterval(tvPetT); else if (view === 'tv') tvPetLoop(); });
+
+// 📦 기본 채널 (11-07): tv.json(하루 예보가 정한 주제별 인기 채널)을 받아 합침 — 내가 뺀 채널·바꾼 주제는 그대로 둠
+// 인터넷(github.io)에서 새 목록을 받으므로, 목록을 바꿔 올리면 앱을 다시 깔지 않아도 모두에게 바뀜
+async function tvDefaults(force) {
+  let d = null;
+  try { d = await (await fetch('https://yje0807111-eng.github.io/haru-yebo/tv.json?t=' + Date.now(), { cache: 'no-store' })).json(); } catch { }
+  if (!d) try { d = await (await fetch('tv.json')).json(); } catch { }
+  if (!d || !d.chans) return;
+  const T = TV(); if (!force && T.defVer === d.ver) return;
+  T.removed = T.removed || [];
+  for (const c of d.cats || []) if (!T.cats.includes(c)) T.cats.push(c);
+  for (const c of d.chans) {
+    if (T.removed.includes(c.list) && !force) continue;
+    const ex = T.chans.find(x => x.list === c.list);
+    if (ex) { if (ex.def) { ex.name = c.name; ex.image = c.image; if (!ex.mine) ex.cat = c.cat; } continue; }
+    T.chans.push({ ...c });
+  }
+  if (force) T.removed = [];
+  const keep = new Set(d.chans.map(c => c.list));
+  T.chans = T.chans.filter(c => !c.def || keep.has(c.list) || c.mine);   // 기본 목록에서 빠진 기본 채널은 정리
+  T.defVer = d.ver; save(); if (view === 'tv') drawTV();
+}
+window.addEventListener('load', () => setTimeout(() => tvDefaults(false), 3000));
