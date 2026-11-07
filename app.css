@@ -335,3 +335,12 @@ body.smode .talk { background: #fff; border: 0; box-shadow: 0 2px 12px rgba(49,1
 .tvhear { position: absolute; right: 74px; bottom: 70px; z-index: 4; background: rgba(255,255,255,.95); color: #191f28; border-radius: 14px; padding: 7px 11px; font-size: 13.5px; font-weight: 700; box-shadow: 0 4px 14px rgba(0,0,0,.25); max-width: 70%; }
 .tvset:not(.big) .tvhear { bottom: 20px; }
 .tvhear[hidden] { display: none; }
+
+/* 11-07 뮤직방 유튜브 듣기 (찬송가·성경·복음성가) */
+.mytp { background: #191f28; border-radius: 20px; padding: 10px; margin-bottom: 10px; }
+.mytv { position: relative; width: 100%; aspect-ratio: 16 / 9; border-radius: 12px; overflow: hidden; background: #000; }
+.mytv iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+.mytbar { display: flex; align-items: center; gap: 6px; margin-top: 8px; }
+.mytbar b { flex: 1; color: #fff; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mytbar button { border: 0; background: rgba(255,255,255,.14); color: #fff; width: 34px; height: 34px; border-radius: 50%; }
+.mtabs { flex-wrap: wrap; }

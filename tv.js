@@ -200,6 +200,9 @@ function tvTalk(text) {
   if (app && app[0] !== '유튜브') { const F = YT(); if (F && F.openApp) F.openApp({ pkg: app[1], url: '' }).then(r => { if (!r.ok) F.openApp({ pkg: '', url: app[2] }); }); else window.open(app[2], '_blank'); say(`📱 ${app[0]} 열게!`, { ms: 2500 }); return true; }
   const nm = t.match(/^(?:채널\s*)?(\d{1,2}|[일이삼사오육칠팔구십]{1,2})\s*번\s*(?:채널)?\s*(?:좀\s*)?(?:틀어|보여|켜|돌려|봐)?/) || t.match(/^채널\s*(\d{1,2})/);
   if (nm && (/(틀어|보여|켜|돌려|채널)/.test(t))) { const n = /^\d+$/.test(nm[1]) ? +nm[1] : (window.HA && HA.num ? HA.num(nm[1]) : 0); const cat = T.cats[n - 1]; if (cat) { tvPlayCat(cat); return true; } }
+  // 🎬 "드라마 장금이", "드라마 대장금 3회", "TV 장금이" → 드라마 찾기 (11-07)
+  const dd = t.match(/^(?:드라마|tv|티비)\s+(.+?)(?:\s*(\d{1,3}|[일이삼사오육칠팔구십]{1,3})\s*(?:편|회|화|부))?\s*(?:좀\s*)?(?:틀어|보여|켜|봐|볼래|보자)?\s*(?:줘|줄래|주라|줘요|주세요)?$/i);
+  if (dd && !/^(켜|꺼|틀어|보여|방|채널)/.test(dd[1]) && !(T.cats.some(c => norm(c) === norm(dd[1])) || T.chans.some(c => norm(c.name).includes(norm(dd[1]))))) { const n = dd[2] ? (/^\d+$/.test(dd[2]) ? +dd[2] : (window.HA && HA.num ? HA.num(dd[2]) : 1)) : 1; tvDrama(dd[1].replace(/\s*(드라마)$/, '').trim(), n || 1); return true; }
   const dm = t.match(/^(?:드라마\s*)?(.{1,20}?)\s*(\d{1,3}|[일이삼사오육칠팔구십]{1,3})\s*(편|회|화|부)\s*(?:좀\s*)?(?:틀어|보여|켜|봐|볼래|보자)?/);
   if (dm && !/^(채널|\d)/.test(dm[1]) && (/(틀어|보여|켜|봐|볼래|보자)/.test(t) || /^드라마/.test(t))) { const n = /^\d+$/.test(dm[2]) ? +dm[2] : (window.HA && HA.num ? HA.num(dm[2]) : 1); tvDrama(dm[1].trim(), n || 1); return true; }
   if (tvDramaNow && /^(다음\s*(회|편|화))/.test(t)) { tvDrama(tvDramaNow.title, (tvDramaNow.to || tvDramaNow.n) + 1); return true; }
