@@ -6,7 +6,7 @@ let wNow = null;   // { kind: 'hymn'|'bible'|'gospel', n, book, ch, q, label }
 function wPlayer(ids, label, info) {
   const M = window.mYT = { ids, i: 0, label };
   wNow = info;
-  { const F = window.Capacitor && Capacitor.Plugins && Capacitor.Plugins.FloatPet; if (F && F.musicCtl) F.musicCtl({ cmd: 'stop' }).catch(() => {}); }   // 휴대폰 노래는 멈추고
+  { const F = window.Capacitor && Capacitor.Plugins && Capacitor.Plugins.FloatPet; if (F && F.musicCtl) F.musicCtl({ cmd: 'stopall' }).catch(() => {}); }   // 휴대폰 노래는 멈추고
   if (typeof drawMusic === 'function') { if (typeof tvFront === 'function') tvFront(); hideBubble(); petOnly(false); mTab = 'worship'; go('music'); drawMusic(); }
   setPose('dance'); P.until = performance.now() + 6000;
 }
@@ -51,11 +51,12 @@ async function hymnTitle(q) {
   wPlayer([v.id], `⛪ 찬송가 ${n ? n + '장 ' : ''}${q}`, n ? { kind: 'hymn', n } : null);
   say(`⛪ 찬송가 ${n ? n + '장 ' : ''}<br><span class="small">${esc(v.title.slice(0, 50))}${n ? ' · "다음 장" 이라고 말해 줘' : ''}</span>`, { ms: 4000 });
 }
+function wStop() { window.mYT = null; wNow = null; document.querySelectorAll('.mytp').forEach(e => e.remove()); }
 function wNext(d) {
   if (!wNow) return false;
   if (wNow.kind === 'hymn') { hymnPlay(Math.max(1, Math.min(645, wNow.n + d))); return true; }
   if (wNow.kind === 'bible') { biblePlay(wNow.book, Math.max(1, wNow.ch + d)); return true; }
-  if (wNow.kind === 'gospel' && window.mYT) { mYT.i = Math.max(0, Math.min(mYT.ids.length - 1, mYT.i + d)); drawMusic(); return true; }
+  if ((wNow.kind === 'gospel' || wNow.kind === 'yt') && window.mYT) { mYT.i = Math.max(0, Math.min(mYT.ids.length - 1, mYT.i + d)); drawMusic(); return true; }
   return false;
 }
 // 한글 숫자 "삼백오" → 305
@@ -63,6 +64,7 @@ function korNum(x) { const D = { 일: 1, 이: 2, 삼: 3, 사: 4, 오: 5, 육: 6,
 // 말 알아듣기
 function worshipTalk(text) {
   const t = stripName(text).replace(/[?!.~]+$/g, '').trim();
+  if (/(꺼|끄|끝|그만|멈춰|멈춤|정지|중지|스톱)/.test(t)) return false;   // 끄는 말은 노래 쪽에서 (전부 끄기)
   const num = x => /^\d+$/.test(x) ? +x : korNum(x);
   const h = t.match(/^(?:새\s*)?찬송가?\s*(\d{1,3}|[일이삼사오육칠팔구백십]{1,5})\s*장/) || t.match(/^찬송\s*(\d{1,3})\s*장/);
   if (h) { const n = num(h[1]); if (n >= 1 && n <= 645) { hymnPlay(n); return true; } }
@@ -72,7 +74,7 @@ function worshipTalk(text) {
   const b = t.match(new RegExp(`^(?:성경\\s*)?(${names})\\s*(\\d{1,3}|[일이삼사오육칠팔구백십]{1,5})\\s*장`));
   if (b) { const book = BIBLE_SHORT[b[1]] || b[1], ch = num(b[2]); if (ch >= 1) { biblePlay(book, ch); return true; } }
   if (/^(복음\s*성가|ccm|씨씨엠|찬양)/i.test(t) || /(복음\s*성가|ccm|찬양)\s*(좀\s*)?(틀어|들려|켜|듣고)/i.test(t)) { const q = t.replace(/(복음\s*성가|ccm|씨씨엠|찬양|틀어|들려|켜|줘|줄래|좀|모음)/gi, ' ').replace(/\s+/g, ' ').trim(); gospelPlay(q); return true; }
-  if (wNow && /^다음\s*(장|곡|찬송)/.test(t)) return wNext(1);
+  if (wNow && /^(다음\s*(장|곡|찬송|노래)|넘겨)/.test(t)) return wNext(1);
   if (wNow && /^(이전|앞)\s*(장|곡|찬송)/.test(t)) return wNext(-1);
   return false;
 }

@@ -27,6 +27,16 @@ async function playList(list, start = 0, label) {
 }
 const norm = t => String(t || '').toLowerCase().replace(/[\s\-_.,·()[\]'"!?~]/g, '');
 const shuffle = a => { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+// 🎵 휴대폰에 없는 노래 → 유튜브에서 전곡 찾아 뮤직방에서 (11-07: 음악 앱은 미리듣기만 나와서)
+async function musicYT(q) {
+  if (typeof ytFind !== 'function') return musicApp(q);
+  say(`🎵 "${esc(q)}" 찾는 중…`, { ms: 3000 });
+  const secs = l => l.split(':').reduce((a, b) => a * 60 + +b, 0);
+  const r = (await ytFind(q + ' 노래')).filter(v => !v.live && v.len && secs(v.len) >= 90 && secs(v.len) <= 600 && !/(shorts|커버\s*연습|1시간|반복)/i.test(v.title));
+  if (!r.length) return musicApp(q);
+  wPlayer(r.slice(0, 15).map(v => v.id), `🎵 ${q}`, { kind: 'yt', q });
+  say(`🎵 <b>${esc(r[0].title.slice(0, 40))}</b><br><span class="small">"다음 곡" · "노래 꺼 줘"</span>`, { pose: 'dance', ms: 4000 });
+}
 async function musicApp(q) {
   const F = MF(); if (!F || !F.musicApp) { say('노래는 갤럭시 앱에서 틀 수 있어 🎵', { ms: 3000 }); return; }
   const pkg = S.music && S.music.app || '';
@@ -46,7 +56,7 @@ async function musicPlay(q) {
     if (byG.length) return playList(shuffle(byG), 0, `${q} ${byG.length}곡`);
     pick_ = all.filter(x => norm(x.t).includes(nq) || norm(x.A).includes(nq) || (norm(x.A).length > 1 && nq.includes(norm(x.A))));
   } else pick_ = shuffle(all);
-  if (!pick_.length) return musicApp(q);   // 파일에 없으면 음악 앱에서
+  if (!pick_.length) return q ? musicYT(q) : musicApp(q);   // 파일에 없으면 유튜브 전곡 (음악 앱은 미리듣기만 나옴)
   if (q && pick_.length > 1) pick_ = shuffle(pick_);
   return playList(pick_, 0, q ? `"${esc(q)}" ${pick_.length}곡` : '휴대폰 노래');
 }
@@ -54,6 +64,11 @@ async function musicCtl(cmd, line) {
   const F = MF(); if (!F || !F.musicCtl) { say('갤럭시 앱에서 쓸 수 있어 🎵', { ms: 2500 }); return; }
   await F.musicCtl({ cmd }).catch(() => {});
   say(line, { pose: cmd === 'pause' || cmd === 'stop' ? 'sit' : 'dance', ms: 2500 });
+}
+async function musicStopAll() {   // 휴대폰 노래 + 멜론 등 다른 앱 + 유튜브 듣기 전부
+  if (typeof wStop === 'function') wStop();
+  const F = MF(); if (F && F.musicCtl) await F.musicCtl({ cmd: 'stopall' }).catch(() => {});
+  say('⏹ 노래 다 껐어', { pose: 'sit', ms: 2500 });
 }
 async function musicNow() {
   const F = MF(); const r = F && F.musicNow ? await F.musicNow().catch(() => ({})) : {};
@@ -67,7 +82,7 @@ async function musicTalk(text) {
   if (/^(지금\s*)?(무슨|뭔|어떤)\s*(노래|곡|음악)/.test(t) || /(이\s*노래|이\s*곡)\s*(뭐|제목)/.test(t)) { await musicNow(); return true; }
   if (/^(다음\s*(곡|노래)|노래\s*넘겨|넘겨)/.test(t)) { await musicCtl('next', '⏭ 다음 곡!'); return true; }
   if (/^(이전\s*(곡|노래)|앞\s*(곡|노래)|전\s*곡)/.test(t)) { await musicCtl('prev', '⏮ 앞 곡!'); return true; }
-  if (/^(노래|음악)\s*(좀\s*)?(멈춰|그만|꺼|끄|정지|멈춤|일시\s*정지)/.test(t) || /^(일시\s*정지)$/.test(t)) { await musicCtl('pause', '⏸ 노래 멈췄어'); return true; }
+  if (/^(노래|음악|찬양|찬송가?|복음\s*성가|성경)\s*(좀\s*)?(멈춰|그만|꺼|끄|끝|정지|멈춤|일시\s*정지|중지|스톱)/.test(t) || /^(일시\s*정지|멈춰|그만|소리\s*꺼|다\s*꺼)\s*(줘|해)?$/.test(t)) { await musicStopAll(); return true; }   // 11-07: 모든 노래 끄기
   if (/^(노래|음악)\s*(다시|계속)\s*(틀어|켜|들려)/.test(t) || /^다시\s*틀어/.test(t)) { await musicCtl('play', '▶ 다시 틀게!'); return true; }
   if (/^(소리|볼륨|음량)\s*(좀\s*)?(키워|크게|올려|높여)/.test(t)) { await musicCtl('up', '🔊 소리 키웠어'); return true; }
   if (/^(소리|볼륨|음량)\s*(좀\s*)?(줄여|작게|낮춰|내려)/.test(t)) { await musicCtl('down', '🔉 소리 줄였어'); return true; }
@@ -89,5 +104,5 @@ function musicCard() {
     <p class="note small">"노래 들려줘", "아이유 노래 틀어 줘", "다음 곡", "멈춰", "소리 키워", "지금 무슨 노래야?"</p>
     <label class="note">음악 앱 <select id="s_mapp">${MUSIC_APPS.map(([p, n]) => `<option value="${p}" ${(m.app || '') === p ? 'selected' : ''}>${n}</option>`).join('')}</select></label>
     <p class="note" style="margin:10px 0 4px">그냥 "노래 들려줘" 하면</p><div class="seg" id="s_mplain">${[['files', '📱 휴대폰 노래 파일'], ['app', '🎧 음악 앱']].map(([k, n]) => `<button data-mp="${k}" class="${(m.plain || 'files') === k ? 'on' : ''}">${n}</button>`).join('')}</div>
-    <p class="note small">가수·제목을 말하면 먼저 휴대폰 노래 파일에서 찾고, 없으면 음악 앱에서 찾아요. 노래가 나오면 팻이 춤춰요 💃</p></div>`;
+    <p class="note small">가수·제목을 말하면 먼저 휴대폰 노래 파일에서 찾고, 없으면 유튜브에서 전곡을 찾아 들려줘요 ("멜론에서 ○○ 틀어 줘" 하면 음악 앱). "노래 꺼 줘" 하면 다른 앱 노래까지 다 꺼요. 노래가 나오면 팻이 춤춰요 💃</p></div>`;
 }

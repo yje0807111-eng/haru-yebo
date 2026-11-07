@@ -76,6 +76,13 @@ public class HaruMusic {
         AudioManager am = (AudioManager) c.getSystemService(Context.AUDIO_SERVICE);
         if ("up".equals(cmd)) { am.adjustStreamVolume(AudioManager.STREAM_MUSIC, AudioManager.ADJUST_RAISE, AudioManager.FLAG_SHOW_UI); return "ok"; }
         if ("down".equals(cmd)) { am.adjustStreamVolume(AudioManager.STREAM_MUSIC, AudioManager.ADJUST_LOWER, AudioManager.FLAG_SHOW_UI); return "ok"; }
+        if ("stopall".equals(cmd)) {   // 11-07: 모든 노래 끄기 — 우리 것 + 멜론·삼성 뮤직 등 다른 앱까지
+            if (ours()) { stopPlayer(); q = new long[0]; FloatPetPlugin.musicEvent("", "", false, 0); FloatPetService.musicStatic("", "", false); }
+            am.dispatchMediaKeyEvent(new KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_MEDIA_PAUSE));
+            am.dispatchMediaKeyEvent(new KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_MEDIA_PAUSE));
+            try { am.requestAudioFocus(null, AudioManager.STREAM_MUSIC, AudioManager.AUDIOFOCUS_GAIN); } catch (Exception ignored) { }   // 소리 차지 → 다른 앱은 멈춤
+            return "ok";
+        }
         if (ours()) {
             switch (cmd) {
                 case "next": next(); return "ok";
