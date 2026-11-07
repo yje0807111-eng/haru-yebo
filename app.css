@@ -307,3 +307,16 @@ body.smode .talk { background: #fff; border: 0; box-shadow: 0 2px 12px rgba(49,1
 .tvrow select { width: 82px; flex: none; padding: 7px 6px; font-size: 13px; }
 .tvapps { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; margin-bottom: 6px; }
 .tvapps button { border: 0; background: #f2f4f6; color: #333d4b; border-radius: 12px; padding: 10px 2px; font: inherit; font-size: 13px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+.tvcats button em { font-style: normal; display: inline-block; min-width: 18px; height: 18px; line-height: 18px; border-radius: 9px; background: #f2f4f6; color: #4e5968; font-size: 11px; font-weight: 800; margin-right: 4px; text-align: center; }
+.tvcats button.on em { background: #3182f6; color: #fff; }
+.tvo { display: flex; align-items: center; gap: 8px; padding: 8px 4px; border-bottom: 1px solid #f2f4f6; }
+.tvo b { width: 26px; height: 26px; border-radius: 50%; background: #191f28; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 13px; flex: none; }
+.tvo span { flex: 1; font-weight: 700; }
+.tvo i { font-style: normal; }
+.tvo button { border: 0; background: #f2f4f6; width: 32px; height: 32px; border-radius: 10px; flex: none; }
+/* TV 채널 줄: 이름이 잘 보이게 (단추·주제는 아래 줄로) */
+.tvrow { flex-wrap: wrap; }
+.tvrow .info { flex: 1 1 calc(100% - 120px); }
+.tvrow > button { width: 32px; height: 32px; }
+.tvrow select { width: auto; flex: 1; min-width: 90px; margin-left: 48px; }

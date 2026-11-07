@@ -2,6 +2,7 @@ name: 갤럭시 앱 만들기
 on:
   push:
     branches: [main]
+    paths-ignore: ['tv.json', '.github/tv/**', '.github/workflows/tv-rank.yml']   # TV 순위만 바뀌면 앱은 다시 안 만듦
   workflow_dispatch: {}
 permissions:
   contents: write

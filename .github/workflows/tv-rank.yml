@@ -1,0 +1,25 @@
+name: TV방 채널 순위 새로 고침
+# 매일 새벽 3시(한국 시간)에 유튜브 주제별 인기 채널 순위를 다시 매겨 tv.json 을 고침 → 앱이 열 때 받아 감
+on:
+  schedule:
+    - cron: '0 18 * * *'
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  rank:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.12' }
+      - name: 순위 매기기
+        run: python .github/tv/yt_rank.py tv.json
+      - name: 바뀌었으면 올리기
+        run: |
+          if git diff --quiet -- tv.json; then echo "바뀐 것 없음"; exit 0; fi
+          git config user.name "haru-yebo-bot"
+          git config user.email "haru-yebo-bot@users.noreply.github.com"
+          git add tv.json
+          git commit -m "TV방 채널 순위 새로 고침 $(date -u +%Y-%m-%d)"
+          git push
