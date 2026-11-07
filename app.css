@@ -362,3 +362,10 @@ body.smode .talk { background: #fff; border: 0; box-shadow: 0 2px 12px rgba(49,1
 .dgrange { margin-top: 10px; background: #f9fafb; border-radius: 12px; padding: 8px 12px; }
 .dgrange summary { font-weight: 700; color: #4e5968; cursor: pointer; }
 .dgrange ol { padding-left: 20px; margin: 6px 0 10px; }
+
+/* 11-07 주소록: 이름만, 누르면 작은 단추 4개 한 줄 */
+.prow .top { cursor: pointer; min-height: 30px; }
+.prow .acts4 { display: grid; grid-template-columns: 1fr 1fr 1fr 44px; gap: 6px; margin-top: 8px; }
+.prow .pb { border: 0; background: #f2f4f6; color: #333d4b; border-radius: 10px; padding: 7px 2px; font-size: 13.5px; font-weight: 700; text-align: center; text-decoration: none; white-space: nowrap; }
+.prow .pb.on, .prow [data-a="fav"] { background: #fff4cc; color: #b07800; font-size: 17px; }
+.phead { font-weight: 800; color: #4e5968; margin: 14px 4px 4px; font-size: 14px; }

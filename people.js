@@ -111,7 +111,7 @@ async function peopleTalk(text) {
 }
 
 // ── 주소록 화면
-let pOpen = null, pTalk = null;
+let pOpen = null, pTalk = null, pShow = null;   // pShow: 이름을 눌러 단추가 보이는 사람 (11-07)
 function fmtPhone(n) { const d = String(n).replace(/[^\d+]/g, '').replace(/^\+82/, '0'); if (/^01\d{8,9}$/.test(d)) return d.length === 11 ? `${d.slice(0, 3)}-${d.slice(3, 7)}-${d.slice(7)}` : `${d.slice(0, 3)}-${d.slice(3, 6)}-${d.slice(6)}`; return d; }
 function addContacts(add) {
   let added = 0;
@@ -179,28 +179,33 @@ function drawPeople() {
     <div class="row"><button class="btn" id="pPick">📱 휴대폰 연락처 가져오기</button></div><p class="note small" id="pSt"></p><p class="note small">아이폰은 연락처 앱에서 '모든 연락처'를 길게 눌러 내보낸 파일(.vcf)을 고르면 돼요.</p>`;
   const q = ($('#pQ').value || '').trim();
   const list = q ? all.filter(c => c.name.includes(q) || c.phones.some(p => p.num.replace(/-/g, '').includes(q.replace(/-/g, '')))) : all;
-  $('#pList').innerHTML = list.slice(0, 300).map(c => {
-    const p = c.phones[0], open = pOpen === c.id, tk = pTalk === c.id;
+  const favs = list.filter(c => c.fav), rest = list.filter(c => !c.fav);
+  const rowHtml = c => {
+    const p = c.phones[0], open = pOpen === c.id, tk = pTalk === c.id, show = pShow === c.id || open || tk;
     return `<div class="prow" data-c="${c.id}"><div class="top">${q ? '' : '<span class="grip" title="끌어서 순서 바꾸기">☰</span>'}<span class="nm">${esc(c.name)}${c.pk ? ' 🔗' : ''}</span><span class="ph">${p ? esc(p.num) : ''}</span></div>
-      <div class="acts">${p ? `<a class="btn small ghost" href="tel:${esc(p.num.replace(/-/g, ''))}">📞 전화</a>` : ''}${c.pk ? `<button class="btn small" data-a="talk">💬 대화</button>` : `<button class="btn small ghost" data-a="invite">🔗 초대</button>`}<button class="btn small ghost" data-a="edit">✏️ 수정</button><button class="btn small ghost" data-a="del">🗑 삭제</button>${c.bday ? `<span class="note small">🎂 ${c.bday.m}/${c.bday.d}</span>` : ''}</div>
+      ${show ? `<div class="acts4">${p ? `<a class="pb" href="tel:${esc(p.num.replace(/-/g, ''))}">📞 전화</a><button class="pb" data-a="sms">💬 문자</button>` : '<span></span><span></span>'}<button class="pb" data-a="edit">✏️ 수정</button><button class="pb ${c.fav ? 'on' : ''}" data-a="fav" title="${c.fav ? '즐겨찾기에서 빼기' : '즐겨찾기에 넣기'}">${c.fav ? '↓' : '↑'}</button></div>${c.bday ? `<p class="note small" style="margin:4px 2px 0">🎂 생일 ${c.bday.m}/${c.bday.d}</p>` : ''}` : ''}
       ${tk ? `<div class="msgs">${(S.pchats[c.id] || []).slice(-30).map(m => `<div class="m ${m.who}">${esc(m.text)}</div>`).join('') || '<p class="note small">첫 마디를 보내 봐!</p>'}</div><div class="row"><input data-f="pm" placeholder="${esc(c.name)}에게 보낼 말"><button class="btn small" data-a="psend">보내기</button></div>` : ''}
       ${open ? `<div class="edit"><input data-f="name" value="${esc(c.name)}" placeholder="이름"><input data-f="phones" value="${esc(c.phones.map(x => x.num).join(', '))}" placeholder="전화번호" inputmode="tel">
         <div class="row">생일 <select data-f="bm"><option value="">-</option>${Array.from({ length: 12 }, (_, i) => `<option ${c.bday && c.bday.m === i + 1 ? 'selected' : ''} value="${i + 1}">${i + 1}월</option>`).join('')}</select><select data-f="bd"><option value="">-</option>${Array.from({ length: 31 }, (_, i) => `<option ${c.bday && c.bday.d === i + 1 ? 'selected' : ''} value="${i + 1}">${i + 1}일</option>`).join('')}</select></div>
-        <div class="row"><button class="btn small" data-a="close">다 됐어</button></div></div>` : ''}</div>`;
-  }).join('') || (all.length ? '<p class="note">찾는 사람이 없어.</p>' : '');
+        <div class="row">${c.pk ? '<button class="btn small ghost" data-a="talk">💬 대화</button>' : ''}<button class="btn small ghost" data-a="del">🗑 삭제</button><button class="btn small" data-a="close" style="margin-left:auto">다 됐어</button></div></div>` : ''}</div>`;
+  };
+  $('#pList').innerHTML = (favs.length ? `<p class="phead">⭐ 즐겨찾기 ${favs.length}</p>` + favs.slice(0, 100).map(rowHtml).join('') + (rest.length ? `<p class="phead">📒 전체 ${rest.length}</p>` : '') : '') + rest.slice(0, 300).map(rowHtml).join('') || (all.length ? '<p class="note">찾는 사람이 없어.</p>' : '');
   const pk = $('#pPick'); if (pk) pk.onclick = pickPhoneContacts;
 }
 $('#pQ').oninput = drawPeople;
 $('#pAdd').onclick = () => { if (!S.contacts.length || confirm('휴대폰 연락처를 가져올까? (취소 = 한 사람 직접 넣기)')) { if (!S.contacts.length) return pickPhoneContacts(); return pickPhoneContacts(); } const c = { id: uid(), name: '새 사람', phones: [], addr: '', bday: null, memo: '' }; S.contacts.push(c); save(); pOpen = c.id; drawPeople(); };
 $('#pJoin').onclick = async () => { const r = await join($('#pCode').value); say(r === 'ok' ? '🔗 연결 신청을 보냈어! 상대가 받으면 알려 줄게' : r === 'self' ? '이건 내가 만든 초대 코드야~' : '초대 코드가 이상해. 받은 글을 통째로 붙여 넣어 줘!', { ms: 5000 }); if (r === 'ok') { $('#pCode').value = ''; go('home'); } };
 $('#pList').addEventListener('click', async e => {
-  const row = e.target.closest('[data-c]'), a = e.target.closest('[data-a]'); if (!row || !a) return;
+  const row = e.target.closest('[data-c]'), a = e.target.closest('[data-a]'); if (!row) return;
+  if (!a) { if (e.target.closest('.top') && !e.target.closest('.grip')) { pShow = pShow === row.dataset.c ? null : row.dataset.c; drawPeople(); } return; }   // 이름 누르면 단추 보이기/숨기기
   const c = S.contacts.find(x => x.id === row.dataset.c); if (!c) return;
   const act = a.dataset.a;
   if (act === 'edit') { pOpen = pOpen === c.id ? null : c.id; return drawPeople(); }
   if (act === 'close') { pOpen = null; return drawPeople(); }
   if (act === 'del') { if (confirm(`${c.name}을(를) 지울까?`)) { S.contacts = S.contacts.filter(x => x.id !== c.id); save(); pOpen = null; drawPeople(); } return; }
   if (act === 'invite') return invite(c);
+  if (act === 'fav') { c.fav = !c.fav; save(); pShow = c.id; say(c.fav ? `⭐ ${esc(c.name)} 즐겨찾기에 넣었어` : `${esc(c.name)} 즐겨찾기에서 뺐어`, { ms: 2200 }); return drawPeople(); }
+  if (act === 'sms') { const n = (c.phones[0] || {}).num; if (!n) return; const url = 'sms:' + n.replace(/-/g, ''); const F = window.Capacitor && Capacitor.Plugins && Capacitor.Plugins.FloatPet; if (F && F.openApp) F.openApp({ pkg: '', url }).catch(() => {}); else location.href = url; return; }
   if (act === 'talk') { pTalk = pTalk === c.id ? null : c.id; return drawPeople(); }
   if (act === 'psend') { const el = row.querySelector('[data-f=pm]'), msg = el.value.trim(); if (!msg) return; el.value = ''; await sendTo(c, msg); drawPeople(); }
 });
