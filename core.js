@@ -36,12 +36,12 @@ function go(v) {
   view = v;
   $$('.view').forEach(e => e.classList.toggle('on', e.dataset.v === v));
   $$('#tabs button').forEach(b => b.classList.toggle('on', b.dataset.go === v));
+  const safe = (f, name) => { try { f(); } catch (e) { const box = document.querySelector(`.view[data-v="${v}"]`); if (box) box.insertAdjacentHTML('beforeend', `<div class="card"><p class="note">⚠️ ${name} 화면을 그리다 문제가 생겼어요: ${esc(String(e && e.message || e)).slice(0, 160)}</p></div>`); } };   // 11-07: 화면 그리기 오류가 나도 열리고, 이유가 보이게
   if (v === 'people') safe(drawPeople, '주소록');
   if (v === 'town') safe(drawTown, '동네');
   if (v === 'room') safe(drawRoom, '내 방');
   if (v === 'safe') safe(drawSafe, '지킴이');
   if (v === 'time') safe(drawTime, '시간');
-  const safe = (f, name) => { try { f(); } catch (e) { const box = document.querySelector(`.view[data-v="${v}"]`); if (box) box.insertAdjacentHTML('beforeend', `<div class="card"><p class="note">⚠️ ${name} 화면을 그리다 문제가 생겼어요: ${esc(String(e && e.message || e)).slice(0, 160)}</p></div>`); } };   // 11-07: 화면 그리기 오류가 나도 열리고, 이유가 보이게
   if (v === 'set') safe(drawSet, '설정');
   if (v === 'music' && window.drawMusic) drawMusic(false);
   if (v === 'tv' && window.drawTV) drawTV();
