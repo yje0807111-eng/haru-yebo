@@ -215,7 +215,6 @@ async function send(text, opt = {}) {   // opt.talk = 바탕화면 팻에게 한
   text = String(text || '').trim(); if (!text) return;
   t.value = ''; markSign();
   if (view !== 'home') go('home');   // 대답은 다루 마당에서
-  if (window.sosHear && sosHear(text)) return;   // 🚨 도와주세요 (지킴이)
   const em = stripName(text).match(/^(119|112|1394|일일구|일일이|구급차|소방서|경찰)\s*(에|로|번|을|를|좀)?\s*(전화|신고|불러)/);
   if (em && window.sosCall) { sosCall(/^(119|일일구|구급차|소방서)/.test(em[1]) ? '119' : /^(112|일일이|경찰)/.test(em[1]) ? '112' : '1394'); return; }
   if (busy) { say('잠깐만, 아직 생각 중이야 💭', { ms: 2000 }); return; }

@@ -1,4 +1,4 @@
-// 🛡️ 지킴이 (휴대폰): 가족 안부 · 보이스피싱 살펴보기 · 119 · "도와주세요" 세 번
+// 🛡️ 지킴이 (휴대폰): 가족 안부 · 보이스피싱 살펴보기 · 119
 const RULES = [
   { re: /https?:\/\/|www\.|\.(ly|kr|me|io|xyz|top|click|link)\b|bit\.ly|han\.gl|me2\.kr/i, w: 3, why: '링크가 들어 있어' },
   { re: /택배|배송.*(조회|확인|주소)|주소.*(불명|오류|확인)|반송/, w: 3, why: '택배·주소 확인을 핑계로 해' },
@@ -32,26 +32,6 @@ function sosCall(num, auto) {
     dialNum(num);
   }, n * 1000 + 300);
 }
-const SOS_RE = /(도와\s*주세요|도와\s*줘요|도와줘|살려\s*주세요|살려\s*줘|사람\s*살려|구해\s*주세요)/;
-let sosHits = [];
-function sosHear(text) {
-  if (!S.guard.sosAuto || !SOS_RE.test(text)) return false;
-  const now = Date.now(); sosHits = sosHits.filter(x => now - x < 60000); sosHits.push(now);
-  if (sosHits.length >= 3) { sosHits = []; sosCall('119', true); }
-  else say(`🚨 "도와주세요" 들었어 (${sosHits.length}/3)<br>괜찮아? 세 번이면 119에 전화할게`, { pose: 'sad', ms: 8000, important: true });
-  return true;
-}
-// 지킴이 듣기: 앱이 켜져 있는 동안 계속 듣기 ("도와주세요"·"119 전화해 줘")
-let guardRec = null;
-function guardListen(on) {
-  const SRx = window.SpeechRecognition || window.webkitSpeechRecognition; if (!SRx) return;
-  if (!on) { if (guardRec) { guardRec.onend = null; guardRec.stop(); guardRec = null; } return; }
-  if (guardRec) return;
-  guardRec = new SRx(); guardRec.lang = 'ko-KR'; guardRec.continuous = true; guardRec.interimResults = false;
-  guardRec.onresult = e => { const txt = e.results[e.results.length - 1][0].transcript; if (SOS_RE.test(txt) || /(119|112|구급차).*(전화|신고|불러)/.test(txt)) send(txt); };
-  guardRec.onend = () => { if (guardRec && S.guard.listen) setTimeout(() => { try { guardRec.start(); } catch { } }, 400); };
-  try { guardRec.start(); } catch { }
-}
 // 매일 안부: 오늘 앱을 처음 켜면 보호자에게 "오늘도 잘 있어요"
 async function dailyHello() {
   if (!S.guard.daily || !pool) return;
@@ -76,9 +56,7 @@ function drawSafe() {
     <div class="sosgrid"><button class="sos red" data-sos="119">🚑 119<br><span>불·구급</span></button><button class="sos blue" data-sos="112">👮 112<br><span>경찰·사기 신고</span></button>
     <button class="sos" data-sos="1394">🛡️ 1394<br><span>보이스피싱 상담</span></button>
     ${(g.guardians || []).map(id => S.contacts.find(c => c.id === id)).filter(c => c && c.phones[0]).map(c => `<a class="sos green" href="tel:${esc(c.phones[0].num.replace(/-/g, ''))}" style="text-decoration:none">📞 ${esc(c.name)}<br><span>${esc(c.phones[0].num)}</span></a>`).join('')}</div>
-    <label class="chk"><input type="checkbox" id="g_sos" ${g.sosAuto ? 'checked' : ''}> "도와주세요"를 1분 안에 세 번 말하면 119에 자동으로 전화하기</label>
-    <label class="chk"><input type="checkbox" id="g_listen" ${g.listen ? 'checked' : ''}> 앱이 켜져 있는 동안 계속 듣기 (🎤 안 눌러도 "도와주세요"를 들어요)</label>
-    <p class="note small">걸기 전에 10초를 세고, "취소"하면 멈춰요. 보호자에게도 알려요. 말창에 "119 전화해 줘" 하면 3초 세고 걸어요.</p></div>
+    <p class="note small">팻을 누르고 "119 전화해 줘" 하면 3초 세고 전화 화면을 열어요. "취소"하면 멈춰요.</p></div>
   <div class="card"><h3>💌 가족 안부 전하기</h3>
     <p class="note">보호자를 고르면 매일 아침 "오늘도 잘 있어요 🌤"를 보내요. 보호자 쪽 팻은 안부가 하루 넘게 안 오면 알려 줘요. (가입·요금 없음, 보호자도 하루 예보를 깔고 🔗 연결돼 있어야 해요)</p>
     <label class="chk"><input type="checkbox" id="g_daily" ${g.daily ? 'checked' : ''}> 매일 보호자에게 안부 보내기</label>
@@ -95,9 +73,7 @@ document.addEventListener('click', e => { const b = e.target.closest('[data-sos]
 document.addEventListener('change', e => {
   if (!e.target.closest('#safeBox')) return;
   const id = e.target.id;
-  if (id === 'g_sos') patch({ guard: { sosAuto: e.target.checked } });
-  if (id === 'g_listen') { patch({ guard: { listen: e.target.checked } }); guardListen(e.target.checked); }
   if (id === 'g_daily') { patch({ guard: { daily: e.target.checked } }); dailyHello(); }
   if (e.target.dataset.gd) { const s = new Set(S.guard.guardians || []); e.target.checked ? s.add(e.target.dataset.gd) : s.delete(e.target.dataset.gd); patch({ guard: { guardians: [...s] } }); dailyHello(); }
 });
-window.addEventListener('load', () => { setTimeout(dailyHello, 5000); setInterval(checkQuiet, 10 * 60e3); setTimeout(checkQuiet, 20000); if (S.guard.listen) setTimeout(() => guardListen(true), 3000); });
+window.addEventListener('load', () => { setTimeout(dailyHello, 5000); setInterval(checkQuiet, 10 * 60e3); setTimeout(checkQuiet, 20000); });
