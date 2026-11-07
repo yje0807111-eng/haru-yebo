@@ -14,7 +14,7 @@ import com.getcapacitor.annotation.PermissionCallback;
 import com.getcapacitor.PermissionState;
 
 // 다른 앱 위에 떠 있는 팻 (하루 예보) — 켜기·끄기·크기·권한
-@CapacitorPlugin(name = "FloatPet", permissions = { @Permission(alias = "contacts", strings = { android.Manifest.permission.READ_CONTACTS }) })
+@CapacitorPlugin(name = "FloatPet", permissions = { @Permission(alias = "contacts", strings = { android.Manifest.permission.READ_CONTACTS }), @Permission(alias = "audio", strings = { "android.permission.READ_MEDIA_AUDIO" }), @Permission(alias = "audioOld", strings = { android.Manifest.permission.READ_EXTERNAL_STORAGE }) })
 public class FloatPetPlugin extends Plugin {
     static FloatPetPlugin inst;
 
@@ -65,6 +65,7 @@ public class FloatPetPlugin extends Plugin {
             .putString("idle", call.getString("idle", ""))
             .putString("walk", call.getString("walk", ""))
             .putString("hello", call.getString("hello", ""))
+            .putString("dance", call.getString("dance", ""))
             .putString("run", call.getString("run", ""))
             .putString("home", call.getString("home", ""))
             .putString("sndC", call.getString("sndC", ""))
@@ -250,6 +251,43 @@ public class FloatPetPlugin extends Plugin {
     static void alarmEvent(String id, String text) {
         JSObject d = new JSObject(); d.put("id", id); d.put("text", text);
         if (inst != null) inst.notifyListeners("alarm", d, true);
+    }
+    // 🎵 노래 (11-07)
+    String audioAlias() { return Build.VERSION.SDK_INT >= 33 ? "audio" : "audioOld"; }
+    @PluginMethod
+    public void musicList(PluginCall call) {
+        if (getPermissionState(audioAlias()) != PermissionState.GRANTED) { requestPermissionForAlias(audioAlias(), call, "musicPermCb"); return; }
+        doMusicList(call);
+    }
+    @PermissionCallback
+    private void musicPermCb(PluginCall call) { if (getPermissionState(audioAlias()) != PermissionState.GRANTED) { call.reject("denied"); return; } doMusicList(call); }
+    private void doMusicList(PluginCall call) { new Thread(() -> { JSObject r = new JSObject(); r.put("list", HaruMusic.list(getContext())); call.resolve(r); }).start(); }
+    @PluginMethod
+    public void musicPlay(PluginCall call) {
+        try {
+            com.getcapacitor.JSArray a = call.getArray("list"); int n = a.length();
+            long[] ids = new long[n]; String[] t = new String[n], ar = new String[n];
+            for (int k = 0; k < n; k++) { org.json.JSONObject o = a.getJSONObject(k); ids[k] = o.optLong("id"); t[k] = o.optString("t"); ar[k] = o.optString("a"); }
+            HaruMusic.play(getContext(), ids, t, ar, call.getInt("start", 0));
+            call.resolve();
+        } catch (Exception e) { call.reject("play: " + e); }
+    }
+    @PluginMethod
+    public void musicCtl(PluginCall call) { JSObject r = new JSObject(); r.put("how", HaruMusic.control(getContext(), call.getString("cmd", "pause"))); call.resolve(r); }
+    @PluginMethod
+    public void musicApp(PluginCall call) { JSObject r = new JSObject(); r.put("ok", HaruMusic.openApp(getContext(), call.getString("pkg", ""), call.getString("q", ""))); call.resolve(r); }
+    @PluginMethod
+    public void musicNow(PluginCall call) { try { call.resolve(JSObject.fromJSONObject(HaruMusic.now(getContext()))); } catch (Exception e) { call.resolve(new JSObject()); } }
+    @PluginMethod
+    public void musicApps(PluginCall call) {   // 휴대폰에 깔린 음악 앱
+        String[][] apps = { { "com.sec.android.app.music", "삼성 뮤직" }, { "com.iloen.melon", "멜론" }, { "com.ktmusic.geniemusic", "지니" }, { "com.google.android.apps.youtube.music", "유튜브 뮤직" }, { "com.spotify.music", "스포티파이" }, { "skplanet.musicmate", "FLO" }, { "com.naver.vibe", "바이브" }, { "com.google.android.youtube", "유튜브" } };
+        com.getcapacitor.JSArray arr = new com.getcapacitor.JSArray();
+        for (String[] a : apps) { if (getContext().getPackageManager().getLaunchIntentForPackage(a[0]) != null) { JSObject o = new JSObject(); o.put("pkg", a[0]); o.put("name", a[1]); arr.put(o); } }
+        JSObject r = new JSObject(); r.put("apps", arr); call.resolve(r);
+    }
+    static void musicEvent(String title, String artist, boolean playing) {
+        JSObject d = new JSObject(); d.put("title", title); d.put("artist", artist); d.put("playing", playing);
+        if (inst != null) inst.notifyListeners("music", d, true);
     }
     @PluginMethod
     public void notiAccess(PluginCall call) {

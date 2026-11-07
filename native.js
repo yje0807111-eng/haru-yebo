@@ -101,7 +101,8 @@
     const run = sp === 'dog' ? ['뛰기1.webp', '뛰기2.webp'] : rk ? uniq(A[rk].frames) : walk;
     const L = SOUNDS[sp] || SOUNDS.dog;
     const hk = ['인사_오른손', '인사_왼손', '기쁨', '만세'].find(k => A[k]); const hello = hk ? uniq(A[hk].frames) : [one('기쁨') || idle[0]];
-    return { sp, hello: hello.join('|'), idle: idle.join('|'), walk: walk.join('|'), run: run.join('|'), home: one('기쁨') || idle[0], sndC: L[0].join('|'), sndH: L[1].join('|') };
+    const dk = ['춤', '즐거움', '기쁨'].find(k => A[k]); const dance = dk ? uniq(A[dk].frames) : hello;
+    return { sp, dance: dance.join('|'), hello: hello.join('|'), idle: idle.join('|'), walk: walk.join('|'), run: run.join('|'), home: one('기쁨') || idle[0], sndC: L[0].join('|'), sndH: L[1].join('|') };
   };
   N.floatConfig = () => { if (FP) FP.config({ size: S.me.size || 100, name: bn(), on: !S.floatOff, act: petAct(), cries: !S.talk.mute && S.talk.cries !== false && Date.now() >= (quietUntil || 0), micBeep: S.talk.micBeep ?? 1, temper: S.me.temper || 'normal', kakao: !S.kakaoOff, talkMin: ({ often: 5, normal: 20, rare: 30, quiet: 0 })[S.talk.freq || 'normal'] ?? 20, uname: S.me.name || '', vol: Math.max(0.2, S.talk.volume || 0.4), ...petLists() }).catch(() => {}); };
   N.quit = () => { if (FP && FP.quit) FP.quit().catch(() => {}); };
@@ -143,6 +144,7 @@
     say('💬 카톡이 오면 내가 바로 알려 줄까?<br>휴대폰 설정에서 <b>하루 예보 카톡 알림</b>을 켜 주면 돼!', { pose: 'gaze', ms: 60000, buttons: [{ label: '응, 켤게', act: () => { FP.openNotiAccess(); hideBubble(); } }, { label: '괜찮아', ghost: true, act: () => { patch({ kakaoOff: true }); N.floatConfig(); hideBubble(); } }] });
   };
   if (FP) FP.addListener('alarm', d => { const a = S.alarms.find(x => x.id === d.id || x.id + '_s' === d.id) || { id: d.id, at: Date.now(), label: '' }; FP.alarmStop({ id: d.id }).catch(() => {}); ring(a); });
+  if (FP) FP.addListener('music', d => { window.musicNow = d; if (!document.hidden && d.playing) { setPose('dance'); P.until = performance.now() + 8000; if (d.title) say(`🎵 ${esc(d.title)}${d.artist ? ' · ' + esc(d.artist) : ''}`, { ms: 3500 }); } });
   if (FP) FP.addListener('petTap', d => { petOnly(true); const w = d && d.what; if (w === 'talk') setTimeout(() => { hideBubble(); t.focus(); }, 300); else if (w === 'mic') setTimeout(() => $('#micBtn').click(), 500); else setTimeout(petMenu, 400); });
   // 켤 때 알람 다시 예약 · 새 버전 확인(하루 한 번)
   window.addEventListener('load', () => {

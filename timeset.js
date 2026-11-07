@@ -53,6 +53,7 @@ ${window.Native ? `<div class="card"><h3>🐶 화면 위 팻</h3><label class="c
     <p class="note" style="margin:12px 0 4px">🎤 마이크 켜질 때 '띵' 소리</p><div class="seg" id="s_mb">${[[2, '보통'], [1, '작게'], [0, '끄기']].map(([k, n]) => `<button data-mb="${k}" class="${(S.talk.micBeep ?? 1) === k ? 'on' : ''}">${n}</button>`).join('')}</div>
     <label class="note" style="display:block;margin-top:10px">🔊 짖는 소리 크기 <input type="range" id="s_vol" min="0" max="100" step="5" value="${Math.round(S.talk.volume * 100)}" style="padding:0;border:0"></label></div>
 ${window.Native ? `<div class="card"><h3>💬 카톡 알림</h3><label class="chk"><input type="checkbox" id="s_kakao" ${S.kakaoOff ? '' : 'checked'}> 카톡이 오면 팻이 알려 주기</label><p class="note small" id="s_kakaoSt">확인 중…</p><p class="note small">카톡 대화방을 연 뒤 1분 동안 나를 누르고 말하면 답장이 돼요</p></div>` : ''}
+${window.musicCard ? musicCard() : ''}
   <div class="card"><h3>📤 친구·가족에게 알려 주기</h3><p class="note small">카카오톡 등으로 '하루 예보 받기' 주소를 보내요. 받은 사람이 누르면 바로 받을 수 있어요.</p><button class="btn" id="s_share">📤 하루 예보 보내기</button></div>
   <div class="card"><h3>🤖 AI 연결 (선택)</h3>
     <p class="note small">연결하면 팻이 더 똑똑하게 이야기하고 검색 결과도 짧게 정리해 줘요. 열쇠는 이 휴대폰에만 저장돼요. 연결하지 않아도 기본 대화·검색은 돼요.</p>
@@ -65,6 +66,7 @@ ${window.Native ? `<div class="card"><h3>💬 카톡 알림</h3><label class="ch
 }
 $('#setBox').addEventListener('input', e => {
   if (e.target.id === 's_name') dset({ me: { name: e.target.value.trim() } });
+  if (e.target.id === 's_mapp') dset({ music: { app: e.target.value } });
   if (e.target.id === 's_bname') dset({ me: { buddyName: e.target.value.trim() } });
   if (e.target.id === 's_vol') dset({ talk: { volume: +e.target.value / 100, cries: +e.target.value > 0 } });
   if (e.target.id === 's_key' && !/^•+$/.test(e.target.value)) dset({ ai: { key: e.target.value.trim() } });
@@ -75,6 +77,7 @@ $('#setBox').addEventListener('click', async e => {
   const spb = e.target.closest('[data-sp]'); if (spb) { $$('#s_sp button').forEach(b => b.classList.toggle('on', b === spb)); dset({ me: { species: spb.dataset.sp } }); window.prevSp = spb.dataset.sp; pet._h = 0; setPose('joy'); return; }   // 미리 보기만 (저장해야 바뀜)
   if (e.target.id === 's_mute') { setMute(!S.talk.mute); return; }   // 바로 (저장 필요 없음)
   const mb = e.target.closest('[data-mb]'); if (mb) { $$('#s_mb button').forEach(b => b.classList.toggle('on', b === mb)); dset({ talk: { micBeep: +mb.dataset.mb } }); }
+  const mp = e.target.closest('[data-mp]'); if (mp) { $$('#s_mplain button').forEach(b => b.classList.toggle('on', b === mp)); dset({ music: { plain: mp.dataset.mp } }); }
   const tm = e.target.closest('[data-tm]'); if (tm) { $$('#s_temper button').forEach(b => b.classList.toggle('on', b === tm)); dset({ me: { temper: tm.dataset.tm } }); }
   const f = e.target.closest('[data-f]'); if (f) { $$('#s_freq button').forEach(b => b.classList.toggle('on', b === f)); dset({ talk: { freq: f.dataset.f } }); }
   const p = e.target.closest('[data-p]'); if (p) { $$('#s_ai button').forEach(b => b.classList.toggle('on', b === p)); dset({ ai: { provider: p.dataset.p } }); }

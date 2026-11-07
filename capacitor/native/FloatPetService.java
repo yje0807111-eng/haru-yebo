@@ -343,6 +343,7 @@ public class FloatPetService extends Service {
                         if (now - poseLast > 1000 / poseFps) { poseLast = now; poseFi = (poseFi + 1) % poseFrames.length; if (poseFrames[poseFi] != null) pet.setImageBitmap(poseFrames[poseFi]); }
                     } else if (now > nextDecide) { poseFrames = null; decide(now); }
                     maybeChat(now);
+                    musicDance(now);
                 }
             } catch (Exception e) { Log.e("HaruPet", "tick", e); }
             h.postDelayed(this, 40);
@@ -704,6 +705,19 @@ public class FloatPetService extends Service {
         SharedPreferences sp = getSharedPreferences("pet", 0); String id = sp.getString("alarmRinging", "");
         if (!id.isEmpty()) { ((NotificationManager) getSystemService(NOTIFICATION_SERVICE)).cancel(HaruAlarmReceiver.nid(id)); HaruAlarmReceiver.addSet(sp, "alarmDone", id); sp.edit().remove("alarmRinging").apply(); }
         bubble("헤헤 잘했어! 오늘도 화이팅 💛", 3000);
+    }
+    // 🎵 노래가 나오면 팻이 춤 (11-07)
+    static void musicStatic(String title, String artist, boolean playing) { if (me != null) me.h.post(() -> { if (playing && title != null && !title.isEmpty() && wantShown) me.bubble("🎵 " + title + (artist == null || artist.isEmpty() ? "" : " · " + artist), 4000); me.lastMusicCheck = 0; }); }
+    long lastMusicCheck = 0; boolean dancing = false;
+    void musicDance(long now) {
+        if (now - lastMusicCheck < 3000) return;
+        lastMusicCheck = now;
+        boolean on = HaruMusic.anyPlaying(this) && !alarmOn;
+        if (on && !moving) {
+            Bitmap[] df = list("dance", new String[] { "기쁨.webp" });
+            if (df.length > 1) { if (!dancing || poseFrames == null || now >= poseUntil) showFramesB(df, 7, 6000); }
+            dancing = true; nextDecide = now + 5000;
+        } else dancing = false;
     }
     static void sayStatic(String text, int ms) { if (me != null) me.h.post(() -> me.bubble(text, ms)); }
 
