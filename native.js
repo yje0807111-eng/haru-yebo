@@ -112,10 +112,11 @@
     if (!FP) return;
     const p = await FP.hasPermission().catch(() => ({ granted: false }));
     if (p.granted) return;
-    say('🐶 하루 예보를 닫아도 내가 화면 위에 있을게!<br>"다른 앱 위에 표시"를 켜 줄래?', { pose: 'gaze', ms: 60000, buttons: [{ label: '응, 켜 줄게', act: () => { FP.requestPermission(); hideBubble(); } }, { label: '나중에', ghost: true, act: () => { patch({ floatAsked: today() }); hideBubble(); } }] });
+    say('🐾 하루 예보를 닫아도<br>제가 휴대폰 화면 위에서 놀 수 있어요!<br>다음 화면에서 <b>하루 예보</b>를 찾아<br><b>"다른 앱 위에 표시"</b>를 켜 주세요.', { pose: 'gaze', ms: 60000, buttons: [{ label: '응, 켜 줄게', act: () => { FP.requestPermission(); hideBubble(); } }, { label: '나중에', ghost: true, act: () => { patch({ floatAsked: today() }); hideBubble(); } }] });
   };
   document.addEventListener('visibilitychange', async () => {
     if (document.hidden || !FP) return;
+    N.floatConfig();   // 11-07: '다른 앱 위에 표시'를 켜고 돌아오면 바로 화면 위 팻 켜기
     setTimeout(() => N.checkUpdate(false), 2500);
     N.alarmSync();
     if (window.tvWantAt && Date.now() - window.tvWantAt < 8000) { if (view !== 'tv') go('tv'); }   // 11-07: TV 를 틀려고 앞으로 온 것 → TV 그대로
@@ -152,8 +153,8 @@
     setTimeout(() => N.schedule(S.alarms), 2000);
     setTimeout(() => N.alarmSync(), 800);
     setTimeout(() => N.floatConfig(), 1000);
-    setTimeout(() => { if (S.floatAsked !== today()) N.askFloat(); }, 4500);
-    setTimeout(() => N.kakaoAsk(false), 15000);   // 카톡 알림 (안 켰으면 하루 한 번 물음)   // 화면 위 팻 허락 (안 했으면 하루 한 번 물음)
+    setTimeout(() => { if (S.introDone && S.floatAsked !== today()) N.askFloat(); }, 4500);   // 처음 깐 사람은 안내가 끝난 뒤에 물음 (guide.js)
+    setTimeout(function k() { if (!S.introDone || !bubble.hidden) return setTimeout(k, 20000); N.kakaoAsk(false); }, 15000);   // 카톡 알림 (안 켰으면 하루 한 번 물음)   // 화면 위 팻 허락 (안 했으면 하루 한 번 물음)
     setTimeout(() => N.checkUpdate(false), 4000);   // 11-06: 열 때마다 새 버전 확인 → 있으면 '1'
   });
 })();

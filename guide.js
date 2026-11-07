@@ -107,7 +107,7 @@ function showIntro() {
     ? '<button class="btn ghost" id="iGuide">📖 안내소식 보기</button><button class="btn" id="iGo">시작하기</button>'
     : '<button class="btn ghost" id="iSkip">건너뛰기</button><button class="btn" id="iNext">다음 ▶</button>';
   const end = () => { clearInterval(introT); $('#intro').hidden = true; patch({ introDone: true }); };
-  if (last) { $('#iGuide').onclick = () => { end(); openGuide(); }; $('#iGo').onclick = () => { end(); setTimeout(petMenu, 300); }; }
-  else { $('#iNext').onclick = () => { introI++; showIntro(); }; $('#iSkip').onclick = end; }
+  if (last) { $('#iGuide').onclick = () => { end(); openGuide(); }; $('#iGo').onclick = () => { end(); if (window.Native && Native.askFloat) setTimeout(async () => { await Native.askFloat(); if (bubble.hidden) petMenu(); }, 300); else setTimeout(petMenu, 300); }; }
+  else { $('#iNext').onclick = () => { introI++; showIntro(); }; $('#iSkip').onclick = () => { end(); if (window.Native && Native.askFloat) setTimeout(() => Native.askFloat(), 300); }; }
 }
 window.addEventListener('load', () => setTimeout(() => startIntro(false), 900));

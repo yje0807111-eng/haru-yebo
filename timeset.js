@@ -46,7 +46,7 @@ function drawSet() {
     <label class="note">팻 이름 <input id="s_bname" value="${esc(S.me.buddyName)}" placeholder="예: 사랑이"></label></div>
   <div class="card"><h3>🐾 팻 종류</h3><div class="seg" id="s_sp">${[['dog', '🐶 강아지'], ['cat', '🐱 고양이'], ['pig', '🐷 돼지']].map(([k, n]) => `<button data-sp="${k}" class="${(S.me.species || 'dog') === k ? 'on' : ''}">${n}</button>`).join('')}</div><p class="note small">누르면 바로 바뀌어요</p></div>
   <div class="card"><h3>🐶 팻 크기</h3><p class="note small">10 = 아주 작게 · 100 = 크게</p><div class="sizes" id="s_size">${[10, 20, 30, 40, 50, 60, 70, 80, 90, 100].map(n => `<button data-sz="${n}" class="${(S.me.size || 100) === n ? 'on' : ''}">${n}</button>`).join('')}</div></div>
-${window.Native ? `<div class="card"><h3>🐶 화면 위 팻</h3><label class="chk"><input type="checkbox" id="s_float" ${S.floatOff ? '' : 'checked'}> 하루 예보를 닫아도 다른 앱 위에 팻 띄우기</label><p class="note small">팻을 끌어서 옮기고, 누르면 하루 예보가 열려요.</p><button class="btn ghost small" id="s_diag">🩺 팻 상태 보기</button><pre id="s_diagOut" style="white-space:pre-wrap;font-size:11px;max-height:300px;overflow:auto"></pre></div>` : ''}
+${window.Native ? `<div class="card"><h3>🐶 화면 위 팻</h3><label class="chk"><input type="checkbox" id="s_float" ${S.floatOff ? '' : 'checked'}> 하루 예보를 닫아도 다른 앱 위에 팻 띄우기</label><p class="note small" id="s_floatSt"></p><p class="note small">팻을 끌어서 옮기고, 누르면 하루 예보가 열려요.</p><button class="btn ghost small" id="s_diag">🩺 팻 상태 보기</button><pre id="s_diagOut" style="white-space:pre-wrap;font-size:11px;max-height:300px;overflow:auto"></pre></div>` : ''}
   <div class="card"><h3>🐾 팻 기분</h3><div class="seg" id="s_temper">${[['active', '😆 활발'], ['normal', '🙂 평범'], ['shy', '🥺 소심']].map(([k, n]) => `<button data-tm="${k}" class="${(S.me.temper || 'normal') === k ? 'on' : ''}">${n}</button>`).join('')}</div><p class="note small">활발 = 화면을 아주 신나게 뛰어다녀요 · 소심 = 거의 가만히</p></div>
   <div class="card"><h3>말 걸고 움직이는 정도</h3>
     <div class="seg" id="s_freq">${[['often', '자주'], ['normal', '보통'], ['rare', '가끔'], ['quiet', '조용히']].map(([k, n]) => `<button data-f="${k}" class="${S.talk.freq === k ? 'on' : ''}">${n}</button>`).join('')}</div><p class="note small">말 걸기: 자주 = 5분마다 · 보통 = 20분 · 가끔 = 30분 · 조용히 = 말 안 함</p>
@@ -110,3 +110,11 @@ $('#setSave').onclick = $('#setSave2').onclick = () => {
 };
 
 $('#setUndo').onclick = () => { setUndo(true); drawSet(); say('예전 그대로 되돌렸어 🐾', { ms: 2200 }); };
+
+// 11-07: 화면 위 팻 허락 상태 보이기 (처음 깐 사람이 못 켜서 팻이 안 보이는 일)
+async function floatStatus() {
+  const el = $('#s_floatSt'), F = window.Capacitor && Capacitor.Plugins && Capacitor.Plugins.FloatPet; if (!el || !F || !F.hasPermission) return;
+  const p = await F.hasPermission().catch(() => ({ granted: false }));
+  el.innerHTML = p.granted ? '✅ "다른 앱 위에 표시"가 켜져 있어요' : '⚠️ "다른 앱 위에 표시"가 꺼져 있어서 화면 위에 팻이 안 보여요 <button class="btn small" id="s_floatAsk">켜러 가기</button>';
+}
+document.addEventListener('click', e => { if (e.target.id === 's_floatAsk') { const F = Capacitor.Plugins.FloatPet; F.requestPermission(); } });

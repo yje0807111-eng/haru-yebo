@@ -42,7 +42,7 @@ function go(v) {
   if (v === 'room') safe(drawRoom, '내 방');
   if (v === 'safe') safe(drawSafe, '지킴이');
   if (v === 'time') safe(drawTime, '시간');
-  if (v === 'set') safe(drawSet, '설정');
+  if (v === 'set') { safe(drawSet, '설정'); if (window.floatStatus) floatStatus(); }
   if (v === 'music' && window.drawMusic) drawMusic(false);
   if (v === 'tv' && window.drawTV) drawTV();
 }
