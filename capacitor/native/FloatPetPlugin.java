@@ -420,4 +420,14 @@ public class FloatPetPlugin extends Plugin {
         d.put("what", what);
         if (inst != null) inst.notifyListeners("petTap", d, true);
     }
+    // 📖 휴대폰 목소리로 읽기 (11-07)
+    void fire(String name, JSObject d) { notifyListeners(name, d, true); }
+    @PluginMethod
+    public void ttsSpeak(PluginCall call) { if (call.getDouble("rate") != null) HaruTts.rate = call.getDouble("rate").floatValue(); JSObject r = new JSObject(); r.put("st", HaruTts.speak(getContext(), call.getString("text", ""), call.getString("id", "x"))); call.resolve(r); }
+    @PluginMethod
+    public void ttsStop(PluginCall call) { HaruTts.stop(); call.resolve(); }
+    @PluginMethod
+    public void ttsState(PluginCall call) { JSObject r = new JSObject(); r.put("st", HaruTts.state(getContext())); call.resolve(r); }
+    @PluginMethod
+    public void ttsInstall(PluginCall call) { HaruTts.installVoice(getContext()); call.resolve(); }
 }

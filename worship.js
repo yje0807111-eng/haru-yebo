@@ -27,7 +27,7 @@ async function biblePlay(book, ch) {
   const re = new RegExp(`${book}\\s*${ch}\\s*장`);
   let r = wPick(await ytFind(`${book} ${ch}장 성경 낭독`), v => re.test(v.title.replace(/\s+/g, ' ')));
   if (!r.length) r = wPick(await ytFind(`${book} ${ch}장 듣기 개역개정`), v => v.title.includes(book) && new RegExp(`(^|[^0-9])${ch}\\s*장`).test(v.title));
-  if (!r.length) { say(`${book} ${ch}장 낭독을 못 찾았어 🥲`, { ms: 3500, important: true }); return; }
+  if (!r.length) { openBible(book, ch, true); return; }   // 못 찾으면 휴대폰 목소리로
   const one = r.find(v => /^\d{1,2}:\d{2}$/.test(v.len) && !new RegExp(ch + '\\s*[-~]').test(v.title)) || r[0];   // 한 장짜리 먼저
   wPlayer([one.id], `📖 ${book} ${ch}장`, { kind: 'bible', book, ch });
   say(`📖 ${book} ${ch}장<br><span class="small">${esc(one.title.slice(0, 50))} · "다음 장" 이라고 말해 줘</span>`, { ms: 4000 });
@@ -68,11 +68,12 @@ function worshipTalk(text) {
   const num = x => /^\d+$/.test(x) ? +x : korNum(x);
   const h = t.match(/^(?:새\s*)?찬송가?\s*(\d{1,3}|[일이삼사오육칠팔구백십]{1,5})\s*장/) || t.match(/^찬송\s*(\d{1,3})\s*장/);
   if (h) { const n = num(h[1]); if (n >= 1 && n <= 645) { hymnPlay(n); return true; } }
+  if (/^성경\s*(책\s*)?(좀\s*)?(읽어|보여|펴|열어|읽자|볼래)/.test(t)) { openBible(null, null, /읽/.test(t)); return true; }
   const ht = t.match(/^(?:새\s*)?찬송가?\s+(.+?)\s*(?:좀\s*)?(?:틀어|들려|켜|불러)?\s*(?:줘|줄래|주라|주세요)?$/) || t.match(/^(.+?)\s*(?:새\s*)?찬송가?\s*(?:좀\s*)?(?:틀어|들려|켜|불러)\s*(?:줘|줄래|주라|주세요)?$/);
   if (ht && ht[1].length >= 2 && !/^(\d|다음|이전)/.test(ht[1])) { hymnTitle(ht[1].trim()); return true; }
   const names = BIBLE.concat(Object.keys(BIBLE_SHORT)).sort((a, b) => b.length - a.length).join('|');
   const b = t.match(new RegExp(`^(?:성경\\s*)?(${names})\\s*(\\d{1,3}|[일이삼사오육칠팔구백십]{1,5})\\s*장`));
-  if (b) { const book = BIBLE_SHORT[b[1]] || b[1], ch = num(b[2]); if (ch >= 1) { biblePlay(book, ch); return true; } }
+  if (b) { const book = BIBLE_SHORT[b[1]] || b[1], ch = num(b[2]); if (ch >= 1) { if (/(읽어|보여|펴|열어)/.test(t) || !navigator.onLine) openBible(book, ch, !/(보여|펴|열어)/.test(t)); else biblePlay(book, ch); return true; } }
   if (/^(복음\s*성가|ccm|씨씨엠|찬양)/i.test(t) || /(복음\s*성가|ccm|찬양)\s*(좀\s*)?(틀어|들려|켜|듣고)/i.test(t)) { const q = t.replace(/(복음\s*성가|ccm|씨씨엠|찬양|틀어|들려|켜|줘|줄래|좀|모음)/gi, ' ').replace(/\s+/g, ' ').trim(); gospelPlay(q); return true; }
   if (wNow && /^(다음\s*(장|곡|찬송|노래)|넘겨)/.test(t)) return wNext(1);
   if (wNow && /^(이전|앞)\s*(장|곡|찬송)/.test(t)) return wNext(-1);

@@ -20,6 +20,7 @@ function setMeta(id, p) { const m = MM(); m[id] = { ...(m[id] || {}), ...p }; sa
 // 🔇 하나만 나오게: 새로 틀기 전에 다른 것 끄기 (keep = 'music' | 'yt' | 'tv')
 function stopOthers(keep) {
   if (keep !== 'yt' && typeof wStop === 'function') wStop();
+  if (keep !== 'bible' && typeof bStop === 'function') bStop();
   if (keep !== 'tv' && typeof tvNow !== 'undefined' && tvNow) { tvNow = null; tvQ = []; tvBig = false; if (typeof drawTV === 'function') try { drawTV(); } catch { } }
   if (keep !== 'music') { const F = MF(); if (F && F.musicCtl) F.musicCtl({ cmd: 'stopall' }).catch(() => {}); }
 }
@@ -74,6 +75,7 @@ async function musicCtl(cmd, line) {
 }
 async function musicStopAll() {   // 휴대폰 노래 + 멜론 등 다른 앱 + 유튜브 듣기 전부
   if (typeof wStop === 'function') wStop();
+  if (typeof bStop === 'function') bStop();
   const F = MF(); if (F && F.musicCtl) await F.musicCtl({ cmd: 'stopall' }).catch(() => {});
   say('⏹ 노래 다 껐어', { pose: 'sit', ms: 2500 });
 }
