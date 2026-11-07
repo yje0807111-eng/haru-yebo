@@ -8,8 +8,8 @@ const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 
 
 // ── 저장소 (이 휴대폰 안에만)
 const DEF = {
-  me: { name: '', buddyName: '다루', size: 100, temper: 'active' },   // temper: active 활발 · normal 평범 · shy 소심   // size: 팻 크기 10~100 (100 = 처음 크기)
-  talk: { freq: 'normal', volume: 0.4, cries: true },
+  me: { name: '푸른', buddyName: '하루', size: 40, temper: 'active', species: 'cat' },   // 11-07: 처음 까는 사람 기본값   // temper: active 활발 · normal 평범 · shy 소심   // size: 팻 크기 10~100 (100 = 처음 크기)
+  talk: { freq: 'often', volume: 0.33, cries: true, micBeep: 1 },
   chat: [], alarms: [], chimeLast: {}, birthdays: [], bdayLast: {},
   chimes: [
     { id: 'lunch', hm: '11:50', days: [0, 1, 2, 3, 4, 5, 6], text: '곧 점심시간이야! 밥 먹을 시간이 오고 있어 🍚', on: true },
@@ -19,11 +19,11 @@ const DEF = {
   guard: { daily: false, guardians: [], sosAuto: false, helloDay: '', scamClip: false },
   mood: { date: '', today: '', askedDate: '' },
   ai: { provider: 'none', key: '', model: 'claude-haiku-5-5' },
-  nostr: { sk: '' }, asked: { contacts: false },
+  nostr: { sk: '' }, asked: { contacts: false }, sizeV2: true,
 };
 const isObj = v => v && typeof v === 'object' && !Array.isArray(v);
 function merge(t, s) { for (const k of Object.keys(s || {})) { if (isObj(s[k]) && isObj(t[k])) merge(t[k], s[k]); else t[k] = s[k]; } return t; }
-let S = merge(structuredClone(DEF), (() => { try { return JSON.parse(localStorage.getItem('haru') || '{}'); } catch { return {}; } })());
+let S = merge(structuredClone(DEF), (() => { try { const o = JSON.parse(localStorage.getItem('haru') || '{}'); if (o.me && !o.me.species) o.me.species = 'dog'; return o; } catch { return {}; } })());   // 예전부터 쓰던 사람은 종류를 안 골랐으면 강아지 그대로
 if (!S.sizeV2) { S.me.size = 100; S.sizeV2 = true; }   // 11-05: 크기 기준 바꿈 (지금 크기 = 100)
 function save() { try { localStorage.setItem('haru', JSON.stringify(S)); } catch { } }
 function patch(p) { merge(S, p); save(); return S; }
@@ -139,7 +139,7 @@ function petMenu() {
   bubble.querySelector('.text').innerHTML = animalize(pick([`멍! 뭐 할까? 🐾`, `불렀어? 헤헤 🐶`, `${S.me.name ? esc(S.me.name) + '! ' : ''}뭐 도와줄까?`]));
   const box = bubble.querySelector('.btns'); box.innerHTML = '<div class="petmenu"></div>';
   for (const [label, act, cls] of b) { const el = document.createElement('button'); el.textContent = label; if (cls) el.className = cls; if (cls === 'setb' && window.Native && Native.upd) el.innerHTML = label + ' <i class="badge">1</i>'; el.onclick = ev => { ev.stopPropagation(); act(); }; box.firstChild.appendChild(el); }
-  bubble.hidden = false; bubbleT = setTimeout(hideBubble, 15000);
+  bubble.hidden = false;   // 11-07: 메뉴는 계속 떠 있음 — 말창을 누르면 닫혀요
 }
 pet.addEventListener('click', petMenu);
 // 팻만 보기 ↔ 말창·메뉴

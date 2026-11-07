@@ -373,3 +373,6 @@ body.smode .talk { background: #fff; border: 0; box-shadow: 0 2px 12px rgba(49,1
 /* 11-07 가족 안부 보호자 줄 */
 .grow { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 10px; background: #f9fafb; border-radius: 12px; margin: 6px 0; }
 .grow .pb { border: 0; background: #fff; color: #e5484d; border-radius: 10px; padding: 6px 10px; font-weight: 700; }
+
+/* 11-07 한글 줄바꿈: 낱말 중간에서 자르지 않기 */
+#intro .itext, #bubble .text, .note, .card h3 { word-break: keep-all; overflow-wrap: break-word; }
