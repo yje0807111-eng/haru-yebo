@@ -207,3 +207,69 @@ body.petonly .ground { opacity: .35; }
 .mrow > button.fav { background: none; color: #E0245E; font-size: 20px; width: 30px; }
 .mrow .medit { width: 100%; display: flex; gap: 6px; padding: 6px 4px 2px; flex-wrap: wrap; }
 .mrow .medit select, .mrow .medit input { flex: 1; min-width: 120px; }
+
+/* ===================== 11-07 토스풍 (uibowl 참고) — 아래가 위 규칙을 덮어씀 ===================== */
+:root { --ink: #191f28; --card: #ffffff; --bg: #f2f4f6; --line: #e5e8eb; --sub: #6b7684; --blue: #3182f6; --sun: #FFD43B; --sun2: #FFF5CC; }
+html, body { background: #f9fafb; color: var(--ink); letter-spacing: -.2px; }
+.view:not([data-v="home"]) { background: #f9fafb; padding: 12px 14px 14px; }
+header h2 { font-size: 22px; font-weight: 800; letter-spacing: -.5px; }
+h3 { font-size: 16px; font-weight: 800; letter-spacing: -.3px; }
+.note { color: var(--sub); }
+.card { background: #fff; border: 0; border-radius: 20px; padding: 16px; margin-bottom: 12px; box-shadow: 0 2px 10px rgba(0,0,0,.05); }
+input, select, textarea { border: 0; background: #f2f4f6; border-radius: 12px; padding: 11px 12px; color: var(--ink); }
+input:focus, select:focus, textarea:focus { outline: 2px solid #c9e2ff; }
+.btn { border: 0; background: var(--blue); color: #fff; border-radius: 12px; padding: 10px 16px; font-weight: 700; }
+.btn.small { padding: 7px 12px; font-size: 13.5px; border-radius: 10px; }
+.btn.ghost { background: #f2f4f6; color: #4e5968; }
+.btn.dirty { background: #ff6b00; color: #fff; }
+.seg { gap: 6px; }
+.seg button { border: 1px solid var(--line) !important; background: #fff !important; color: #4e5968; border-radius: 12px !important; }
+.seg button.on { background: #e8f3ff !important; color: var(--blue) !important; border-color: #c9e2ff !important; font-weight: 800; }
+.chk input { accent-color: var(--blue); }
+/* 마당·말풍선 */
+.sky { background: rgba(255,255,255,.9); box-shadow: 0 1px 4px rgba(0,0,0,.06); }
+.bubble { border: 0; border-radius: 22px; box-shadow: 0 6px 24px rgba(0,0,0,.12); padding: 14px 14px 12px; }
+.bubble .btns button { border: 0; background: var(--blue); color: #fff; border-radius: 12px; padding: 8px 14px; }
+.bubble .btns button.ghost { background: #f2f4f6; color: #4e5968; }
+/* 메뉴: 노란 단추 9칸 (3줄) — 옆으로 넘치지 않게 */
+.petmenu { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.petmenu button { border: 0 !important; background: var(--sun2) !important; color: #3d3000 !important; border-radius: 16px !important; padding: 12px 2px !important; font-size: 13px !important; font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; letter-spacing: -.5px; min-width: 0; box-shadow: inset 0 -2px 0 rgba(0,0,0,.05); }
+.petmenu button:active { background: var(--sun) !important; }
+/* 말창 */
+.talk { border: 0; background: #fff; box-shadow: 0 2px 12px rgba(0,0,0,.10); margin: 8px 12px 10px; }
+.talk .mic, .talk .send { border: 0; background: #f2f4f6; }
+.talk .send { background: var(--blue); color: #fff; }
+body.smode .talk { background: #fff; border: 0; box-shadow: 0 2px 12px rgba(49,130,246,.22); }
+/* 아래 탭 */
+.tabs { border-top: 1px solid #eef0f3; background: #fff; }
+.tabs button span { color: #8b95a1; font-weight: 700; }
+.tabs button.on span { color: var(--ink); }
+.tabs button:not(.on) { filter: grayscale(.5); opacity: .75; }
+/* 주소록 */
+.prow { border: 0; border-radius: 16px; background: #fff; box-shadow: 0 1px 6px rgba(0,0,0,.05); padding: 12px; }
+.prow .ph { color: var(--sub); }
+.prow .acts .btn { font-size: 13px; }
+/* 설정 저장 줄 */
+#saveBar { border: 0; box-shadow: 0 6px 24px rgba(0,0,0,.16); border-radius: 18px; }
+.view[data-v="set"] > header { background: #f9fafb; }
+.mutebtn { border: 0; background: #f2f4f6; color: #4e5968; }
+.mutebtn.on { background: #ffeeee; color: #f04452; }
+/* 처음 안내 */
+#intro .ibox { border: 0; border-radius: 26px; box-shadow: 0 12px 40px rgba(0,0,0,.25); background: #fff; }
+#intro .idots i.on { background: var(--blue); }
+/* 뮤직방 */
+.mnow { border-radius: 22px; background: #191f28; }
+.mnow.on { background: linear-gradient(135deg, #1b2440, #3b2a78); }
+.mnow .mc button.big { background: #fff; color: #191f28; }
+.mgrp { border: 0; border-radius: 16px; box-shadow: 0 1px 6px rgba(0,0,0,.06); }
+.mgrp i { border: 0; background: var(--blue); color: #fff; }
+.mrow { border: 0; border-radius: 16px; box-shadow: 0 1px 6px rgba(0,0,0,.05); padding: 8px 8px 8px 6px; }
+.mrow.cur { background: #f3f0ff; box-shadow: 0 0 0 2px #b9a6ff inset; }
+.mrow > button { background: #f2f4f6; }
+/* 토스풍 나머지 단추들 */
+.sizes button, .likes button, .rsel button, .rtabs button { border: 1px solid var(--line) !important; background: #fff !important; color: #4e5968; border-radius: 12px !important; font-weight: 700; }
+.sizes button.on, .likes button.on, .rsel button.on, .rtabs button.on { background: #e8f3ff !important; color: var(--blue) !important; border-color: #c9e2ff !important; }
+.backpet { border: 0; background: #fff; box-shadow: 0 2px 10px rgba(0,0,0,.1); border-radius: 999px; }
+.sos { border: 0 !important; border-radius: 20px; box-shadow: 0 2px 10px rgba(0,0,0,.06); }
+.scam { border: 0; border-radius: 16px; box-shadow: 0 1px 6px rgba(0,0,0,.05); }
+.rboard { border: 0; border-radius: 20px; box-shadow: 0 2px 12px rgba(0,0,0,.08); }
