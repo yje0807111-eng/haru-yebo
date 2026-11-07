@@ -273,3 +273,37 @@ body.smode .talk { background: #fff; border: 0; box-shadow: 0 2px 12px rgba(49,1
 .sos { border: 0 !important; border-radius: 20px; box-shadow: 0 2px 10px rgba(0,0,0,.06); }
 .scam { border: 0; border-radius: 16px; box-shadow: 0 1px 6px rgba(0,0,0,.05); }
 .rboard { border: 0; border-radius: 20px; box-shadow: 0 2px 12px rgba(0,0,0,.08); }
+
+/* 11-07 메뉴 10칸: 끝내기는 맨 아래 한 줄 */
+.petmenu button.quitb { grid-column: 1 / -1; background: #f2f4f6 !important; color: #6b7684 !important; padding: 9px 2px !important; }
+/* 11-07 📺 TV방 */
+.tvset { position: relative; background: #1d1f24; border-radius: 26px; padding: 12px 12px 10px; box-shadow: 0 10px 30px rgba(0,0,0,.25), inset 0 0 0 3px #2c2f36; margin-bottom: 12px; }
+.tvset::after { content: ''; position: absolute; left: 50%; bottom: -12px; transform: translateX(-50%); width: 34%; height: 12px; background: #2c2f36; border-radius: 0 0 14px 14px; }
+.tvscreen { position: relative; width: 100%; aspect-ratio: 16 / 9; background: #000; border-radius: 14px; overflow: hidden; }
+.tvscreen iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+.tvoff { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; color: #8b95a1; text-align: center; padding: 10px; background: radial-gradient(circle at 50% 40%, #2a2e36, #0c0d10); }
+.tvoff b { font-size: 34px; }
+.tvoff span { font-size: 13px; }
+.tvbar { display: flex; align-items: center; gap: 6px; margin-top: 8px; }
+.tvbar .tvname { flex: 1; min-width: 0; color: #e5e8eb; font-size: 13px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tvbar button { border: 0; background: rgba(255,255,255,.12); color: #fff; width: 34px; height: 34px; border-radius: 50%; font-size: 14px; flex: none; }
+.tvpet { position: absolute; right: 6px; bottom: -14px; height: 64px; pointer-events: none; z-index: 3; filter: drop-shadow(0 2px 3px rgba(0,0,0,.3)); }
+.tvset.big { position: fixed; inset: 0; z-index: 60; border-radius: 0; padding: env(safe-area-inset-top) 0 0; display: flex; flex-direction: column; justify-content: center; background: #000; }
+.tvset.big::after { display: none; }
+.tvset.big .tvscreen { border-radius: 0; }
+.tvset.big .tvbar { padding: 8px 12px; }
+.tvset.big .tvpet { bottom: 64px; }
+.tvcats { display: flex; gap: 6px; overflow-x: auto; padding: 10px 0 8px; margin-top: 8px; }
+.tvcats button { flex: none; border: 1px solid var(--line); background: #fff; color: #4e5968; border-radius: 999px; padding: 7px 12px; font: inherit; font-size: 13.5px; font-weight: 700; }
+.tvcats button.on { background: #191f28; color: #fff; border-color: #191f28; }
+.tvlist { display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px; }
+.tvrow { display: flex; align-items: center; gap: 8px; background: #fff; border-radius: 16px; padding: 8px; box-shadow: 0 1px 6px rgba(0,0,0,.05); }
+.tvrow.cur { box-shadow: 0 0 0 2px #3182f6 inset; }
+.tvrow img, .tvrow > i { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; flex: none; background: #f2f4f6; display: flex; align-items: center; justify-content: center; font-style: normal; }
+.tvrow .info { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.tvrow .info b { font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tvrow .info span { font-size: 12px; color: #8b95a1; }
+.tvrow > button { border: 0; background: #f2f4f6; width: 34px; height: 34px; border-radius: 50%; flex: none; }
+.tvrow select { width: 82px; flex: none; padding: 7px 6px; font-size: 13px; }
+.tvapps { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; margin-bottom: 6px; }
+.tvapps button { border: 0; background: #f2f4f6; color: #333d4b; border-radius: 12px; padding: 10px 2px; font: inherit; font-size: 13px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }

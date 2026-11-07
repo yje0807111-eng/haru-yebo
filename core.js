@@ -43,6 +43,7 @@ function go(v) {
   if (v === 'time') drawTime();
   if (v === 'set') drawSet();
   if (v === 'music' && window.drawMusic) drawMusic(false);
+  if (v === 'tv' && window.drawTV) drawTV();
 }
 document.addEventListener('click', e => { const b = e.target.closest('[data-go]'); if (b) go(b.dataset.go); });
 
@@ -132,7 +133,7 @@ function dialNum(num) {
 document.addEventListener('click', e => { const a = e.target.closest && e.target.closest('a[href^="tel:"]'); if (a) { e.preventDefault(); dialNum(a.getAttribute('href').slice(4)); } }, true);
 function petMenu() {
   setPose(pick(['joy', 'love', 'wave', 'laugh'])); fx('hop'); cry(true); P.until = performance.now() + 3000; P.target = null; markSign();
-  const b = [['🏘️ 동네 날씨', () => openView('town')], ['🎨 내 방', () => openView('room')], ['📒 주소록', () => openView('people')], ['🛡️ 지킴이', () => openView('safe')], ['⏰ 시간·알람', () => openView('time')], ['🎵 뮤직', () => openMusic()], ['⚙️ 설정', () => openView('set'), 'setb'], ['📖 안내소식', () => openGuide()], ['🌙 끝내기', quitApp]];
+  const b = [['🏘️ 동네 날씨', () => openView('town')], ['🎨 내 방', () => openView('room')], ['📒 주소록', () => openView('people')], ['🛡️ 지킴이', () => openView('safe')], ['⏰ 시간·알람', () => openView('time')], ['⚙️ 설정', () => openView('set'), 'setb'], ['🎵 뮤직', () => openMusic()], ['📺 TV', () => openTV()], ['📖 안내소식', () => openGuide()], ['🌙 끝내기', quitApp, 'quitb']];
   clearTimeout(bubbleT);
   bubble.querySelector('.text').innerHTML = animalize(pick([`멍! 뭐 할까? 🐾`, `불렀어? 헤헤 🐶`, `${S.me.name ? esc(S.me.name) + '! ' : ''}뭐 도와줄까?`]));
   const box = bubble.querySelector('.btns'); box.innerHTML = '<div class="petmenu"></div>';
@@ -220,6 +221,7 @@ async function send(text, opt = {}) {   // opt.talk = 바탕화면 팻에게 한
   if (smode && !opt.talk) {   // 팻방 말창 = 검색. 단, 알람·시간·전화·명령은 먼저 알아들음 (11-07)
     if (window.peopleTalk && await peopleTalk(text)) return;
     if (await timeTalk(text)) return;
+    if (window.tvTalk && tvTalk(text)) return;
     if (window.musicTalk && await musicTalk(text)) return;
     const c0 = findCommand(stripName(text) || text); if (c0) { doCommand(c0.id); return; }
     lastSearch = text; return doSearch(text);
@@ -229,6 +231,7 @@ async function send(text, opt = {}) {   // opt.talk = 바탕화면 팻에게 한
   if (/^(그거\s*)?(찾아\s*봐|찾아\s*줘|검색해\s*줘|검색)[!~.?\s]*$/.test(text) && lastUser) { lastSearch = lastUser; return doSearch(lastUser); }
   if (window.peopleTalk && await peopleTalk(text)) return;
   if (await timeTalk(text)) return;
+  if (window.tvTalk && tvTalk(text)) return;
   if (window.musicTalk && await musicTalk(text)) return;
   if (!stripName(text).replace(/[!~?.\s]/g, '') ) { doCommand('call'); return; }
   const cmd = findCommand(stripName(text) || text);

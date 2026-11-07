@@ -289,6 +289,44 @@ public class FloatPetPlugin extends Plugin {
         JSObject d = new JSObject(); d.put("id", id); d.put("title", title); d.put("artist", artist); d.put("playing", playing);
         if (inst != null) inst.notifyListeners("music", d, true);
     }
+    // 📺 TV방 (11-07): 유튜브 채널·재생목록 주소 → 채널 번호·이름 / 다른 앱 열기
+    @PluginMethod
+    public void ytResolve(PluginCall call) {
+        String url = call.getString("url", "");
+        new Thread(() -> {
+            try {
+                java.net.HttpURLConnection c = (java.net.HttpURLConnection) new java.net.URL(url).openConnection();
+                c.setRequestProperty("User-Agent", "Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 Chrome/124 Mobile Safari/537.36");
+                c.setRequestProperty("Accept-Language", "ko-KR,ko;q=0.9");
+                c.setConnectTimeout(10000); c.setReadTimeout(15000);
+                java.io.BufferedReader br = new java.io.BufferedReader(new java.io.InputStreamReader(c.getInputStream(), "UTF-8"));
+                StringBuilder sb = new StringBuilder(); String line; int n = 0;
+                while ((line = br.readLine()) != null && n < 3000000) { sb.append(line).append('
+'); n += line.length(); }
+                br.close();
+                String h = sb.toString();
+                JSObject r = new JSObject();
+                java.util.regex.Matcher m = java.util.regex.Pattern.compile("\"(?:channelId|externalId|browseId)\":\"(UC[0-9A-Za-z_-]{22})\"").matcher(h);
+                if (m.find()) r.put("channelId", m.group(1));
+                java.util.regex.Matcher t = java.util.regex.Pattern.compile("<meta property=\"og:title\" content=\"([^\"]*)\"").matcher(h);
+                if (t.find()) r.put("title", android.text.Html.fromHtml(t.group(1), 0).toString());
+                java.util.regex.Matcher im = java.util.regex.Pattern.compile("<meta property=\"og:image\" content=\"([^\"]*)\"").matcher(h);
+                if (im.find()) r.put("image", im.group(1));
+                call.resolve(r);
+            } catch (Exception e) { call.reject("resolve: " + e); }
+        }).start();
+    }
+    @PluginMethod
+    public void openApp(PluginCall call) {
+        String pkg = call.getString("pkg", ""), url = call.getString("url", "");
+        boolean ok = false;
+        try {
+            if (!url.isEmpty()) { Intent i = new Intent(Intent.ACTION_VIEW, Uri.parse(url)); if (!pkg.isEmpty()) i.setPackage(pkg); i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK); if (i.resolveActivity(getContext().getPackageManager()) != null) { getContext().startActivity(i); ok = true; } }
+            if (!ok && !pkg.isEmpty()) { Intent l = getContext().getPackageManager().getLaunchIntentForPackage(pkg); if (l != null) { l.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK); getContext().startActivity(l); ok = true; } }
+            if (!ok && !url.isEmpty()) { Intent i = new Intent(Intent.ACTION_VIEW, Uri.parse(url)); i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK); getContext().startActivity(i); ok = true; }
+        } catch (Exception e) { }
+        JSObject r = new JSObject(); r.put("ok", ok); call.resolve(r);
+    }
     @PluginMethod
     public void notiAccess(PluginCall call) {
         String en = Settings.Secure.getString(getContext().getContentResolver(), "enabled_notification_listeners");
