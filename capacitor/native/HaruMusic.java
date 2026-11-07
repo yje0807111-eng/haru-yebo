@@ -30,13 +30,16 @@ public class HaruMusic {
     static com.getcapacitor.JSArray list(Context c) {
         com.getcapacitor.JSArray arr = new com.getcapacitor.JSArray();
         try (Cursor cur = c.getContentResolver().query(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
-                new String[] { MediaStore.Audio.Media._ID, MediaStore.Audio.Media.TITLE, MediaStore.Audio.Media.ARTIST, MediaStore.Audio.Media.DURATION },
+                android.os.Build.VERSION.SDK_INT >= 30 ? new String[] { MediaStore.Audio.Media._ID, MediaStore.Audio.Media.TITLE, MediaStore.Audio.Media.ARTIST, MediaStore.Audio.Media.DURATION, MediaStore.Audio.Media.ALBUM, "genre" }
+                    : new String[] { MediaStore.Audio.Media._ID, MediaStore.Audio.Media.TITLE, MediaStore.Audio.Media.ARTIST, MediaStore.Audio.Media.DURATION, MediaStore.Audio.Media.ALBUM },
                 MediaStore.Audio.Media.IS_MUSIC + "!=0", null, MediaStore.Audio.Media.TITLE + " ASC")) {
             int n = 0;
             while (cur != null && cur.moveToNext() && n < 3000) {
                 long dur = cur.getLong(3); if (dur > 0 && dur < 30000) continue;   // 30초 안 되는 소리(알림음 등)는 뺌
                 org.json.JSONObject o = new org.json.JSONObject();
                 o.put("id", cur.getLong(0)); o.put("t", cur.getString(1) == null ? "" : cur.getString(1)); o.put("a", cur.getString(2) == null || "<unknown>".equals(cur.getString(2)) ? "" : cur.getString(2));
+                o.put("d", dur); o.put("al", cur.getString(4) == null ? "" : cur.getString(4));
+                if (cur.getColumnCount() > 5) { String g = cur.getString(5); o.put("g", g == null ? "" : g); }
                 arr.put(o); n++;
             }
         } catch (Exception e) { }
@@ -59,7 +62,7 @@ public class HaruMusic {
             mp.setOnErrorListener((m, w, x) -> { next(); return true; });
             mp.prepare(); mp.start(); paused = false;
             ((AudioManager) app.getSystemService(Context.AUDIO_SERVICE)).requestAudioFocus(null, AudioManager.STREAM_MUSIC, AudioManager.AUDIOFOCUS_GAIN);
-            FloatPetPlugin.musicEvent(qt[qi], qa[qi], true);
+            FloatPetPlugin.musicEvent(qt[qi], qa[qi], true, q[qi]);
             FloatPetService.musicStatic(qt[qi], qa[qi], true);
         } catch (Exception e) { next(); }
     }
@@ -77,9 +80,9 @@ public class HaruMusic {
             switch (cmd) {
                 case "next": next(); return "ok";
                 case "prev": prev(); return "ok";
-                case "pause": try { mp.pause(); paused = true; FloatPetPlugin.musicEvent(qt[qi], qa[qi], false); FloatPetService.musicStatic(qt[qi], qa[qi], false); } catch (Exception ignored) { } return "ok";
-                case "play": try { mp.start(); paused = false; FloatPetPlugin.musicEvent(qt[qi], qa[qi], true); FloatPetService.musicStatic(qt[qi], qa[qi], true); } catch (Exception ignored) { } return "ok";
-                case "stop": stopPlayer(); q = new long[0]; FloatPetPlugin.musicEvent("", "", false); FloatPetService.musicStatic("", "", false); return "ok";
+                case "pause": try { mp.pause(); paused = true; FloatPetPlugin.musicEvent(qt[qi], qa[qi], false, q[qi]); FloatPetService.musicStatic(qt[qi], qa[qi], false); } catch (Exception ignored) { } return "ok";
+                case "play": try { mp.start(); paused = false; FloatPetPlugin.musicEvent(qt[qi], qa[qi], true, q[qi]); FloatPetService.musicStatic(qt[qi], qa[qi], true); } catch (Exception ignored) { } return "ok";
+                case "stop": stopPlayer(); q = new long[0]; FloatPetPlugin.musicEvent("", "", false, 0); FloatPetService.musicStatic("", "", false); return "ok";
             }
         }
         int key = "next".equals(cmd) ? KeyEvent.KEYCODE_MEDIA_NEXT : "prev".equals(cmd) ? KeyEvent.KEYCODE_MEDIA_PREVIOUS : "pause".equals(cmd) || "stop".equals(cmd) ? KeyEvent.KEYCODE_MEDIA_PAUSE : KeyEvent.KEYCODE_MEDIA_PLAY;
@@ -112,7 +115,7 @@ public class HaruMusic {
     static org.json.JSONObject now(Context c) {
         org.json.JSONObject o = new org.json.JSONObject();
         try {
-            if (ours()) { o.put("title", qt[qi]); o.put("artist", qa[qi]); o.put("playing", !paused); o.put("app", "하루 예보"); return o; }
+            if (ours()) { o.put("title", qt[qi]); o.put("artist", qa[qi]); o.put("playing", !paused); o.put("app", "하루 예보"); o.put("id", q[qi]); return o; }
             MediaSessionManager msm = (MediaSessionManager) c.getSystemService(Context.MEDIA_SESSION_SERVICE);
             List<MediaController> ls = msm.getActiveSessions(new ComponentName(c, HaruNotiListener.class));
             for (MediaController mc : ls) {

@@ -285,8 +285,8 @@ public class FloatPetPlugin extends Plugin {
         for (String[] a : apps) { if (getContext().getPackageManager().getLaunchIntentForPackage(a[0]) != null) { JSObject o = new JSObject(); o.put("pkg", a[0]); o.put("name", a[1]); arr.put(o); } }
         JSObject r = new JSObject(); r.put("apps", arr); call.resolve(r);
     }
-    static void musicEvent(String title, String artist, boolean playing) {
-        JSObject d = new JSObject(); d.put("title", title); d.put("artist", artist); d.put("playing", playing);
+    static void musicEvent(String title, String artist, boolean playing, long id) {
+        JSObject d = new JSObject(); d.put("id", id); d.put("title", title); d.put("artist", artist); d.put("playing", playing);
         if (inst != null) inst.notifyListeners("music", d, true);
     }
     @PluginMethod

@@ -9,6 +9,22 @@ async function musicFiles() {
   try { const r = await F.musicList(); musicCache = r.list || []; } catch (e) { if (String(e && e.message || e).includes('denied')) { say('🎵 휴대폰 노래를 틀려면 <b>음악 파일</b> 허락이 필요해!', { ms: 8000, buttons: [{ label: '허락하러 가기', act: () => window.Native && Native.appSettings && Native.appSettings() }, { label: '괜찮아', ghost: true }] }); musicCache = null; return null; } musicCache = []; }
   return musicCache;
 }
+
+// 📚 내 노래 도서관 (11-07 뮤직방): 파일 정보 + 내가 정한 가수(a)·장르(g)·즐겨듣기(fav)·뺀 노래(hid)
+const MM = () => (S.musicMeta = S.musicMeta || {});
+function songs(withHidden) {
+  const m = MM();
+  return (musicCache || []).map(x => { const o = m[x.id] || {}; return { ...x, A: o.a || x.a || '알 수 없는 가수', G: o.g || x.g || '', fav: !!o.fav, hid: !!o.hid }; }).filter(x => withHidden || !x.hid);
+}
+function setMeta(id, p) { const m = MM(); m[id] = { ...(m[id] || {}), ...p }; save(); }
+async function playList(list, start = 0, label) {
+  const F = MF(); if (!F || !F.musicPlay) { say('갤럭시 앱에서 쓸 수 있어 🎵', { ms: 2500 }); return; }
+  if (!list.length) { say('들을 노래가 없어 🥲', { ms: 2500 }); return; }
+  window.mQueue = list.map(x => x.id);
+  await F.musicPlay({ list: list.slice(0, 500).map(x => ({ id: x.id, t: x.t, a: x.A })), start }).catch(() => {});
+  setPose('dance'); P.until = performance.now() + 8000;
+  if (label) say(`🎵 ${label} 틀게! "다음 곡", "멈춰" 라고 말해 줘`, { ms: 3500 });
+}
 const norm = t => String(t || '').toLowerCase().replace(/[\s\-_.,·()[\]'"!?~]/g, '');
 const shuffle = a => { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
 async function musicApp(q) {
@@ -18,17 +34,21 @@ async function musicApp(q) {
   say(r.ok ? (q ? `🎵 "${esc(q)}" 찾아서 틀어 볼게!` : '🎵 음악 앱을 열었어!') : '음악 앱을 못 열었어 🥲 설정 → 🎵 노래 에서 앱을 골라 줘', { pose: r.ok ? 'dance' : 'sad', ms: 4000 });
 }
 async function musicPlay(q) {
-  const F = MF(); const pref = (S.music && S.music.plain) || 'files';
+  const pref = (S.music && S.music.plain) || 'files';
   if (!q && pref === 'app') return musicApp('');
   const list = await musicFiles(); if (list === null) return;
+  const all = songs();
   let pick_ = [];
-  if (q) { const nq = norm(q); pick_ = list.filter(x => norm(x.t).includes(nq) || norm(x.a).includes(nq) || nq.includes(norm(x.a)) && norm(x.a).length > 1); }
-  else pick_ = shuffle(list);
+  if (q) {
+    const nq = norm(q);
+    if (/^(즐겨\s*듣기|즐겨찾기|좋아하는\s*(노래|곡)?|내가\s*좋아하는\s*(노래|곡)?|찜한\s*(노래|곡)?)$/.test(q)) { pick_ = all.filter(x => x.fav); if (!pick_.length) { say('아직 즐겨듣기 노래가 없어! 뮤직방에서 ♡ 를 눌러 줘 🎵', { ms: 4000 }); return; } return playList(shuffle(pick_), 0, '즐겨듣기 ' + pick_.length + '곡'); }
+    const byG = all.filter(x => x.G && norm(x.G) === nq.replace(/(노래|음악|곡|장르)$/, ''));
+    if (byG.length) return playList(shuffle(byG), 0, `${q} ${byG.length}곡`);
+    pick_ = all.filter(x => norm(x.t).includes(nq) || norm(x.A).includes(nq) || (norm(x.A).length > 1 && nq.includes(norm(x.A))));
+  } else pick_ = shuffle(all);
   if (!pick_.length) return musicApp(q);   // 파일에 없으면 음악 앱에서
   if (q && pick_.length > 1) pick_ = shuffle(pick_);
-  await F.musicPlay({ list: pick_.slice(0, 300), start: 0 }).catch(() => {});
-  setPose('dance'); P.until = performance.now() + 8000;
-  say(`🎵 ${q ? `"${esc(q)}" ${pick_.length}곡` : '휴대폰 노래'} 틀게! "다음 곡", "멈춰" 라고 말해 줘`, { ms: 4000 });
+  return playList(pick_, 0, q ? `"${esc(q)}" ${pick_.length}곡` : '휴대폰 노래');
 }
 async function musicCtl(cmd, line) {
   const F = MF(); if (!F || !F.musicCtl) { say('갤럭시 앱에서 쓸 수 있어 🎵', { ms: 2500 }); return; }
@@ -43,6 +63,7 @@ async function musicNow() {
 // 말 알아듣기 → 처리했으면 true
 async function musicTalk(text) {
   const t = stripName(text).replace(/[?!.~]+$/g, '').trim();
+  if (/^(뮤직\s*방|음악\s*방|노래\s*방)\s*(좀\s*)?(열어|보여|가|들어가)/.test(t)) { openMusic(); return true; }
   if (/^(지금\s*)?(무슨|뭔|어떤)\s*(노래|곡|음악)/.test(t) || /(이\s*노래|이\s*곡)\s*(뭐|제목)/.test(t)) { await musicNow(); return true; }
   if (/^(다음\s*(곡|노래)|노래\s*넘겨|넘겨)/.test(t)) { await musicCtl('next', '⏭ 다음 곡!'); return true; }
   if (/^(이전\s*(곡|노래)|앞\s*(곡|노래)|전\s*곡)/.test(t)) { await musicCtl('prev', '⏮ 앞 곡!'); return true; }
@@ -51,7 +72,7 @@ async function musicTalk(text) {
   if (/^(소리|볼륨|음량)\s*(좀\s*)?(키워|크게|올려|높여)/.test(t)) { await musicCtl('up', '🔊 소리 키웠어'); return true; }
   if (/^(소리|볼륨|음량)\s*(좀\s*)?(줄여|작게|낮춰|내려)/.test(t)) { await musicCtl('down', '🔉 소리 줄였어'); return true; }
   const m = t.match(/^(.*?)\s*(노래|음악|곡)?\s*(좀\s*)?(틀어|들려|켜|재생해)\s*(줘|줄래|주라|봐|줘요|주세요)?$/);
-  const appWord = MUSIC_APPS.some(([p, n]) => p && t.includes(n));
+  const appWord = MUSIC_APPS.some(([p, n]) => p && t.includes(n)) || /^(즐겨\s*듣기|즐겨찾기|좋아하는)/.test(t) || (musicCache && songs().some(x => x.G && t.startsWith(x.G)));
   if (m && (m[2] || /노래|음악|곡/.test(t) || appWord || (/^(틀어|재생해)$/.test(m[4]) && !/(에어컨|선풍기|티비|tv|보일러|히터|불|라디오|난방|냉방|영상|동영상|유튜브\s*영상)/i.test(m[1] || '')))) {
     let q = (m[1] || '').replace(/(의|이|가|를|을|로|으로|에서)$/, '').replace(/^(아무|아무거나|아무\s*노래|신나는|조용한|잔잔한)$/, '').trim();
     if (/^(노래|음악|곡)$/.test(q)) q = '';

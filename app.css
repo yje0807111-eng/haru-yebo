@@ -173,3 +173,37 @@ body.petonly .ground { opacity: .35; }
 .prow .grip { touch-action: none; cursor: grab; font-size: 20px; color: #8a7a6a; padding: 0 8px 0 2px; user-select: none; }
 .prow.dragging { position: relative; z-index: 5; box-shadow: 0 8px 20px rgba(0,0,0,.25); opacity: .95; }
 .prow.dropat { border-color: #3182f6; border-style: dashed; }
+
+/* 11-07 메뉴 9칸 = 3줄 */
+.petmenu { grid-template-columns: 1fr 1fr 1fr; }
+.petmenu button { font-size: 13px; padding: 11px 1px; white-space: nowrap; letter-spacing: -.4px; }
+/* 11-07 🎵 뮤직방 */
+.mnow { background: #2B2118; color: #fff; border-radius: 18px; padding: 12px 14px; margin-bottom: 10px; }
+.mnow.on { background: linear-gradient(135deg, #3a2a1c, #6b3fa0); }
+.mnow .mt { display: flex; flex-direction: column; gap: 2px; min-height: 40px; }
+.mnow .mt b { font-size: 16px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mnow .mt span { font-size: 13px; opacity: .8; }
+.mnow .mc { display: flex; justify-content: center; gap: 14px; margin-top: 8px; }
+.mnow .mc button { border: 0; background: rgba(255,255,255,.15); color: #fff; width: 44px; height: 44px; border-radius: 50%; font-size: 18px; }
+.mnow .mc button.big { width: 56px; height: 56px; font-size: 24px; background: #FFD93B; color: #2B2118; }
+.mtabs { margin-bottom: 8px; }
+.mtabs button { font-size: 13px; }
+#mQ { width: 100%; margin-bottom: 8px; }
+.mbar { display: flex; gap: 6px; align-items: center; margin-bottom: 6px; }
+.mhead { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 8px; }
+.mhead select { flex: 1; min-width: 140px; }
+.mgroups { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.mgrp { position: relative; text-align: left; border: 2px solid var(--ink); background: #fff; border-radius: 14px; padding: 10px 36px 10px 12px; font: inherit; }
+.mgrp b { display: block; font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mgrp span { font-size: 12px; color: #8a7a6a; }
+.mgrp i { position: absolute; right: 8px; top: 50%; transform: translateY(-50%); font-style: normal; width: 28px; height: 28px; border-radius: 50%; background: #FFD93B; display: flex; align-items: center; justify-content: center; font-size: 13px; border: 2px solid var(--ink); }
+.mlist { display: flex; flex-direction: column; gap: 6px; }
+.mrow { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; background: #fff; border: 2px solid #eadfc8; border-radius: 14px; padding: 6px 6px 6px 4px; }
+.mrow.cur { border-color: #6b3fa0; background: #f6f0ff; }
+.mrow .info { flex: 1; min-width: 0; display: flex; flex-direction: column; cursor: pointer; }
+.mrow .info b { font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mrow .info span { font-size: 12px; color: #8a7a6a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mrow > button { border: 0; background: #f4f1ea; width: 34px; height: 34px; border-radius: 50%; font-size: 14px; flex: none; }
+.mrow > button.fav { background: none; color: #E0245E; font-size: 20px; width: 30px; }
+.mrow .medit { width: 100%; display: flex; gap: 6px; padding: 6px 4px 2px; flex-wrap: wrap; }
+.mrow .medit select, .mrow .medit input { flex: 1; min-width: 120px; }
