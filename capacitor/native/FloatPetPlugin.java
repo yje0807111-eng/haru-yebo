@@ -316,6 +316,29 @@ public class FloatPetPlugin extends Plugin {
         }).start();
     }
     @PluginMethod
+    public void front(PluginCall call) { FloatPetService.frontStatic(getContext()); call.resolve(); }
+    // 채널(또는 재생목록)의 최근 영상 번호들 — 쇼츠 말고 일반 영상
+    @PluginMethod
+    public void ytVideos(PluginCall call) {
+        String url = call.getString("url", "");
+        new Thread(() -> {
+            try {
+                java.net.HttpURLConnection c = (java.net.HttpURLConnection) new java.net.URL(url).openConnection();
+                c.setRequestProperty("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/124 Safari/537.36");
+                c.setRequestProperty("Accept-Language", "ko-KR,ko;q=0.9");
+                c.setConnectTimeout(10000); c.setReadTimeout(15000);
+                java.io.InputStream in = c.getInputStream(); java.io.ByteArrayOutputStream bo = new java.io.ByteArrayOutputStream();
+                byte[] buf = new byte[16384]; int k; while ((k = in.read(buf)) > 0 && bo.size() < 4000000) bo.write(buf, 0, k); in.close();
+                String h = bo.toString("UTF-8");
+                java.util.LinkedHashSet<String> ids = new java.util.LinkedHashSet<>();
+                java.util.regex.Matcher m = java.util.regex.Pattern.compile("\"videoId\":\"([0-9A-Za-z_-]{11})\"").matcher(h);   // /videos 탭에는 쇼츠가 없음
+                while (m.find() && ids.size() < 40) ids.add(m.group(1));
+                com.getcapacitor.JSArray arr = new com.getcapacitor.JSArray(); for (String v : ids) arr.put(v);
+                JSObject r = new JSObject(); r.put("ids", arr); call.resolve(r);
+            } catch (Exception e) { call.reject("videos: " + e); }
+        }).start();
+    }
+    @PluginMethod
     public void openApp(PluginCall call) {
         String pkg = call.getString("pkg", ""), url = call.getString("url", "");
         boolean ok = false;

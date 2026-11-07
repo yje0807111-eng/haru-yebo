@@ -320,3 +320,10 @@ body.smode .talk { background: #fff; border: 0; box-shadow: 0 2px 12px rgba(49,1
 .tvrow .info { flex: 1 1 calc(100% - 120px); }
 .tvrow > button { width: 32px; height: 32px; }
 .tvrow select { width: auto; flex: 1; min-width: 90px; margin-left: 48px; }
+
+/* 11-07 TV 화면 가득: 가로로 돌려 꽉 차게 (🔄 로 세로 가득) */
+.tvset.big { position: fixed; inset: 0; z-index: 80; margin: 0; border-radius: 0; padding: 0; background: #000; box-shadow: none; display: flex; flex-direction: column; }
+.tvset.big .tvscreen { flex: 1; aspect-ratio: auto; border-radius: 0; }
+.tvset.big .tvbar { position: absolute; left: 0; right: 0; bottom: 0; padding: 10px 12px calc(10px + env(safe-area-inset-bottom)); background: linear-gradient(transparent, rgba(0,0,0,.75)); opacity: .9; }
+.tvset.big .tvpet { right: 10px; bottom: 58px; height: 56px; }
+.tvset.big.rot { inset: auto; left: 50%; top: 50%; width: 100vh; height: 100vw; transform: translate(-50%, -50%) rotate(90deg); }

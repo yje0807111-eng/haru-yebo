@@ -719,6 +719,12 @@ public class FloatPetService extends Service {
             dancing = true; nextDecide = now + 5000;
         } else dancing = false;
     }
+    // 하루 예보를 앞으로 (바탕화면에서 "TV 켜 줘" 했을 때 TV 화면이 보이게)
+    static void frontStatic(Context c) {
+        Intent i = new Intent(c, MainActivity.class);
+        i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_REORDER_TO_FRONT | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+        try { c.startActivity(i); } catch (Exception ignored) { }
+    }
     static void sayStatic(String text, int ms) { if (me != null) me.h.post(() -> me.bubble(text, ms)); }
 
     void open(String what) {

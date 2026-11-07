@@ -7,9 +7,10 @@ const TV = () => (S.tv = S.tv || { cats: TV_CATS0.slice(), chans: [] });
 const tvNum = cat => TV().cats.indexOf(cat) + 1;   // 1번·2번… 채널
 const tvSorted = list => list.slice().sort((a, b) => (a.ord ?? 1e9) - (b.ord ?? 1e9) || (a.rank || 99) - (b.rank || 99));
 let tvOrderEdit = false;
-let tvCat = '', tvAdd = false, tvNow = null, tvBig = false, tvPetT = 0;
+let tvCat = '', tvAdd = false, tvNow = null, tvBig = false, tvRot = true, tvPetT = 0;
 const YT = () => window.Capacitor && Capacitor.Plugins && Capacitor.Plugins.FloatPet;
-function openTV(cat) { hideBubble(); petOnly(false); go('tv'); if (cat) tvCat = cat; drawTV(); tvDefaults(false); }
+function tvFront() { const F = YT(); if (document.hidden && F && F.front) F.front().catch(() => {}); }   // 바탕화면 팻에게 말했으면 하루 예보를 앞으로
+function openTV(cat) { tvFront(); hideBubble(); petOnly(false); go('tv'); if (cat) tvCat = cat; drawTV(); tvDefaults(false); }
 
 // 주소 → { kind, list(재생목록 번호), name }
 async function tvParse(url) {
@@ -28,9 +29,9 @@ function drawTV() {
   const box = $('#tvBox'); if (!box) return;
   const T = TV(), cats = T.cats, chans = T.chans;
   const inCat = tvSorted(tvCat ? chans.filter(c => c.cat === tvCat) : chans.slice().sort((a, b) => tvNum(a.cat) - tvNum(b.cat)));
-  let h = `<div class="tvset ${tvBig ? 'big' : ''}" id="tvSet"><div class="tvscreen">${tvNow ? `<iframe id="tvFrame" src="${tvSrc(tvNow)}" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe>` : `<div class="tvoff"><b>📺</b><span>${chans.length ? '주제나 채널을 골라 ▶ 를 눌러 보세요' : '먼저 [+ 채널 추가] 로 좋아하는 유튜브 채널을 넣어 주세요'}</span></div>`}</div>
+  let h = `<div class="tvset ${tvBig && tvNow ? 'big' + (tvRot ? ' rot' : '') : ''}" id="tvSet"><div class="tvscreen">${tvNow ? `<iframe id="tvFrame" src="${tvSrc(tvNow)}" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe>` : `<div class="tvoff"><b>📺</b><span>${chans.length ? '주제나 채널을 골라 ▶ 를 눌러 보세요' : '먼저 [+ 채널 추가] 로 좋아하는 유튜브 채널을 넣어 주세요'}</span></div>`}</div>
     <div class="tvbar"><span class="tvname">${tvNow ? `📡 ${tvNow.cat ? tvNum(tvNow.cat) + '번 ' + esc(tvNow.cat) + ' · ' : ''}${esc(tvNow.name)}` : '꺼짐'}</span>
-      <button data-tv="prev">⏮</button><button data-tv="next">⏭</button><button data-tv="other" title="다른 채널">🔀</button><button data-tv="big" title="크게 보기">${tvBig ? '🗗' : '⛶'}</button><button data-tv="off" title="끄기">⏻</button>${tvNow ? '<button data-tv="app" title="유튜브 앱에서 보기">↗</button>' : ''}</div>
+      <button data-tv="prev">⏮</button><button data-tv="next">⏭</button><button data-tv="other" title="다른 채널">🔀</button>${tvBig && tvNow ? '<button data-tv="rot" title="가로·세로">🔄</button>' : ''}<button data-tv="big" title="${tvBig ? '작게' : '화면 가득'}">${tvBig && tvNow ? '✕' : '⛶'}</button><button data-tv="off" title="끄기">⏻</button>${tvNow ? '<button data-tv="app" title="유튜브 앱에서 보기">↗</button>' : ''}</div>
     <img class="tvpet" id="tvPet" alt=""></div>`;
   h += `<div class="tvcats"><button data-cat="" class="${!tvCat ? 'on' : ''}">전체 ${chans.length}</button>${cats.map((c, i) => `<button data-cat="${esc(c)}" class="${tvCat === c ? 'on' : ''}"><em>${i + 1}</em>${esc(c)}</button>`).join('')}<button data-cat="__new">+ 주제</button><button data-cat="__order">✏️ 순서</button></div>`;
   if (tvOrderEdit) h += `<div class="card tvorder"><h3>✏️ 채널 번호 순서</h3><p class="note small">▲▼ 로 순서를 바꾸면 그 순서대로 1번·2번 채널이 돼요. "3번 틀어 줘" 라고 말할 수 있어요.</p>${cats.map((c, i) => `<div class="tvo" data-oc="${esc(c)}"><b>${i + 1}</b><span>${esc(c)}</span><i class="note small">${(T.rank || {})[c] ? '인기 ' + T.rank[c] + '위' : '내 주제'}</i><button data-o="up">▲</button><button data-o="down">▼</button></div>`).join('')}<div class="row"><button class="btn small ghost" id="tvOrderReset">인기 순위대로</button><button class="btn small" id="tvOrderDone">다 됐어</button></div></div>`;
@@ -45,13 +46,29 @@ function drawTV() {
   const f = $('#tvFrame'); if (f) f.onload = () => { try { f.contentWindow.postMessage(JSON.stringify({ event: 'listening', id: 'tv', channel: 'widget' }), '*'); } catch { } };   // 다음 영상 등 명령을 받게
   tvPetLoop();
 }
-function tvSrc(c) {
-  const start = Math.floor(Math.random() * (c.kind === 'channel' ? 15 : 5));
-  return `https://www.youtube.com/embed/videoseries?list=${encodeURIComponent(c.list)}&index=${start}&autoplay=1&playsinline=1&rel=0&modestbranding=1&enablejsapi=1&origin=${encodeURIComponent(location.origin)}`;
+const tvVid = {};   // 채널별 영상 번호 (6시간 보관)
+let tvQ = [], tvI = 0;
+async function tvIds(c) {
+  const k = c.list, hit = tvVid[k]; if (hit && Date.now() - hit.at < 6 * 3600e3) return hit.ids;
+  const F = YT(); if (!F || !F.ytVideos) return null;
+  const url = c.kind === 'playlist' ? 'https://www.youtube.com/playlist?list=' + c.list : 'https://www.youtube.com/channel/UC' + c.list.slice(2) + '/videos';
+  try { const r = await F.ytVideos({ url }); if (r.ids && r.ids.length) { tvVid[k] = { at: Date.now(), ids: r.ids }; return r.ids; } } catch { }
+  return null;
 }
-function tvPlay(c, quiet) {
-  if (!c) return; tvNow = c; if (view !== 'tv') { go('tv'); } drawTV();
-  if (!quiet) say(`📺 ${esc(c.name)} 틀게! "다음 영상", "다른 채널", "크게 보기" 라고 말해 줘`, { ms: 3500 });
+function tvSrc(c) {
+  const o = `autoplay=1&playsinline=1&rel=0&modestbranding=1&enablejsapi=1&fs=1&origin=${encodeURIComponent(location.origin)}`;
+  if (tvQ.length) { const id = tvQ[tvI % tvQ.length], rest = tvQ.slice(tvI + 1, tvI + 25).join(','); return `https://www.youtube.com/embed/${id}?${o}${rest ? '&playlist=' + rest : ''}`; }
+  const start = Math.floor(Math.random() * (c.kind === 'channel' ? 15 : 5));
+  return `https://www.youtube.com/embed/videoseries?list=${encodeURIComponent(c.list)}&index=${start}&${o}`;
+}
+function tvLoad() { const f = $('#tvFrame'); if (f && tvNow) f.src = tvSrc(tvNow); else drawTV(); }
+function tvStep(d) { if (tvQ.length) { tvI = Math.max(0, Math.min(tvQ.length - 1, tvI + d)); tvLoad(); } else tvCmd(d > 0 ? 'nextVideo' : 'previousVideo'); }
+async function tvPlay(c, quiet) {
+  if (!c) return; tvFront(); tvNow = c; tvQ = []; tvI = 0;
+  const ids = await tvIds(c); if (ids) { tvQ = ids.slice(); tvI = Math.floor(Math.random() * Math.min(8, ids.length)); }   // 최근 영상 중에서 시작
+  tvBig = true;   // 11-07: 틀면 바로 화면 가득
+  if (view !== 'tv') { hideBubble(); petOnly(false); go('tv'); } drawTV();
+  if (!quiet) say(`📺 ${tvNum(c.cat) ? tvNum(c.cat) + '번 ' : ''}${esc(c.name)}! "다음 영상", "다른 채널", "TV 꺼"`, { ms: 3000 });
 }
 function tvPlayCat(cat) {
   const l = TV().chans.filter(c => !cat || c.cat === cat);
@@ -87,11 +104,12 @@ document.addEventListener('click', async e => {
   if (cb) { let c = cb.dataset.cat; if (c === '__new') { c = (prompt('새 주제 이름 (예: 운동)') || '').trim(); if (!c) return; if (!T.cats.includes(c)) T.cats.push(c); save(); } tvCat = c; return drawTV(); }
   const tv = e.target.closest('[data-tv]'); if (tv) {
     const a = tv.dataset.tv;
-    if (a === 'next') return tvCmd('nextVideo');
-    if (a === 'prev') return tvCmd('previousVideo');
+    if (a === 'next') return tvStep(1);
+    if (a === 'prev') return tvStep(-1);
     if (a === 'other') return tvPlayCat(tvNow ? tvNow.cat : tvCat);
-    if (a === 'big') { tvBig = !tvBig; $('#tvSet').classList.toggle('big', tvBig); tv.textContent = tvBig ? '🗗' : '⛶'; return; }
-    if (a === 'off') { tvNow = null; tvBig = false; return drawTV(); }
+    if (a === 'big') { tvBig = !tvBig; return drawTV(); }
+    if (a === 'rot') { tvRot = !tvRot; return drawTV(); }
+    if (a === 'off') { tvNow = null; tvBig = false; tvQ = []; return drawTV(); }
     if (a === 'app' && tvNow) { const F = YT(); const url = 'https://www.youtube.com/playlist?list=' + tvNow.list; if (F && F.openApp) F.openApp({ pkg: 'com.google.android.youtube', url }); else window.open(url, '_blank'); return; }
   }
   const ap = e.target.closest('[data-app]'); if (ap) { const x = TV_APPS.find(z => z[1] === ap.dataset.app); const F = YT(); if (F && F.openApp) F.openApp({ pkg: x[1], url: '' }).then(r => { if (!r.ok) F.openApp({ pkg: '', url: x[2] }); }); else window.open(x[2], '_blank'); return; }
@@ -124,13 +142,13 @@ function tvTalk(text) {
   const nm = t.match(/^(?:채널\s*)?(\d{1,2}|[일이삼사오육칠팔구십]{1,2})\s*번\s*(?:채널)?\s*(?:좀\s*)?(?:틀어|보여|켜|돌려|봐)?/) || t.match(/^채널\s*(\d{1,2})/);
   if (nm && (/(틀어|보여|켜|돌려|채널)/.test(t))) { const n = /^\d+$/.test(nm[1]) ? +nm[1] : (window.HA && HA.num ? HA.num(nm[1]) : 0); const cat = T.cats[n - 1]; if (cat) { tvPlayCat(cat); return true; } }
   if (view === 'tv' || tvNow) {
-    if (/^(다음\s*(영상|거|꺼)|넘겨)/.test(t)) { tvCmd('nextVideo'); return true; }
-    if (/^(이전\s*(영상|거)|앞\s*(영상|거))/.test(t)) { tvCmd('previousVideo'); return true; }
+    if (/^(다음\s*(영상|거|꺼)|넘겨)/.test(t)) { tvStep(1); return true; }
+    if (/^(이전\s*(영상|거)|앞\s*(영상|거))/.test(t)) { tvStep(-1); return true; }
     if (/^(영상|티비|tv)?\s*(멈춰|정지|그만\s*봐|일시\s*정지)/i.test(t)) { tvCmd('pauseVideo'); return true; }
     if (/^(영상\s*)?(다시\s*(틀어|봐|재생))/.test(t)) { tvCmd('playVideo'); return true; }
     if (/^(다른\s*채널|채널\s*(바꿔|돌려))/.test(t)) { tvPlayCat(tvNow ? tvNow.cat : tvCat); return true; }
-    if (/^(크게\s*(보기|봐|보여)|전체\s*화면)/.test(t)) { tvBig = true; const s = $('#tvSet'); if (s) s.classList.add('big'); return true; }
-    if (/^(작게\s*(보기|봐)|원래대로)/.test(t)) { tvBig = false; const s = $('#tvSet'); if (s) s.classList.remove('big'); return true; }
+    if (/^(크게\s*(보기|봐|보여)|전체\s*화면)/.test(t)) { tvBig = true; drawTV(); return true; }
+    if (/^(작게\s*(보기|봐)|원래대로)/.test(t)) { tvBig = false; drawTV(); return true; }
     if (/^(티비|tv|영상)\s*(꺼|끄)/i.test(t)) { tvNow = null; drawTV(); return true; }
   }
   const m = t.match(/^(.+?)\s*(tv|티비|영상|채널|동영상)?\s*(좀\s*)?(틀어|보여|켜|보자|볼래)\s*(줘|줄래|주라|봐|줘요|주세요)?$/i);
