@@ -39,6 +39,18 @@ async function gospelPlay(q) {
   wPlayer(r.slice(0, 20).map(v => v.id), `🎶 복음성가${q ? ' · ' + q : ''}`, { kind: 'gospel', q });
   say(`🎶 복음성가 ${Math.min(20, r.length)}곡 틀게! "다음 곡" 이라고 말해 줘`, { ms: 3500 });
 }
+// ⛪ 제목으로 찬송가 찾기: "찬송가 나 같은 죄인 살리신" → 그 장 번호까지 알아내서 틀기 ("다음 장"도 됨)
+async function hymnTitle(q) {
+  tvFront && tvFront(); say(`⛪ 찬송가 "${esc(q)}" 찾는 중…`, { ms: 3000 });
+  const nq = norm(q);
+  const r = wPick(await ytFind(`새찬송가 ${q}`), v => /찬송/.test(v.title) && /\d{1,3}\s*장/.test(v.title));
+  const hit = r.filter(v => norm(v.title).includes(nq) || (nq.length >= 4 && norm(v.title).includes(nq.slice(0, 4))));
+  const v = hit.find(v => /^\d{1,2}:\d{2}$/.test(v.len) && +v.len.split(':')[0] < 12) || hit[0];
+  if (!v) { say(`찬송가 "${esc(q)}"를 못 찾았어 🥲 장 번호로 말해 줘`, { ms: 3500, important: true }); return; }
+  const n = +(v.title.match(/(\d{1,3})\s*장/) || [])[1] || 0;
+  wPlayer([v.id], `⛪ 찬송가 ${n ? n + '장 ' : ''}${q}`, n ? { kind: 'hymn', n } : null);
+  say(`⛪ 찬송가 ${n ? n + '장 ' : ''}<br><span class="small">${esc(v.title.slice(0, 50))}${n ? ' · "다음 장" 이라고 말해 줘' : ''}</span>`, { ms: 4000 });
+}
 function wNext(d) {
   if (!wNow) return false;
   if (wNow.kind === 'hymn') { hymnPlay(Math.max(1, Math.min(645, wNow.n + d))); return true; }
@@ -54,6 +66,8 @@ function worshipTalk(text) {
   const num = x => /^\d+$/.test(x) ? +x : korNum(x);
   const h = t.match(/^(?:새\s*)?찬송가?\s*(\d{1,3}|[일이삼사오육칠팔구백십]{1,5})\s*장/) || t.match(/^찬송\s*(\d{1,3})\s*장/);
   if (h) { const n = num(h[1]); if (n >= 1 && n <= 645) { hymnPlay(n); return true; } }
+  const ht = t.match(/^(?:새\s*)?찬송가?\s+(.+?)\s*(?:좀\s*)?(?:틀어|들려|켜|불러)?\s*(?:줘|줄래|주라|주세요)?$/) || t.match(/^(.+?)\s*(?:새\s*)?찬송가?\s*(?:좀\s*)?(?:틀어|들려|켜|불러)\s*(?:줘|줄래|주라|주세요)?$/);
+  if (ht && ht[1].length >= 2 && !/^(\d|다음|이전)/.test(ht[1])) { hymnTitle(ht[1].trim()); return true; }
   const names = BIBLE.concat(Object.keys(BIBLE_SHORT)).sort((a, b) => b.length - a.length).join('|');
   const b = t.match(new RegExp(`^(?:성경\\s*)?(${names})\\s*(\\d{1,3}|[일이삼사오육칠팔구백십]{1,5})\\s*장`));
   if (b) { const book = BIBLE_SHORT[b[1]] || b[1], ch = num(b[2]); if (ch >= 1) { biblePlay(book, ch); return true; } }
