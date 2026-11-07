@@ -287,7 +287,7 @@ public class FloatPetService extends Service {
         } catch (Exception e) { Log.e("HaruPet", "bar", e); note("bar " + e); }
         h.post(tick);
         try {
-            screenRx = new android.content.BroadcastReceiver() { @Override public void onReceive(Context c, Intent i) { if (Intent.ACTION_USER_PRESENT.equals(i.getAction())) h.postDelayed(() -> greet(), 400); } };
+            screenRx = new android.content.BroadcastReceiver() { @Override public void onReceive(Context c, Intent i) { if (Intent.ACTION_USER_PRESENT.equals(i.getAction())) { h.postDelayed(() -> greet(), 400); new Thread(() -> HaruSms.daily(c)).start(); } } };
             android.content.IntentFilter f = new android.content.IntentFilter(Intent.ACTION_USER_PRESENT);
             if (Build.VERSION.SDK_INT >= 33) registerReceiver(screenRx, f, Context.RECEIVER_EXPORTED); else registerReceiver(screenRx, f);
         } catch (Exception e) { Log.e("HaruPet", "screenRx", e); }

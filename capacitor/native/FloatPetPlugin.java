@@ -14,7 +14,7 @@ import com.getcapacitor.annotation.PermissionCallback;
 import com.getcapacitor.PermissionState;
 
 // 다른 앱 위에 떠 있는 팻 (하루 예보) — 켜기·끄기·크기·권한
-@CapacitorPlugin(name = "FloatPet", permissions = { @Permission(alias = "contacts", strings = { android.Manifest.permission.READ_CONTACTS }), @Permission(alias = "audio", strings = { "android.permission.READ_MEDIA_AUDIO" }), @Permission(alias = "audioOld", strings = { android.Manifest.permission.READ_EXTERNAL_STORAGE }) })
+@CapacitorPlugin(name = "FloatPet", permissions = { @Permission(alias = "contacts", strings = { android.Manifest.permission.READ_CONTACTS }), @Permission(alias = "sms", strings = { android.Manifest.permission.SEND_SMS }), @Permission(alias = "audio", strings = { "android.permission.READ_MEDIA_AUDIO" }), @Permission(alias = "audioOld", strings = { android.Manifest.permission.READ_EXTERNAL_STORAGE }) })
 public class FloatPetPlugin extends Plugin {
     static FloatPetPlugin inst;
 
@@ -430,4 +430,18 @@ public class FloatPetPlugin extends Plugin {
     public void ttsState(PluginCall call) { JSObject r = new JSObject(); r.put("st", HaruTts.state(getContext())); call.resolve(r); }
     @PluginMethod
     public void ttsInstall(PluginCall call) { HaruTts.installVoice(getContext()); call.resolve(); }
+    // 💌 가족 안부 문자 (11-07)
+    @PluginMethod
+    public void smsConfig(PluginCall call) {
+        HaruSms.config(getContext(), call.getString("nums", ""), call.getString("text", ""), Boolean.TRUE.equals(call.getBoolean("on", false)));
+        if (Boolean.TRUE.equals(call.getBoolean("on", false)) && getPermissionState("sms") != PermissionState.GRANTED) { requestPermissionForAlias("sms", call, "smsPermCb"); return; }
+        smsReply(call);
+    }
+    @PermissionCallback
+    private void smsPermCb(PluginCall call) { smsReply(call); }
+    private void smsReply(PluginCall call) { JSObject r = new JSObject(); r.put("granted", HaruSms.can(getContext())); r.put("day", HaruSms.lastDay(getContext())); call.resolve(r); }
+    @PluginMethod
+    public void smsDaily(PluginCall call) { JSObject r = new JSObject(); r.put("sent", HaruSms.daily(getContext())); r.put("day", HaruSms.lastDay(getContext())); call.resolve(r); }
+    @PluginMethod
+    public void smsSend(PluginCall call) { JSObject r = new JSObject(); r.put("ok", HaruSms.send(getContext(), call.getString("num", ""), call.getString("text", ""))); call.resolve(r); }
 }

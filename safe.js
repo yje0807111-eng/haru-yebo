@@ -32,6 +32,34 @@ function sosCall(num, auto) {
     dialNum(num);
   }, n * 1000 + 300);
 }
+// 💌 안부 문자 (11-07): 초대 없이 주소록 번호로 — 휴대폰이 매일 아침 처음 잠금을 풀 때 저절로 보냄
+const DEF_HELLO = '오늘도 잘 있어요 🌤 (하루 예보 안부)';
+const SMSF = () => { const F = window.Capacitor && Capacitor.Plugins && Capacitor.Plugins.FloatPet; return F && F.smsConfig ? F : null; };
+function guardNums() { return (S.guard.guardians || []).map(id => S.contacts.find(c => c.id === id)).filter(c => c && c.phones[0]).map(c => c.phones[0].num.replace(/[^0-9+]/g, '')); }
+async function smsSync(ask) {
+  const F = SMSF(); if (!F) { if (ask && S.guard.daily) say('안부 문자는 갤럭시 앱에서 돼요', { ms: 3000 }); return; }
+  const r = await F.smsConfig({ nums: guardNums().join(','), text: S.guard.msg || DEF_HELLO, on: !!S.guard.daily }).catch(() => ({}));
+  if (ask && S.guard.daily && !r.granted) say('문자 보내기를 허락해 줘야 안부를 보낼 수 있어 🥲', { ms: 4500, important: true });
+  else if (ask && S.guard.daily) { say(`💌 좋아! 내일 아침부터 보호자 ${guardNums().length}명에게 안부 문자를 보낼게`, { ms: 4000 }); smsDailyNow(); }
+}
+async function smsDailyNow() {
+  const F = SMSF(); if (!F || !S.guard.daily) return;
+  const r = await F.smsDaily().catch(() => ({})); if (r && r.day) { S.guard.smsDay = r.day; save(); }
+  if (r && r.sent) say(`💌 보호자 ${r.sent}명에게 오늘 안부 문자를 보냈어`, { ms: 3500 });
+}
+document.addEventListener('click', async e => {
+  if (!e.target.closest || !e.target.closest('#safeBox')) return;
+  const d = e.target.closest('[data-gdel]'); if (d) { patch({ guard: { guardians: (S.guard.guardians || []).filter(x => x !== d.dataset.gdel) } }); smsSync(); return drawSafe(); }
+  if (e.target.id === 'g_test') {
+    const F = SMSF(), nums = guardNums(); if (!nums.length) return say('먼저 보호자를 골라 줘', { ms: 2500 });
+    if (!F) return say('문자 보내기는 갤럭시 앱에서 돼요', { ms: 3000 });
+    const pr = await F.smsConfig({ nums: nums.join(','), text: S.guard.msg || DEF_HELLO, on: true }).catch(() => ({}));
+    if (!pr.granted) { await F.smsConfig({ nums: nums.join(','), text: S.guard.msg || DEF_HELLO, on: !!S.guard.daily }).catch(() => {}); return say('문자 보내기를 허락해 줘야 보낼 수 있어 🥲', { ms: 4000, important: true }); }
+    if (!S.guard.daily) F.smsConfig({ nums: nums.join(','), text: S.guard.msg || DEF_HELLO, on: false }).catch(() => {});
+    let n = 0; for (const num of nums) { const r = await F.smsSend({ num, text: S.guard.msg || DEF_HELLO }).catch(() => ({})); if (r.ok) n++; }
+    say(n ? `📨 ${n}명에게 안부 문자를 보냈어` : '문자를 못 보냈어 🥲', { ms: 3500 });
+  }
+});
 // 매일 안부: 오늘 앱을 처음 켜면 보호자에게 "오늘도 잘 있어요"
 async function dailyHello() {
   if (!S.guard.daily || !pool) return;
@@ -50,7 +78,7 @@ function checkQuiet() {
   }
 }
 function drawSafe() {
-  const g = S.guard, linked = S.contacts.filter(c => c.pk);
+  const g = S.guard, gList = (g.guardians || []).map(id => S.contacts.find(c => c.id === id)).filter(Boolean);
   $('#safeBox').innerHTML = `
   <div class="card"><h3>🚨 도움이 필요할 때</h3>
     <div class="sosgrid"><button class="sos red" data-sos="119">🚑 119<br><span>불·구급</span></button><button class="sos blue" data-sos="112">👮 112<br><span>경찰·사기 신고</span></button>
@@ -58,9 +86,13 @@ function drawSafe() {
     ${(g.guardians || []).map(id => S.contacts.find(c => c.id === id)).filter(c => c && c.phones[0]).map(c => `<a class="sos green" href="tel:${esc(c.phones[0].num.replace(/-/g, ''))}" style="text-decoration:none">📞 ${esc(c.name)}<br><span>${esc(c.phones[0].num)}</span></a>`).join('')}</div>
     <p class="note small">팻을 누르고 "119 전화해 줘" 하면 3초 세고 전화 화면을 열어요. "취소"하면 멈춰요.</p></div>
   <div class="card"><h3>💌 가족 안부 전하기</h3>
-    <p class="note">보호자를 고르면 매일 아침 "오늘도 잘 있어요 🌤"를 보내요. 보호자 쪽 팻은 안부가 하루 넘게 안 오면 알려 줘요. (가입·요금 없음, 보호자도 하루 예보를 깔고 🔗 연결돼 있어야 해요)</p>
-    <label class="chk"><input type="checkbox" id="g_daily" ${g.daily ? 'checked' : ''}> 매일 보호자에게 안부 보내기</label>
-    ${linked.length ? linked.map(c => `<label class="chk"><input type="checkbox" data-gd="${c.id}" ${(g.guardians || []).includes(c.id) ? 'checked' : ''}> 🔗 ${esc(c.name)}</label>`).join('') : '<p class="note small">아직 🔗 연결된 사람이 없어. 📒 주소록에서 🔗 초대를 먼저 해 줘.</p>'}</div>
+    <p class="note">보호자를 고르면 매일 아침 처음 휴대폰을 열 때 <b>안부 문자</b>를 저절로 보내요. (아침 7시 넘어서, 하루 한 번)</p>
+    <label class="chk"><input type="checkbox" id="g_daily" ${g.daily ? 'checked' : ''}> 매일 보호자에게 안부 문자 보내기</label>
+    ${gList.length ? gList.map(c => `<div class="grow"><span>👤 <b>${esc(c.name)}</b> <span class="note small">${esc((c.phones[0] || {}).num || '번호 없음')}</span></span><button class="pb" data-gdel="${c.id}">빼기</button></div>`).join('') : '<p class="note small">아직 보호자가 없어요. 아래에서 골라 주세요.</p>'}
+    <div class="row" style="margin-top:6px"><select id="g_pick"><option value="">➕ 주소록에서 보호자 고르기</option>${S.contacts.filter(c => c.phones[0] && !(g.guardians || []).includes(c.id)).sort((x, y) => (y.fav ? 1 : 0) - (x.fav ? 1 : 0) || x.name.localeCompare(y.name, 'ko')).map(c => `<option value="${c.id}">${c.fav ? '⭐ ' : ''}${esc(c.name)}</option>`).join('')}</select></div>
+    <p class="note small" style="margin:10px 0 4px">보낼 말</p><input id="g_msg" value="${esc(g.msg || DEF_HELLO)}">
+    <div class="row" style="margin-top:8px"><button class="btn small ghost" id="g_test">📨 지금 한 번 보내 보기</button></div>
+    <p class="note small" id="g_st">${g.smsDay ? '마지막으로 보낸 날: ' + esc(g.smsDay) : ''}</p></div>
   <div class="card"><h3>🛡️ 문자 사기 살펴보기</h3>
     <textarea id="g_text" rows="3" placeholder="의심 가는 문자를 그대로 붙여 넣어 줘 (이 휴대폰 안에서만 살펴봐)"></textarea>
     <div class="row"><button class="btn" id="g_check">살펴보기</button></div><div id="g_out"></div>
@@ -73,7 +105,8 @@ document.addEventListener('click', e => { const b = e.target.closest('[data-sos]
 document.addEventListener('change', e => {
   if (!e.target.closest('#safeBox')) return;
   const id = e.target.id;
-  if (id === 'g_daily') { patch({ guard: { daily: e.target.checked } }); dailyHello(); }
-  if (e.target.dataset.gd) { const s = new Set(S.guard.guardians || []); e.target.checked ? s.add(e.target.dataset.gd) : s.delete(e.target.dataset.gd); patch({ guard: { guardians: [...s] } }); dailyHello(); }
+  if (id === 'g_daily') { patch({ guard: { daily: e.target.checked } }); smsSync(true); }
+  if (id === 'g_pick' && e.target.value) { patch({ guard: { guardians: [...new Set([...(S.guard.guardians || []), e.target.value])] } }); smsSync(); drawSafe(); }
+  if (id === 'g_msg') { patch({ guard: { msg: e.target.value.trim() } }); smsSync(); }
 });
-window.addEventListener('load', () => { setTimeout(dailyHello, 5000); setInterval(checkQuiet, 10 * 60e3); setTimeout(checkQuiet, 20000); });
+window.addEventListener('load', () => { setTimeout(dailyHello, 5000); setTimeout(() => { smsSync(); smsDailyNow(); }, 6000); setInterval(checkQuiet, 10 * 60e3); setTimeout(checkQuiet, 20000); });

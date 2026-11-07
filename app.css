@@ -369,3 +369,7 @@ body.smode .talk { background: #fff; border: 0; box-shadow: 0 2px 12px rgba(49,1
 .prow .pb { border: 0; background: #f2f4f6; color: #333d4b; border-radius: 10px; padding: 7px 2px; font-size: 13.5px; font-weight: 700; text-align: center; text-decoration: none; white-space: nowrap; }
 .prow .pb.on, .prow [data-a="fav"] { background: #fff4cc; color: #b07800; font-size: 17px; }
 .phead { font-weight: 800; color: #4e5968; margin: 14px 4px 4px; font-size: 14px; }
+
+/* 11-07 가족 안부 보호자 줄 */
+.grow { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 10px; background: #f9fafb; border-radius: 12px; margin: 6px 0; }
+.grow .pb { border: 0; background: #fff; color: #e5484d; border-radius: 10px; padding: 6px 10px; font-weight: 700; }
