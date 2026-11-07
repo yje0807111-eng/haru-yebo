@@ -1,5 +1,5 @@
 {
- "ver": "202611071028",
+ "ver": "202611071200",
  "note": "하루 예보 TV방 기본 채널 — 주제 순위 = 상위 채널 구독자 합, 채널 순위 = 구독자 순 (매일 새로 고침)",
  "cats": [
   "먹방",
@@ -19,7 +19,9 @@
   "도서",
   "스포츠",
   "짤",
-  "낚시"
+  "낚시",
+  "실시간",
+  "옛날드라마"
  ],
  "rank": {
   "먹방": 1,
@@ -918,6 +920,105 @@
    "image": "https://yt3.ggpht.com/Olo3KwxQTnDWRobOFy1qycgeVFMp6qWTH6VfRnFy5GzMAF9ibhPPJxqxyKxHSfiuYW_-qaeV=s176-c-k-c0x00ffffff-no-rj-mo",
    "subs": "구독자 10.1만명",
    "rank": 4,
+   "def": true
+  },
+  {
+   "kind": "live",
+   "list": "UUcQTRi69dsVYHN3exePtZ1A",
+   "id": "UCcQTRi69dsVYHN3exePtZ1A",
+   "name": "KBS News",
+   "cat": "실시간",
+   "image": "",
+   "subs": "",
+   "rank": 1,
+   "def": true
+  },
+  {
+   "kind": "live",
+   "list": "UUF4Wxdo3inmxP-Y59wXDsFw",
+   "id": "UCF4Wxdo3inmxP-Y59wXDsFw",
+   "name": "MBCNEWS",
+   "cat": "실시간",
+   "image": "",
+   "subs": "",
+   "rank": 2,
+   "def": true
+  },
+  {
+   "kind": "live",
+   "list": "UUkinYTS9IHqOEwR1Sze2JTw",
+   "id": "UCkinYTS9IHqOEwR1Sze2JTw",
+   "name": "SBS 뉴스",
+   "cat": "실시간",
+   "image": "",
+   "subs": "",
+   "rank": 3,
+   "def": true
+  },
+  {
+   "kind": "live",
+   "list": "UUhlgI3UHCOnwUGzWzbJ3H5w",
+   "id": "UChlgI3UHCOnwUGzWzbJ3H5w",
+   "name": "YTN",
+   "cat": "실시간",
+   "image": "",
+   "subs": "",
+   "rank": 4,
+   "def": true
+  },
+  {
+   "kind": "live",
+   "list": "UUTHCOPwqNfZ0uiKOvFyhGwg",
+   "id": "UCTHCOPwqNfZ0uiKOvFyhGwg",
+   "name": "연합뉴스TV",
+   "cat": "실시간",
+   "image": "",
+   "subs": "",
+   "rank": 5,
+   "def": true
+  },
+  {
+   "kind": "live",
+   "list": "UUfq4V1DAuaojnr2ryvWNysw",
+   "id": "UCfq4V1DAuaojnr2ryvWNysw",
+   "name": "채널A News",
+   "cat": "실시간",
+   "image": "",
+   "subs": "",
+   "rank": 6,
+   "def": true
+  },
+  {
+   "kind": "channel",
+   "list": "UUG5bAssl2H0wjLG4BEv5ScQ",
+   "id": "UCG5bAssl2H0wjLG4BEv5ScQ",
+   "name": "옛드 (MBC 옛날 드라마)",
+   "cat": "옛날드라마",
+   "image": "",
+   "subs": "",
+   "rank": 1,
+   "def": true
+  },
+  {
+   "kind": "channel",
+   "list": "UUn0nlepACCBD6rxj-GUwn5A",
+   "id": "UCn0nlepACCBD6rxj-GUwn5A",
+   "name": "KBS Drama Classic",
+   "cat": "옛날드라마",
+   "image": "",
+   "subs": "",
+   "rank": 2,
+   "def": true
+  },
+  {
+   "kind": "channel",
+   "list": "UU41Vyqs1wSY0FTMqDsLsELA",
+   "id": "UC41Vyqs1wSY0FTMqDsLsELA",
+   "name": "SBS 옛날 드라마 - 빽드",
+   "cat": "옛날드라마",
+   "image": "",
+   "subs": "",
+   "rank": 3,
    "def": true
   }
  ]

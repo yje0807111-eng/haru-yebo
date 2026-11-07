@@ -55,7 +55,12 @@ async function tvIds(c) {
   try { const r = await F.ytVideos({ url }); if (r.ids && r.ids.length) { tvVid[k] = { at: Date.now(), ids: r.ids }; return r.ids; } } catch { }
   return null;
 }
+async function tvLiveId(c) {
+  const F = YT(); if (!F || !F.ytResolve) return null;
+  try { const r = await F.ytResolve({ url: 'https://www.youtube.com/channel/' + (c.id || 'UC' + c.list.slice(2)) + '/live' }); return r.watch || null; } catch { return null; }
+}
 function tvSrc(c) {
+  if (c.kind === 'live' && !tvQ.length) return `https://www.youtube.com/embed/live_stream?channel=${encodeURIComponent(c.id || 'UC' + c.list.slice(2))}&autoplay=1&playsinline=1&origin=${encodeURIComponent(location.origin)}`;
   const o = `autoplay=1&playsinline=1&rel=0&modestbranding=1&enablejsapi=1&fs=1&origin=${encodeURIComponent(location.origin)}`;
   if (tvQ.length) { const id = tvQ[tvI % tvQ.length], rest = tvQ.slice(tvI + 1, tvI + 25).join(','); return `https://www.youtube.com/embed/${id}?${o}${rest ? '&playlist=' + rest : ''}`; }
   const start = Math.floor(Math.random() * (c.kind === 'channel' ? 15 : 5));
@@ -65,7 +70,9 @@ function tvLoad() { const f = $('#tvFrame'); if (f && tvNow) f.src = tvSrc(tvNow
 function tvStep(d) { if (tvQ.length) { tvI = Math.max(0, Math.min(tvQ.length - 1, tvI + d)); tvLoad(); } else tvCmd(d > 0 ? 'nextVideo' : 'previousVideo'); }
 async function tvPlay(c, quiet) {
   if (!c) return; tvFront(); tvNow = c; tvQ = []; tvI = 0; TV().last = c.list; save();
-  const ids = await tvIds(c); if (ids) { tvQ = ids.slice(); tvI = Math.floor(Math.random() * Math.min(8, ids.length)); }   // 최근 영상 중에서 시작
+  if (c.kind === 'live') { const w = await tvLiveId(c); if (w) { tvQ = [w]; tvI = 0; } }   // 📡 지금 생방송
+  else if (c.kind === 'video') { tvQ = c.ids || [c.vid]; tvI = 0; }
+  else { const ids = await tvIds(c); if (ids) { tvQ = ids.slice(); tvI = Math.floor(Math.random() * Math.min(8, ids.length)); } }   // 최근 영상 중에서 시작
   tvBig = true;   // 11-07: 틀면 바로 화면 가득
   if (view !== 'tv') { hideBubble(); petOnly(false); go('tv'); } drawTV();
   if (!quiet) say(`📺 ${tvNum(c.cat) ? tvNum(c.cat) + '번 ' : ''}${esc(c.name)}! "다음 영상", "다른 채널", "TV 꺼"`, { ms: 3000 });
@@ -133,6 +140,53 @@ document.addEventListener('click', async e => {
 });
 document.addEventListener('change', e => { const row = e.target.closest && e.target.closest('.tvrow'); if (!row || e.target.dataset.t !== 'cat') return; const c = TV().chans.find(x => x.list === row.dataset.ch); if (c) { c.cat = e.target.value; c.mine = true; save(); drawTV(); } });
 
+
+// 🔎 유튜브에서 찾기 (휴대폰이 직접) → [{id, title, ch, chId, len, live}]
+async function ytFind(q, sp) {
+  const F = YT(); if (!F || !F.ytSearch) return [];
+  let d; try { d = JSON.parse((await F.ytSearch({ q, sp: sp || '' })).data || '{}'); } catch { return []; }
+  const out = [];
+  (function walk(o) { if (!o || typeof o !== 'object') return; if (o.videoRenderer) { const v = o.videoRenderer, own = ((v.ownerText || {}).runs || [{}])[0]; out.push({ id: v.videoId, title: ((v.title || {}).runs || []).map(r => r.text).join(''), ch: own.text || '', chId: (((own.navigationEndpoint || {}).browseEndpoint) || {}).browseId || '', len: (v.lengthText || {}).simpleText || '', live: JSON.stringify(v.badges || '').includes('LIVE') || !v.lengthText }); } for (const k in o) walk(o[k]); })(d);
+  return out;
+}
+// 📺 방송사: "KBS 틀어 줘" → 그 방송사 뉴스 생방송 (실시간 주제), 없으면 유튜브에서 생방송 찾기
+const TV_BROAD = [['KBS', /kbs|케이비에스/i], ['MBC', /mbc|엠비씨/i], ['SBS', /sbs|에스비에스/i], ['YTN', /ytn|와이티엔/i], ['연합뉴스', /연합/], ['채널A', /채널\s*a|채널에이/i], ['JTBC', /jtbc|제이티비씨/i], ['MBN', /mbn|엠비엔/i], ['TV조선', /tv\s*조선|티비\s*조선/i], ['EBS', /ebs|이비에스/i]];
+async function tvBroadcast(name) {
+  const T = TV(), live = T.chans.filter(c => c.cat === '실시간');
+  const hit = live.find(c => c.name.toUpperCase().includes(name.toUpperCase()) || (name === '연합뉴스' && c.name.includes('연합')));
+  if (hit) return tvPlay(hit);
+  say(`📡 ${esc(name)} 생방송을 찾아볼게…`, { ms: 2500 });
+  const r = (await ytFind(name + ' 뉴스 생방송', 'EgJAAQ%3D%3D')).filter(v => (v.ch.toUpperCase().includes(name.toUpperCase().replace('TV조선', 'TV CHOSUN')) || v.ch.includes(name)) && /(뉴스|news|NEWS|News)/.test(v.ch + v.title) && !/(골프|golf|GOLF|스포츠|sports|라디오)/i.test(v.ch));   // 그 방송사 뉴스 생방송만
+  if (r.length) return tvPlay({ kind: 'video', vid: r[0].id, list: 'v_' + r[0].id, name: r[0].ch + ' 생방송', cat: '실시간' });
+  say(`지금은 ${esc(name)} 생방송을 못 찾았어 🥲 ${name === 'JTBC' || name === 'MBN' || name === 'TV조선' ? '' : ''}`, { ms: 3500 });
+}
+// 🎬 옛날 드라마 "장금이 1편 틀어 줘" → 방송사 공식 채널에서 그 회를 찾아 틀기, "다음 회"
+const TV_DRAMA_CH = () => TV().chans.filter(c => c.cat === '옛날드라마' || c.cat === '드라마').map(c => c.id || 'UC' + c.list.slice(2));
+let tvDramaNow = null;
+function epRange(title) {
+  const m = title.match(/(\d{1,3})\s*[-~]\s*(\d{1,3})\s*(회|화|부)/); if (m) return [+m[1], +m[2]];
+  const n = title.match(/(?:^|[^\d])(\d{1,3})\s*(회|화|부)(?!\d)/) || title.match(/(?:ep|EP|Ep)\.?\s*0?(\d{1,3})/); if (n) return [+n[1], +n[1]];
+  return null;
+}
+async function tvDrama(title, n) {
+  title = title.replace(/\s*(드라마|을|를|이|가)$/, '').trim(); n = n || 1;
+  tvFront(); say(`🎬 "${esc(title)}" ${n}회 찾는 중…`, { ms: 4000 });
+  const ok = TV_DRAMA_CH(), core = title.length >= 3 ? title.replace(/이$/, '') : title;   // 장금이 → 장금 (겨울연가 의 '가'는 그대로)
+  const has = v => { const nt = norm(v.title), nc = norm(core); return nt.includes(nc); };   // 제목 전체가 들어 있어야 (비슷한 다른 드라마 막기)
+  let list = (await ytFind(`${title} ${n}회`)).filter(v => !v.live && ok.includes(v.chId) && has(v));
+  if (!list.length) list = (await ytFind(`${title} ${n}회 full`)).filter(v => !v.live && ok.includes(v.chId) && has(v));
+  const exact = list.find(v => { const r = epRange(v.title); return r && n >= r[0] && n <= r[1]; });
+  const pickv = exact || list[0];
+  if (!pickv) {
+    say(`"${esc(title)}" ${n}회는 방송사 공식 채널에 없어 🥲<br>티빙·웨이브·넷플릭스에서 찾아볼까?`, { ms: 20000, important: true, buttons: [['티빙', 'https://www.tving.com/search?keyword='], ['웨이브', 'https://www.wavve.com/search?searchWord='], ['넷플릭스', 'https://www.netflix.com/search?q=']].map(([l, u]) => ({ label: l, act: () => { const F = YT(); const url = u + encodeURIComponent(title); if (F && F.openApp) F.openApp({ pkg: '', url }); else window.open(url, '_blank'); } })).concat([{ label: '괜찮아', ghost: true }]) });
+    return;
+  }
+  const r = epRange(pickv.title);
+  tvDramaNow = { title, n: r ? r[0] : n, to: r ? r[1] : n };
+  if (!exact && r) say(`공식 채널에는 ${n}회가 없어서 ${r[0] === r[1] ? r[0] + '회' : r[0] + '~' + r[1] + '회'}를 틀게 🎬`, { ms: 4000 });
+  tvPlay({ kind: 'video', vid: pickv.id, list: 'v_' + pickv.id, name: pickv.title.slice(0, 40), cat: '옛날드라마' }, true);
+  if (exact || !r) say(`🎬 ${esc(pickv.title.slice(0, 50))}<br><span class="small">${esc(pickv.ch)} · "다음 회" 라고 말해 줘</span>`, { ms: 5000 });
+}
 // 말 알아듣기 → 처리했으면 true
 function tvTalk(text) {
   const t = stripName(text).replace(/[?!.~]+$/g, '').trim(), T = TV();
@@ -141,6 +195,12 @@ function tvTalk(text) {
   if (app && app[0] !== '유튜브') { const F = YT(); if (F && F.openApp) F.openApp({ pkg: app[1], url: '' }).then(r => { if (!r.ok) F.openApp({ pkg: '', url: app[2] }); }); else window.open(app[2], '_blank'); say(`📱 ${app[0]} 열게!`, { ms: 2500 }); return true; }
   const nm = t.match(/^(?:채널\s*)?(\d{1,2}|[일이삼사오육칠팔구십]{1,2})\s*번\s*(?:채널)?\s*(?:좀\s*)?(?:틀어|보여|켜|돌려|봐)?/) || t.match(/^채널\s*(\d{1,2})/);
   if (nm && (/(틀어|보여|켜|돌려|채널)/.test(t))) { const n = /^\d+$/.test(nm[1]) ? +nm[1] : (window.HA && HA.num ? HA.num(nm[1]) : 0); const cat = T.cats[n - 1]; if (cat) { tvPlayCat(cat); return true; } }
+  const dm = t.match(/^(?:드라마\s*)?(.{1,20}?)\s*(\d{1,3}|[일이삼사오육칠팔구십]{1,3})\s*(편|회|화|부)\s*(?:좀\s*)?(?:틀어|보여|켜|봐|볼래|보자)?/);
+  if (dm && !/^(채널|\d)/.test(dm[1]) && (/(틀어|보여|켜|봐|볼래|보자)/.test(t) || /^드라마/.test(t))) { const n = /^\d+$/.test(dm[2]) ? +dm[2] : (window.HA && HA.num ? HA.num(dm[2]) : 1); tvDrama(dm[1].trim(), n || 1); return true; }
+  if (tvDramaNow && /^(다음\s*(회|편|화))/.test(t)) { tvDrama(tvDramaNow.title, (tvDramaNow.to || tvDramaNow.n) + 1); return true; }
+  if (tvDramaNow && /^(이전\s*(회|편|화)|전\s*회)/.test(t)) { tvDrama(tvDramaNow.title, Math.max(1, tvDramaNow.n - 1)); return true; }
+  const bc = TV_BROAD.find(([n, re]) => re.test(t)); if (bc && /(틀어|보여|켜|봐|볼래|보자|생방송|뉴스)/.test(t) && !/(드라마|예능)/.test(t)) { tvBroadcast(bc[0]); return true; }
+  if (/(드라마|예능)/.test(t) && bc && /(틀어|보여|켜)/.test(t)) { const app = /tvn|jtbc/i.test(t) ? ['티빙', 'net.cj.cjhv.gs.tving', 'https://www.tving.com'] : ['웨이브', 'kr.co.captv.pooqV2', 'https://www.wavve.com']; const F = YT(); if (F && F.openApp) F.openApp({ pkg: app[1], url: '' }).then(r => { if (!r.ok) F.openApp({ pkg: '', url: app[2] }); }); say(`📱 ${bc[0]} 본방송은 ${app[0]}에서 볼 수 있어! ${app[0]} 열게`, { ms: 3500 }); return true; }
   if (view === 'tv' || tvNow) {
     if (/^(다음\s*(영상|거|꺼)|넘겨)/.test(t)) { tvStep(1); return true; }
     if (/^(이전\s*(영상|거)|앞\s*(영상|거))/.test(t)) { tvStep(-1); return true; }

@@ -311,6 +311,8 @@ public class FloatPetPlugin extends Plugin {
                 if (t.find()) r.put("title", android.text.Html.fromHtml(t.group(1), 0).toString());
                 java.util.regex.Matcher im = java.util.regex.Pattern.compile("<meta property=\"og:image\" content=\"([^\"]*)\"").matcher(h);
                 if (im.find()) r.put("image", im.group(1));
+                java.util.regex.Matcher wv = java.util.regex.Pattern.compile("<link rel=\"canonical\" href=\"https://www.youtube.com/watch\\?v=([0-9A-Za-z_-]{11})\"").matcher(h);
+                if (wv.find()) r.put("watch", wv.group(1));   // /live 주소면 지금 생방송 영상
                 call.resolve(r);
             } catch (Exception e) { call.reject("resolve: " + e); }
         }).start();
@@ -336,6 +338,25 @@ public class FloatPetPlugin extends Plugin {
                 com.getcapacitor.JSArray arr = new com.getcapacitor.JSArray(); for (String v : ids) arr.put(v);
                 JSObject r = new JSObject(); r.put("ids", arr); call.resolve(r);
             } catch (Exception e) { call.reject("videos: " + e); }
+        }).start();
+    }
+    @PluginMethod
+    public void ytSearch(PluginCall call) {
+        String qy = call.getString("q", ""), sp = call.getString("sp", "");
+        new Thread(() -> {
+            try {
+                String url = "https://www.youtube.com/results?search_query=" + java.net.URLEncoder.encode(qy, "UTF-8") + (sp.isEmpty() ? "" : "&sp=" + sp) + "&hl=ko&gl=KR";
+                java.net.HttpURLConnection c = (java.net.HttpURLConnection) new java.net.URL(url).openConnection();
+                c.setRequestProperty("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/124 Safari/537.36");
+                c.setRequestProperty("Accept-Language", "ko-KR,ko;q=0.9");
+                c.setConnectTimeout(10000); c.setReadTimeout(15000);
+                java.io.InputStream in = c.getInputStream(); java.io.ByteArrayOutputStream bo = new java.io.ByteArrayOutputStream();
+                byte[] buf = new byte[16384]; int k; while ((k = in.read(buf)) > 0 && bo.size() < 5000000) bo.write(buf, 0, k); in.close();
+                String h = bo.toString("UTF-8");
+                int a = h.indexOf("var ytInitialData = "); String d = "";
+                if (a >= 0) { a += 20; int b = h.indexOf(";</script>", a); if (b > a) d = h.substring(a, b); }
+                JSObject r = new JSObject(); r.put("data", d); call.resolve(r);
+            } catch (Exception e) { call.reject("search: " + e); }
         }).start();
     }
     @PluginMethod

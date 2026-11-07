@@ -26,6 +26,7 @@ Q = {
  '낚시': ['낚시', '바다낚시'],
  '도서': ['책 리뷰', '책 읽어주는'],
 }
+SPECIAL = {"실시간": [["KBS News", "UCcQTRi69dsVYHN3exePtZ1A"], ["MBCNEWS", "UCF4Wxdo3inmxP-Y59wXDsFw"], ["SBS 뉴스", "UCkinYTS9IHqOEwR1Sze2JTw"], ["YTN", "UChlgI3UHCOnwUGzWzbJ3H5w"], ["연합뉴스TV", "UCTHCOPwqNfZ0uiKOvFyhGwg"], ["채널A News", "UCfq4V1DAuaojnr2ryvWNysw"]], "옛날드라마": [["옛드 (MBC 옛날 드라마)", "UCG5bAssl2H0wjLG4BEv5ScQ"], ["KBS Drama Classic", "UCn0nlepACCBD6rxj-GUwn5A"], ["SBS 옛날 드라마 - 빽드", "UC41Vyqs1wSY0FTMqDsLsELA"]]}   # 실시간 뉴스·옛날 드라마 공식 채널 (순위와 상관없이 맨 뒤)
 SKIP = ['하이파이브 : LA']   # 주제와 맞지 않는 채널
 UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/124 Safari/537.36'
 def num(s):
@@ -62,6 +63,7 @@ def main(path):
     res, score = {}, {}
     used = set()
     for cat, qs in Q.items():
+        if cat in SPECIAL: continue
         seen = {}
         for q in qs:
             try:
@@ -81,6 +83,9 @@ def main(path):
            'cats': cats, 'rank': {c: i + 1 for i, c in enumerate(cats)}, 'score': {c: int(score[c]) for c in cats},
            'chans': [{'kind': 'channel', 'list': 'UU' + c['id'][2:], 'id': c['id'], 'name': c['name'], 'cat': cat, 'image': c['image'], 'subs': c['subs'], 'rank': i + 1, 'def': True}
                      for cat in cats for i, c in enumerate(res[cat])]}
+    for cat, l in SPECIAL.items():
+        out['cats'].append(cat)
+        for i, (n, cid) in enumerate(l): out['chans'].append({'kind': 'live' if cat == '실시간' else 'channel', 'list': 'UU' + cid[2:], 'id': cid, 'name': n, 'cat': cat, 'image': '', 'subs': '', 'rank': i + 1, 'def': True})
     json.dump(out, open(path, 'w', encoding='utf-8'), ensure_ascii=False, indent=1)
     print('주제 순위:', ' · '.join(f'{i+1}.{c}' for i, c in enumerate(cats)), '/ 채널', len(out['chans']))
 if __name__ == '__main__': main(sys.argv[1])
