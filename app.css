@@ -357,3 +357,8 @@ body.smode .talk { background: #fff; border: 0; box-shadow: 0 2px 12px rgba(49,1
 .bv { margin: 0 0 8px; padding: 6px 8px; border-radius: 10px; transition: background .3s; }
 .bv sup { color: #3182f6; font-weight: 700; margin-right: 5px; font-size: .65em; }
 .bv.on { background: #fff4cc; }
+
+/* 11-07 🥕 당근 */
+.dgrange { margin-top: 10px; background: #f9fafb; border-radius: 12px; padding: 8px 12px; }
+.dgrange summary { font-weight: 700; color: #4e5968; cursor: pointer; }
+.dgrange ol { padding-left: 20px; margin: 6px 0 10px; }

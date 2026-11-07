@@ -222,6 +222,7 @@ async function send(text, opt = {}) {   // opt.talk = 바탕화면 팻에게 한
   if (smode && !opt.talk) {   // 팻방 말창 = 검색. 단, 알람·시간·전화·명령은 먼저 알아들음 (11-07)
     if (window.peopleTalk && await peopleTalk(text)) return;
     if (await timeTalk(text)) return;
+    if (window.dgTalk && dgTalk(text)) return;
     if (window.worshipTalk && worshipTalk(text)) return;
     if (window.tvTalk && tvTalk(text)) return;
     if (window.musicTalk && await musicTalk(text)) return;
@@ -233,7 +234,8 @@ async function send(text, opt = {}) {   // opt.talk = 바탕화면 팻에게 한
   if (/^(그거\s*)?(찾아\s*봐|찾아\s*줘|검색해\s*줘|검색)[!~.?\s]*$/.test(text) && lastUser) { lastSearch = lastUser; return doSearch(lastUser); }
   if (window.peopleTalk && await peopleTalk(text)) return;
   if (await timeTalk(text)) return;
-  if (window.worshipTalk && worshipTalk(text)) return;
+  if (window.dgTalk && dgTalk(text)) return;
+    if (window.worshipTalk && worshipTalk(text)) return;
   if (window.tvTalk && tvTalk(text)) return;
   if (window.musicTalk && await musicTalk(text)) return;
   if (!stripName(text).replace(/[!~?.\s]/g, '') ) { doCommand('call'); return; }
