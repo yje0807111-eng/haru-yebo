@@ -287,8 +287,8 @@ public class FloatPetService extends Service {
         } catch (Exception e) { Log.e("HaruPet", "bar", e); note("bar " + e); }
         h.post(tick);
         try {
-            screenRx = new android.content.BroadcastReceiver() { @Override public void onReceive(Context c, Intent i) { if (Intent.ACTION_USER_PRESENT.equals(i.getAction())) { h.postDelayed(() -> greet(), 400); new Thread(() -> HaruSms.daily(c)).start(); } } };
-            android.content.IntentFilter f = new android.content.IntentFilter(Intent.ACTION_USER_PRESENT);
+            screenRx = new android.content.BroadcastReceiver() { @Override public void onReceive(Context c, Intent i) { if (Intent.ACTION_USER_PRESENT.equals(i.getAction())) { h.postDelayed(() -> greet(), 400); new Thread(() -> HaruSms.daily(c)).start(); } else if (Intent.ACTION_SCREEN_ON.equals(i.getAction())) { try { if (!((android.app.KeyguardManager) getSystemService(KEYGUARD_SERVICE)).isKeyguardLocked()) h.postDelayed(() -> greet(), 400); } catch (Exception ignored) { } } } };
+            android.content.IntentFilter f = new android.content.IntentFilter(Intent.ACTION_USER_PRESENT); f.addAction(Intent.ACTION_SCREEN_ON);   // 잠금 없는 휴대폰도 화면이 켜지면 인사
             if (Build.VERSION.SDK_INT >= 33) registerReceiver(screenRx, f, Context.RECEIVER_EXPORTED); else registerReceiver(screenRx, f);
         } catch (Exception e) { Log.e("HaruPet", "screenRx", e); }
     }
@@ -356,7 +356,7 @@ public class FloatPetService extends Service {
     long lastBark = 0;
     void maybeBark(long now) {
         SharedPreferences sp = getSharedPreferences("pet", 0);
-        if (!sp.getBoolean("cries", true) || act <= 0) return;
+        if (!sp.getBoolean("cries", true) || act <= 0 || !screenOn()) return;
         int hr = java.util.Calendar.getInstance().get(java.util.Calendar.HOUR_OF_DAY);
         if (hr >= 23 || hr < 7) return;
         long gap = act >= 4 ? 45000 : act == 3 ? 90000 : act == 2 ? 180000 : 360000;   // 최소 간격
@@ -376,6 +376,7 @@ public class FloatPetService extends Service {
         SharedPreferences sp = getSharedPreferences("pet", 0);
         int min = sp.getInt("talkMin", 20);
         if (min <= 0) { nextChat = now + 60000; return; }
+        if (!screenOn()) return;   // 화면이 꺼져 있으면 말 걸지 않기
         if (nextChat == 0) { nextChat = now + min * 60000L; return; }
         if (now < nextChat) return;
         nextChat = now + min * 60000L;
@@ -624,7 +625,10 @@ public class FloatPetService extends Service {
         } catch (Exception e) { Log.e("HaruPet", "bubble", e); }
     }
     android.media.MediaPlayer mp;
+    // 11-07: 화면이 꺼져 있으면(어두우면) 짖지 않기 — 알람만 예외. 다시 켜면 greet() 가 인사
+    boolean screenOn() { try { return ((android.os.PowerManager) getSystemService(POWER_SERVICE)).isInteractive(); } catch (Exception e) { return true; } }
     void bark(boolean happy, float vol) {
+        if (!alarmOn && !screenOn()) return;
         try {
             String cv = getSharedPreferences("pet", 0).getString(happy ? "sndH" : "sndC", ""); String[] list = cv != null && !cv.isEmpty() ? cv.split("\\|") : happy ? new String[] { "dog_happy1", "dog_happy2", "dog_happy3" } : new String[] { "dog_bark1", "dog_bark2", "dog_bark3", "dog_bark4" };
             android.content.res.AssetFileDescriptor fd = getAssets().openFd("public/sounds/" + list[(int) (Math.random() * list.length)] + ".mp3");
