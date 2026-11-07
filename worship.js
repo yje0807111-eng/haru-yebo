@@ -28,7 +28,7 @@ async function biblePlay(book, ch) {
   let r = wPick(await ytFind(`${book} ${ch}장 성경 낭독`), v => re.test(v.title.replace(/\s+/g, ' ')));
   if (!r.length) r = wPick(await ytFind(`${book} ${ch}장 듣기 개역개정`), v => v.title.includes(book) && new RegExp(`(^|[^0-9])${ch}\\s*장`).test(v.title));
   if (!r.length) { say(`${book} ${ch}장 낭독을 못 찾았어 🥲`, { ms: 3500, important: true }); return; }
-  const one = r.find(v => /^\d{1,2}:\d{2}$/.test(v.len) && !new RegExp(`${ch}\s*[-~]`).test(v.title)) || r[0];   // 한 장짜리 먼저
+  const one = r.find(v => /^\d{1,2}:\d{2}$/.test(v.len) && !new RegExp(ch + '\\s*[-~]').test(v.title)) || r[0];   // 한 장짜리 먼저
   wPlayer([one.id], `📖 ${book} ${ch}장`, { kind: 'bible', book, ch });
   say(`📖 ${book} ${ch}장<br><span class="small">${esc(one.title.slice(0, 50))} · "다음 장" 이라고 말해 줘</span>`, { ms: 4000 });
 }
