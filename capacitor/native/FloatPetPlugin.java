@@ -301,8 +301,7 @@ public class FloatPetPlugin extends Plugin {
                 c.setConnectTimeout(10000); c.setReadTimeout(15000);
                 java.io.BufferedReader br = new java.io.BufferedReader(new java.io.InputStreamReader(c.getInputStream(), "UTF-8"));
                 StringBuilder sb = new StringBuilder(); String line; int n = 0;
-                while ((line = br.readLine()) != null && n < 3000000) { sb.append(line).append('
-'); n += line.length(); }
+                while ((line = br.readLine()) != null && n < 3000000) { sb.append(line).append('\n'); n += line.length(); }
                 br.close();
                 String h = sb.toString();
                 JSObject r = new JSObject();
