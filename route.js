@@ -73,6 +73,31 @@ function rConfirm() {
   R.step = 'why'; rDraw();
   rTalk(`무슨 일로 가? 말해 주면 더 잘 도와줄게. 말하기 싫으면 <b>그냥 가자</b>를 눌러 줘.`);
 }
+// ✈️ 편명으로 인천공항 운항 정보 (오늘): 터미널·출발/도착 예정·체크인 카운터·게이트·입국장 출구
+const T_ID = { P01: '1', P02: '1', P03: '2' };
+async function rFlight(raw) {
+  const id = String(raw || '').toUpperCase().replace(/\s+/g, ''); if (!/^[A-Z0-9]{2}\d{1,4}$/.test(id)) return rTalk('편명은 <b>KE123</b>처럼 영어 두 글자와 숫자야');
+  rTalk(`✈️ ${id} 찾는 중…`, false);
+  const get = async op => { try { const j = await (await fetch(`https://apis.data.go.kr/B551177/StatusOfPassengerFlightsOdp/${op}?serviceKey=${RK().tour}&type=json&flight_id=${id}&numOfRows=10`)).json(); return (((j.response || {}).body || {}).items || []).filter(x => x.flightId === id); } catch { return []; } };
+  const kind = (R.airport || {}).kind;
+  let out = kind !== 'in' ? await get('getPassengerDeparturesOdp') : [], inn = kind !== 'out' ? await get('getPassengerArrivalsOdp') : [];
+  const hm = s => s && s.length === 4 ? `${s.slice(0, 2)}:${s.slice(2)}` : (s || '');
+  const f = out[0] || inn[0];
+  if (!f) return rTalk(`오늘 인천공항 ${id} 편을 못 찾았어 🥲 편명이나 날짜를 다시 확인해 줘`);
+  const isOut = !!out[0], t = T_ID[f.terminalId] || '1', tn = f.terminalId === 'P02' ? '1터미널(탑승동 — 1터미널에서 셔틀트레인)' : t + '터미널';
+  R.airport = Object.assign(R.airport || {}, { t, kind: isOut ? 'out' : 'in' });
+  R.to = Object.assign({}, R.to, T_POS[t]); rMapShow();
+  const late = f.estimatedDateTime && f.estimatedDateTime !== f.scheduleDateTime ? ` (바뀐 시각 <b>${hm(f.estimatedDateTime)}</b>)` : '';
+  if (isOut) {
+    const [h, m] = (f.estimatedDateTime || f.scheduleDateTime).match(/\d\d/g).map(Number), leave = new Date(); leave.setHours(h - 3, m, 0, 0);
+    R.airport.flight = `✈️ <b>${esc(f.airline)} ${id}</b> → ${esc(f.airport)}<br>• <b>${tn}</b> · 출발 ${hm(f.scheduleDateTime)}${late}<br>• 체크인 카운터 <b>${esc(f.chkinrange || '-')}</b> · 탑승구 <b>${esc(f.gatenumber || '-')}</b>번<br>• 상태: ${esc(f.remark || '예정')}<br>• 공항에는 <b>${String(leave.getHours()).padStart(2, '0')}:${String(leave.getMinutes()).padStart(2, '0')}</b>까지 도착하면 넉넉해`;
+  } else {
+    R.airport.flight = `🙋 <b>${esc(f.airline)} ${id}</b> ← ${esc(f.airport)}<br>• <b>${tn}</b> · 도착 ${hm(f.scheduleDateTime)}${late}<br>• 입국장 출구 <b>${esc(f.exitnumber || '-')}</b> · 짐 찾는 곳 ${esc(f.carousel || '-')}번<br>• 상태: ${esc(f.remark || '예정')}<br>• 내린 뒤 짐 찾고 나오는 데 보통 30~40분 걸려`;
+  }
+  rDraw();
+  rTalk(isOut ? `${id}은 <b>${tn}</b>에서 ${hm(f.estimatedDateTime || f.scheduleDateTime)}에 출발해. 체크인은 ${esc(f.chkinrange || '-')} 카운터야` : `${id}은 <b>${tn}</b>에 ${hm(f.estimatedDateTime || f.scheduleDateTime)}에 도착해. 입국장 <b>${esc(f.exitnumber || '-')}번 출구</b>에서 기다리면 돼`);
+  if (R.airport.kind) setTimeout(() => { R.purpose = isOut ? '출국' : '마중'; rRoutes(); }, 3500);
+}
 const T_POS = { 1: { lat: 37.4492, lon: 126.4508, name: '인천공항 제1여객터미널' }, 2: { lat: 37.4669, lon: 126.4338, name: '인천공항 제2여객터미널' } };
 function rAirport(t, kind) {
   R.airport = Object.assign(R.airport || {}, t ? { t } : {}, kind ? { kind } : {});
@@ -185,12 +210,15 @@ function rDraw(force) {
   let body = '';
   if (st === 'dest' || st === 'finding' || st === 'locating' || force === 'start')
     body = `<div class="card"><div class="row"><input id="rQ" placeholder="어디로 갈까? (예: 인천공항, 대전 ○○교회)" enterkeyhint="search"><button class="btn" data-r="find">찾기</button></div>
-      <div class="tvapps" style="margin-top:8px">${(S.routeRecent || []).slice(0, 6).map(q => `<button data-rq="${esc(q)}">🕘 ${esc(q)}</button>`).join('')}</div></div>`;
+      <div class="tvapps" style="margin-top:8px">${(S.routeRecent || []).slice(0, 6).map(q => `<button data-rq="${esc(q)}">🕘 ${esc(q)}</button>`).join('')}</div></div>
+      <div class="card"><p class="note">지금 있는 곳 둘러보기</p><div class="row bctl"><button data-rt="see">🌿 볼거리</button><button data-rt="walk">🚶 산책 코스</button></div><div class="row bctl"><button data-rt="food">🍚 맛집</button><button data-rt="stay">🏨 숙소</button></div></div>`;
   if (st === 'confirm') body = `<div class="card"><div class="row bctl"><button data-r="yes" class="bplay">✅ 맞아</button><button data-r="again">✏️ 다시 찾기</button></div>
       ${R.cands.length > 1 ? `<p class="note small" style="margin:10px 0 4px">혹시 이곳?</p>${R.cands.map((c, i) => `<button class="rcand ${c === R.to ? 'on' : ''}" data-rc="${i}"><b>${esc(c.name)}</b><span>${esc(c.addr)}${R.from ? ' · ' + rkm(R.from, c).toFixed(1) + 'km' : ''}</span></button>`).join('')}` : ''}</div>`;
   if (st === 'airport') { const A = R.airport || {}; body = `<div class="card"><p class="note">터미널</p><div class="seg">${[['1', '1터미널'], ['2', '2터미널'], ['?', '모르겠어']].map(([k, n]) => `<button data-at="${k}" class="${A.t === k ? 'on' : ''}">${n}</button>`).join('')}</div>
       <p class="note small">모르면 비행기 표나 문자에 적힌 <b>T1 / T2</b>를 봐 줘. 대한항공·아시아나·델타·에어프랑스 등은 2터미널이야.</p>
-      <p class="note" style="margin-top:10px">무슨 일로?</p><div class="seg">${[['out', '✈️ 출국'], ['in', '🙋 마중(입국)']].map(([k, n]) => `<button data-ak="${k}" class="${A.kind === k ? 'on' : ''}">${n}</button>`).join('')}</div></div>`; }
+      <p class="note" style="margin-top:10px">무슨 일로?</p><div class="seg">${[['out', '✈️ 출국'], ['in', '🙋 마중(입국)']].map(([k, n]) => `<button data-ak="${k}" class="${A.kind === k ? 'on' : ''}">${n}</button>`).join('')}</div>
+      ${RK().tour ? `<p class="note" style="margin-top:10px">비행기 편명을 알면 터미널·시각·게이트까지 찾아 줄게 (예: KE123)</p><div class="row"><input id="rFl" placeholder="편명 (모르면 비워 둬)" style="text-transform:uppercase"><button class="btn" data-r="fl">찾기</button></div>` : ''}
+      ${A.flight ? `<div class="rflight">${A.flight}</div>` : ''}</div>`; }
   if (st === 'why') body = `<div class="card"><div class="tvapps">${[['예배', '⛪ 예배'], ['약속', '🤝 약속·만남'], ['병원', '🏥 병원'], ['구경', '🌿 구경·관광'], ['볼일', '📋 볼일'], ['', '그냥 가자']].map(([k, n]) => `<button data-rp="${k}">${n}</button>`).join('')}</div></div>`;
   if (st === 'routes' || st === 'going') body = `${(R.routes || []).map(r => `<div class="card rroute">${r.tag ? `<p class="rtag">${r.tag}</p>` : ''}<p><b>${r.icon ? r.icon + ' ' : ''}${esc(r.title)}</b></p><p class="rbig">${mins(r.min)} · ${r.approx ? '약 ' + won(r.fare, 1) : won(r.fare)}</p><p class="note small">${esc(r.note || '')}</p></div>`).join('')}
       ${RK().odsay && !R.ptDone ? '<div class="card"><button class="btn" data-r="pt" style="width:100%;font-size:17px;padding:14px">🚇🚌 지하철·버스로 가는 길 찾기</button></div>' : ''}
@@ -239,7 +267,7 @@ function rGo() {
     rMapShow();
     const left = rkm(R.from, R.to), now = Date.now();
     if (R.walk) { const tn = R.walk.turns.find(x => !x.done && rkm(R.from, x) < 0.03); if (tn) { tn.done = true; R.lastSay = now; R.lastLeft = left; rTalk(`🚶 ${esc(tn.text)}`); return; } }
-    if (left < 0.06) { rTalk(`🎉 <b>${esc(R.to.name)}</b>에 도착했어! 수고했어 💛`); rStop(); return; }
+    if (left < 0.06) { rTalk(`🎉 <b>${esc(R.to.name)}</b>에 도착했어! 수고했어 💛 근처를 둘러보고 싶으면 "여기 뭐 볼 거 있어?" 하고 말해 줘`); rStop(); R.arrived = { lat: R.to.lat, lon: R.to.lon, name: R.to.name }; return; }
     const step = left > 5 ? 1 : left > 1 ? 0.3 : 0.1;
     if (!R.lastLeft || Math.abs(R.lastLeft - left) >= step || now - R.lastSay > 180000) {
       const getting = R.lastLeft && left > R.lastLeft + 0.05;
@@ -254,6 +282,7 @@ function rStop(talk) { if (R.watch != null) { try { navigator.geolocation.clearW
 
 document.addEventListener('click', e => {
   if (!e.target.closest || !e.target.closest('#routeBox')) return;
+  const rt = e.target.closest('[data-rt]'); if (rt) return openTour(rt.dataset.rt);
   const c = e.target.closest('[data-rc]'); if (c) return rPick(+c.dataset.rc);
   const rq = e.target.closest('[data-rq]'); if (rq) return rSearch(rq.dataset.rq);
   const at = e.target.closest('[data-at]'); if (at) return rAirport(at.dataset.at, null);
@@ -266,6 +295,7 @@ document.addEventListener('click', e => {
   if (a === 'again') { R.step = 'dest'; R.to = null; rDraw(); rTalk('<b>어디로 갈까?</b> 다시 말해 줘'); }
   if (a === 'kakao' || a === 'naver') rOpenMap(a);
   if (a === 'pt') rTransit();
+  if (a === 'fl') rFlight($('#rFl').value);
   if (a === 'go') rGo();
   if (a === 'story') rSpeak(R.story);
   if (a === 'web') { const F = RF(), u = 'https://search.naver.com/search.naver?query=' + encodeURIComponent(R.to.name + ' 예배시간'); if (F && F.openApp) F.openApp({ pkg: '', url: u }); else window.open(u, '_blank'); }
@@ -278,6 +308,7 @@ function routeTalk(text) {
   if (view === 'route') {
     if (R.step === 'dest') { const q = t.replace(/\s*(으로|로|에|까지)?\s*(가자|갈래|가고\s*싶어|가 줘|가줘|가야\s*해)$/, '').trim(); if (q) { S.routeRecent = [q].concat((S.routeRecent || []).filter(x => x !== q)).slice(0, 8); save(); rSearch(q); return true; } }
     if (R.step === 'confirm') { if (/^(응|어|맞아|맞아요|네|예|그래|여기|거기|좋아)/.test(t)) { rConfirm(); return true; } if (/^(아니|아냐|다른|틀려)/.test(t)) { R.step = 'dest'; rDraw(); rTalk('<b>어디로 갈까?</b> 다시 말해 줘'); return true; } }
+    if (R.step === 'airport' && /^[A-Za-z0-9]{2}\s*\d{1,4}\s*(편)?/.test(t) && RK().tour) { rFlight(t.match(/^[A-Za-z0-9]{2}\s*\d{1,4}/)[0]); return true; }
     if (R.step === 'airport') { const tm = /(1|일|첫)\s*터미널/.test(t) ? '1' : /(2|이|두)\s*터미널/.test(t) ? '2' : null, k = /출국|떠나|여행\s*가|비행기\s*타/.test(t) ? 'out' : /마중|입국|데리러|마중나가|도착/.test(t) ? 'in' : null; if (tm || k) { rAirport(tm, k); return true; } }
     if (R.step === 'why') { const m = [['예배', /예배|교회|미사|기도/], ['병원', /병원|진료|검사|치료/], ['약속', /약속|만나|만남|모임|미팅/], ['구경', /구경|관광|여행|산책|놀러/], ['볼일', /볼일|일|업무|서류/]].find(([, re]) => re.test(t)); if (m || /그냥|몰라|말\s*안|비밀/.test(t)) { R.purpose = m ? m[0] : ''; rRoutes(); return true; } }
     if (R.step === 'routes' && /(지하철|버스|대중교통|전철)/.test(t) && !R.ptDone) { rTransit(); return true; }

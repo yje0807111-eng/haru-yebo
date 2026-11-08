@@ -223,7 +223,9 @@ async function send(text, opt = {}) {   // opt.talk = 바탕화면 팻에게 한
     if (window.peopleTalk && await peopleTalk(text)) return;
     if (await timeTalk(text)) return;
     if (window.routeTalk && routeTalk(text)) return;
+    if (window.tourTalk && tourTalk(text)) return;
     if (window.routeTalk && routeTalk(text)) return;
+  if (window.tourTalk && tourTalk(text)) return;
   if (window.ballTalk && ballTalk(text)) return;
     if (window.dgTalk && dgTalk(text)) return;
     if (window.worshipTalk && worshipTalk(text)) return;

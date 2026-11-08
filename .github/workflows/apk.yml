@@ -35,8 +35,10 @@ jobs:
       - name: 비밀 금고의 열쇠 넣기 (공개 코드에는 없음)
         env:
           TMAP_KEY: ${{ secrets.TMAP_KEY }}
+          TOUR_KEY: ${{ secrets.TOUR_KEY }}
         run: |
           if [ -n "$TMAP_KEY" ]; then sed -i "s/  tmap: ''/  tmap: '${TMAP_KEY}'/" capacitor/www/keys.js && echo "TMAP 열쇠 넣음"; else echo "TMAP 열쇠 없음 (비밀 금고에 TMAP_KEY 를 넣으면 들어감)"; fi
+          if [ -n "$TOUR_KEY" ]; then sed -i "s/  tour: ''/  tour: '${TOUR_KEY}'/" capacitor/www/keys.js && echo "TOUR 열쇠 넣음"; else echo "TOUR 열쇠 없음"; fi
       - name: 안드로이드 앱 만들기
         working-directory: capacitor
         run: |
