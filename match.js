@@ -67,7 +67,7 @@ function openMatch(quiz) {
   hideBubble(); petOnly(false); if (view !== 'match') go('match');
   if (quiz) { mtBegin({ part: 'me', i: MQ.me.findIndex(q => q.mbti), sel: [], solo: true }); MS().chat = []; mtQuizStart(); }
 }
-function mtBegin(o) { MT = o; navPush(() => { MT = null; drawMatch(); }); }   // 휴대폰 뒤로 가기 = 대화 그만, 소개팅 첫 화면으로
+function mtBegin(o) { MT = o; navPush(() => { if (MT && MT.end) { NAV.push(() => { }); return mtFinOk(); } MT = null; drawMatch(); }); }   // 휴대폰 뒤로 가기 = 대화 그만, 소개팅 첫 화면으로
 function drawMatch() {
   const m = MS(), box = $('#matchBox'); if (!box) return;
   if (MT) return mtDrawChat();
@@ -114,13 +114,27 @@ function mtPartDone() {
   if (part === 'me') {
     m.me.done = true; save();
     if (then && !Object.keys(m[then]).length) { MT = { part: then, i: 0, sel: [], then }; m.chat.push({ who: 'pet', text: '고마워! 🤫 이건 나만 기억하고 있을게.' }); return mtAsk(); }
-    MT = null; NAV.pop(); save(); drawMatch();
-    if (then) return mtSet(then, true);
-    mtTell('고마워! 🤫 이건 나만 기억하고 있을게.<br>네게 맞는 사람을 내가 찾아 줄게. 언제든 <b>"연인 찾아 줘"</b>, <b>"친구 찾아 줘"</b> 하고 말해 줘 💞', 'love');
-    return;
+    if (then) return mtFinish(then);
+    return mtFinish(null);
   }
-  MT = null; NAV.pop(); save(); drawMatch();
-  mtSet(part, true);
+  mtFinish(part);
+}
+// 🏁 물어보기가 다 끝나면: 끝났다고 분명히 말하고 [알겠어] 로 마무리 (11-08)
+function mtFinish(kind) {
+  const m = MS();
+  if (kind === 'love' && m.me.age === '10대') kind = null;
+  const what = kind ? MKIND[kind][1].replace(' 찾기', '').replace(' · ', '·') : '';
+  m.chat.push({ who: 'pet', text: kind
+    ? `다 들었어! 고마워 💞<br>이제 너에게 맞는 ${kind === 'job' ? '사람이나 일자리' : what === '연인' ? '사람' : '친구'}가 있으면, <b>나를 화면에 켜 두기만 하면</b> 내가 찾아서 알려 줄게.<br>아직 하루 예보에 사람이 많지 않아서 조금 걸릴 수 있어. 기다려 줘 🐾`
+    : '고마워! 🤫 이건 나만 기억하고 있을게.<br>이제 <b>연인 찾기 · 친구 찾기 · 구인·구직</b> 중에 켜기만 하면, 나를 화면에 켜 두는 동안 맞는 사람을 찾아서 알려 줄게 💞' });
+  MT.end = { kind }; save(); mtDrawChat();
+  if (document.hidden) say(m.chat[m.chat.length - 1].text, { ms: 12000 });
+}
+function mtFinOk() {
+  const kind = MT && MT.end && MT.end.kind; MT = null; NAV.pop();
+  const m = MS(); if (kind) m.on[kind] = true;
+  m.note = kind ? `💞 ${MKIND[kind][1]} 하는 중이야. 맞는 사람이 생기면 알려 줄게!` : '🤫 나만 기억하고 있을게. 찾고 싶은 걸 켜 줘!';
+  save(); drawMatch();
 }
 function mtAnswer(v) {
   const q = mtQ(); if (!q) return;
@@ -154,12 +168,13 @@ function mtQuizPick(a) {
 }
 function mtDrawChat() {
   const box = $('#matchBox'); if (!box) return;
-  const m = MS(), z = MT && MT.quiz, zq = z && MBTI_Q[z.i], q = MT && !z ? mtQ() : null;
+  const m = MS(), z = MT && MT.quiz, zq = z && MBTI_Q[z.i], q = MT && !z && !MT.end ? mtQ() : null;
   const msgs = m.chat.slice(-30).map(c => `<div class="mmsg m-${c.who}">${c.who === 'pet' ? c.text : esc(c.text)}</div>`).join('');
   let opts = '';
   if (zq) opts = `<div class="mopts two"><button data-mq="0">${esc(zq[2])}</button><button data-mq="1">${esc(zq[3])}</button></div>`;
   else if (q && q.c) opts = `<div class="mopts">${q.c.map(c => `<button data-mc="${esc(c)}" class="${MT.sel.includes(c) ? 'on' : ''}">${esc(c)}</button>`).join('')}</div>${q.multi ? `<button class="btn" data-mt="done" style="width:100%;margin-top:8px" ${MT.sel.length ? '' : 'disabled'}>다 골랐어 (${MT.sel.length})</button>` : ''}`;
   if (q && q.skip) opts += `<div class="mopts"><button data-mc="${esc(q.skip)}" class="ghost">${esc(q.skip)}</button></div>`;
+  if (MT && MT.end) { box.innerHTML = `<div class="mchat" id="mChat">${msgs}</div><div class="mans"><button class="btn" data-mt="fin" style="width:100%;padding:14px">알겠어 👍</button></div>`; const c0 = $('#mChat'); if (c0) c0.scrollTop = c0.scrollHeight; return; }
   box.innerHTML = `<div class="mchat" id="mChat">${msgs}</div>
     <div class="mans">${opts}
       ${zq ? '' : `<div class="mrowin"><input id="mIn" placeholder="${q && q.free ? '여기에 써 줘…' : '글로 써도 돼…'}" enterkeyhint="send" autocomplete="off">${window.Native && Native.listen ? '<button class="mmic" data-mt="mic">🎤</button>' : ''}<button class="btn" data-mt="send">보내기</button></div>`}
@@ -177,6 +192,7 @@ document.addEventListener('click', async e => {
   }
   const a = t.dataset.mt;
   if (a === 'me') return mtStart('me');
+  if (a === 'fin') return mtFinOk();
   if (a === 'done') return mtAnswer(MT.sel.slice());
   if (a === 'send') { const v = $('#mIn').value.trim(); if (!v) return; const q = mtQ(); return mtAnswer(q && q.multi ? MT.sel.concat(v.split(/[,，、]\s*/).filter(Boolean)) : v); }
   if (a === 'mic') { t.classList.add('rec'); let v = ''; try { v = await Native.listen(); } catch { } t.classList.remove('rec'); if (v) { const inp = $('#mIn'); if (inp) inp.value = v; } return; }

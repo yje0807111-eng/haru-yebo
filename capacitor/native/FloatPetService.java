@@ -350,7 +350,7 @@ public class FloatPetService extends Service {
             long now = System.currentTimeMillis();
             try {
                 if (HaruBall.on && !wantShown && now - HaruBall.startedAt > 2500) HaruBall.stop(FloatPetService.this, false);   // 하루 예보를 열면 게임 끝
-                if (!held && wantShown && HaruBall.on) HaruBall.tick(FloatPetService.this, now);   // 🎾 공 던지기 중
+                if (!held && wantShown && HaruBall.on && !listening) HaruBall.tick(FloatPetService.this, now);   // 듣는 동안엔 잠깐 멈춤   // 🎾 공 던지기 중
                 else if (!held && wantShown) {
                     if (moving) {
                         float speed = dp(hopping ? 11 : running ? (act >= 4 ? 7 : 5) : 2.2f);
@@ -446,7 +446,17 @@ public class FloatPetService extends Service {
     EditText input;
     TextView mic;
     GradientDrawable micBg;
-    void micRed(boolean on) { if (mic == null) return; if (micBg == null) { micBg = new GradientDrawable(); micBg.setStroke(dp(2), Color.parseColor("#2B2118")); micBg.setCornerRadius(dp(20)); } micBg.setColor(Color.parseColor(on ? "#FF6B6B" : "#FFFFFF")); mic.setBackground(micBg); }
+    // 🎮 11-08: 게임 중에도 언제든 "게임 끝"·"끝" → 게임만 끝 (앱은 그대로) · 앞으로 다른 게임도 여기에
+    boolean listening = false;
+    static boolean gameOn() { return HaruBall.on; }
+    void stopGames() { if (HaruBall.on) HaruBall.stop(this, true); }
+    boolean gameWord(String t) {
+        if (!gameOn()) return false;
+        String x = t == null ? "" : t.trim();
+        if (!x.matches("^(하루야\\s*)?((게임|공\\s*놀이|공\\s*던지기|놀이)\\s*)?(끝|끝내|끝내기|끝내\\s*줘|끝내자|그만|그만해|그만하자|그만\\s*놀자|종료|멈춰)[\\s.!~]*$")) return false;
+        stopGames(); return true;
+    }
+    void micRed(boolean on) { listening = on; if (mic == null) return; if (micBg == null) { micBg = new GradientDrawable(); micBg.setStroke(dp(2), Color.parseColor("#2B2118")); micBg.setCornerRadius(dp(20)); } micBg.setColor(Color.parseColor(on ? "#FF6B6B" : "#FFFFFF")); mic.setBackground(micBg); }
     boolean editing = false;
     int savedBy = 0;
     static volatile boolean ack = false;
@@ -479,6 +489,7 @@ public class FloatPetService extends Service {
         endEdit();
         if (t.isEmpty()) return;
         if (composing()) { composeConfirm(t); return; }
+        if (gameWord(t)) return;   // 🎮 게임만 끝
         if (endWord(t)) return;   // 🌙 "끝"   // ✉️💬 받아 적는 중이면 쓴 글 = 보낼 글
         bubble("💭 …", 20000);
         ack = false;
@@ -616,6 +627,7 @@ public class FloatPetService extends Service {
                 sr.destroy(); micRed(false); h.postDelayed(() -> beepRestore(FloatPetService.this), 900);
                 if (m != null && !m.isEmpty() && composing()) { if (m.get(0).matches("^\\s*(그만|취소|안\\s*보내|됐어)[\\s.!~]*$")) { cUntil = 0; bubble("알겠어, 안 보낼게", 2500); } else composeConfirm(m.get(0)); }   // ✉️💬 받아 적기
                 else if (m != null && !m.isEmpty() && HaruNotiListener.kakaoOpen != null && inKakaoChat()) confirmReply(m.get(0));   // 💬 카톡 답장
+                else if (m != null && !m.isEmpty() && gameWord(m.get(0))) { }   // 🎮 게임만 끝
                 else if (m != null && !m.isEmpty() && endWord(m.get(0))) { }   // 🌙 "끝"
                 else if (m != null && !m.isEmpty()) { bubble("👂 \"" + m.get(0) + "\"", 2500); submit(m.get(0)); }
                 else bubble("잘 못 들었어 🥲 다시 눌러 줘", 3000);
@@ -682,6 +694,7 @@ public class FloatPetService extends Service {
     // 11-07: 화면이 꺼져 있으면(어두우면) 짖지 않기 — 알람만 예외. 다시 켜면 greet() 가 인사
     boolean screenOn() { try { return ((android.os.PowerManager) getSystemService(POWER_SERVICE)).isInteractive(); } catch (Exception e) { return true; } }
     void bark(boolean happy, float vol) {
+        if (listening) return;   // 듣는 중엔 짖지 않기 (게임 중에도 말을 잘 알아듣게)
         if (!alarmOn && !screenOn()) return;
         try {
             String cv = getSharedPreferences("pet", 0).getString(happy ? "sndH" : "sndC", ""); String[] list = cv != null && !cv.isEmpty() ? cv.split("\\|") : happy ? new String[] { "dog_happy1", "dog_happy2", "dog_happy3" } : new String[] { "dog_bark1", "dog_bark2", "dog_bark3", "dog_bark4" };
