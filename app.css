@@ -411,7 +411,7 @@ body.smode .talk { background: #fff; border: 0; box-shadow: 0 2px 12px rgba(49,1
 .rmap { position: relative; }
 .rring { position: absolute; left: 50%; top: 50%; width: 80%; aspect-ratio: 1; max-height: 80%; transform: translate(-50%, -50%); border: 2px solid #3182f6; border-radius: 50%; background: rgba(49,130,246,.06); pointer-events: none; z-index: 450; box-sizing: border-box; }
 @supports (aspect-ratio: 1) { .rring { width: auto; height: 80%; } }
-.rring span { position: absolute; left: 50%; top: -1px; transform: translate(-50%, -50%); background: #3182f6; color: #fff; font: 800 12px/1 sans-serif; padding: 4px 8px; border-radius: 10px; }
+.rring span { position: absolute; left: 85.4%; top: 14.6%; transform: translate(-50%, -50%); background: #3182f6; color: #fff; font: 800 12px/1 sans-serif; padding: 4px 8px; border-radius: 10px; }
 .rme { position: relative; }
 .rme i { position: absolute; left: 13px; top: 13px; }
 .rme .rdir { position: absolute; inset: 0; transform-origin: 50% 50%; }
@@ -438,11 +438,10 @@ body.smode .talk { background: #fff; border: 0; box-shadow: 0 2px 12px rgba(49,1
 .m3lab { position: absolute; left: 10px; top: 10px; z-index: 5; background: #3182f6; color: #fff; font: 800 12px/1 sans-serif; padding: 6px 9px; border-radius: 10px; }
 .maplibregl-marker.rme i { position: absolute; left: 13px; top: 13px; }
 
-/* 11-08 동서남북 */
-.rcomp { position: absolute; right: 10px; bottom: 10px; z-index: 600; width: 58px; height: 58px; border-radius: 50%; background: rgba(255,255,255,.92); box-shadow: 0 2px 8px rgba(0,0,0,.18); pointer-events: none; }
-.rcomp i { position: absolute; font: 800 12px/1 sans-serif; font-style: normal; color: #4e5968; }
-.rcomp i:nth-child(1) { left: 50%; top: 4px; transform: translateX(-50%); color: #f03e3e; }
-.rcomp i:nth-child(2) { right: 5px; top: 50%; transform: translateY(-50%); }
-.rcomp i:nth-child(3) { left: 50%; bottom: 4px; transform: translateX(-50%); }
-.rcomp i:nth-child(4) { left: 5px; top: 50%; transform: translateY(-50%); }
-.rcomp b { position: absolute; left: 50%; top: 50%; width: 6px; height: 6px; margin: -3px 0 0 -3px; border-radius: 50%; background: #8b95a1; }
+/* 11-08 동서남북: 지도 가장자리 위·오른쪽·아래·왼쪽 */
+.rcomp { position: absolute; inset: 0; z-index: 600; pointer-events: none; }
+.rcomp i { position: absolute; font: 900 18px/1 sans-serif; font-style: normal; color: #333d4b; text-shadow: 0 0 3px #fff, 0 0 3px #fff, 0 0 3px #fff; }
+.rcomp i:nth-child(1) { left: 50%; top: 6px; transform: translateX(-50%); color: #f03e3e; }
+.rcomp i:nth-child(2) { right: 8px; top: 50%; transform: translateY(-50%); }
+.rcomp i:nth-child(3) { left: 50%; bottom: 6px; transform: translateX(-50%); }
+.rcomp i:nth-child(4) { left: 8px; top: 50%; transform: translateY(-50%); }

@@ -47,7 +47,10 @@ function m3Show() {
   lab.textContent = '반경 ' + rfmt(R.radius);
   m3Arrow();
 }
-function m3Comp() { const c = document.getElementById('rComp'); if (c && m3) c.style.transform = `rotate(${-m3.getBearing()}deg)`; }
+function m3Comp() {   // 지도를 돌리면 북·동·남·서 글자가 지도 가장자리를 따라 돌아감
+  const c = document.getElementById('rComp'); if (!c || !m3) return; const b = m3.getBearing();
+  [...c.children].forEach((e, i) => { const a = (i * 90 - b) * Math.PI / 180; e.style.left = (50 + Math.sin(a) * 46) + '%'; e.style.top = (50 - Math.cos(a) * 44) + '%'; e.style.right = e.style.bottom = 'auto'; e.style.transform = 'translate(-50%, -50%)'; });
+}
 function m3Arrow() { m3Comp(); if (!m3Me || rHead == null || !m3) return; const e = m3Me.getElement().querySelector('.rdir'); if (e) { e.style.display = 'block'; e.style.transform = `rotate(${rHead - m3.getBearing()}deg)`; } }
 function m3Pois() {
   if (!m3) return;
