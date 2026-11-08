@@ -445,3 +445,12 @@ body.smode .talk { background: #fff; border: 0; box-shadow: 0 2px 12px rgba(49,1
 .rcomp i:nth-child(2) { right: 8px; top: 50%; transform: translateY(-50%); }
 .rcomp i:nth-child(3) { left: 50%; bottom: 6px; transform: translateX(-50%); }
 .rcomp i:nth-child(4) { left: 8px; top: 50%; transform: translateY(-50%); }
+
+/* 3D: 오른쪽 아래 작은 나침반이 지도 돌린 만큼 돌아감 */
+.rcomp.mini { inset: auto 10px 10px auto; width: 60px; height: 60px; border-radius: 50%; background: rgba(255,255,255,.93); box-shadow: 0 2px 8px rgba(0,0,0,.2); }
+.rcomp.mini i { font-size: 12px; text-shadow: none; }
+.rcomp.mini i:nth-child(1) { top: 4px; }
+.rcomp.mini i:nth-child(2) { right: 5px; }
+.rcomp.mini i:nth-child(3) { bottom: 4px; }
+.rcomp.mini i:nth-child(4) { left: 5px; }
+.rcomp.mini::after { content: ''; position: absolute; left: 50%; top: 50%; width: 6px; height: 6px; margin: -3px 0 0 -3px; border-radius: 50%; background: #8b95a1; }
