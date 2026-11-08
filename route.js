@@ -19,6 +19,65 @@ let rHead = null;
 function rHeadSet(h) { rHead = (h + 360) % 360; document.querySelectorAll('.rme .rdir').forEach(e => { e.style.transform = `rotate(${rHead}deg)`; e.style.display = 'block'; }); }
 window.addEventListener('deviceorientationabsolute', e => { if (e.alpha != null) rHeadSet(360 - e.alpha); }, true);
 window.addEventListener('deviceorientation', e => { if (e.webkitCompassHeading != null) rHeadSet(e.webkitCompassHeading); else if (e.absolute && e.alpha != null) rHeadSet(360 - e.alpha); }, true);
+// 🏪 지도 위 가게 (TMAP): 반경 안 식당·카페·숙소·편의점·약국을 누를 수 있는 점으로 → 누르면 그 가게 정보
+const POI_CATS = { all: ['음식점', '카페', '숙박', '편의점', '약국'], food: ['음식점', '카페'], stay: ['숙박'] };
+const POI_ICON = { 음식점: '🍚', 카페: '☕', 숙박: '🏨', 편의점: '🏪', 약국: '💊' };
+R.cat = 'all'; R.pois = []; R.poi = null;
+const poiCache = {};
+async function rPois() {
+  if (!RK().tmap || !R.from) { R.pois = []; return; }
+  const km = Math.max(1, Math.ceil(R.radius / 1000)), cats = POI_CATS[R.cat] || POI_CATS.all, out = [];
+  await Promise.all(cats.map(async c => {
+    const key = `${R.from.lat.toFixed(4)},${R.from.lon.toFixed(4)},${c},${km}`;
+    let list = poiCache[key] && Date.now() - poiCache[key].at < 180000 ? poiCache[key].list : null;
+    if (!list) {
+      try {
+        const r = await fetch(`https://apis.openapi.sk.com/tmap/pois/search/around?version=1&centerLon=${R.from.lon}&centerLat=${R.from.lat}&categories=${encodeURIComponent(c)}&radius=${km}&count=150`, { headers: { appKey: RK().tmap } });
+        const j = r.ok ? await r.json() : {};
+        list = ((((j.searchPoiInfo || {}).pois || {}).poi) || []).map(p => {
+          const m = String(p.name).match(/^(.*?)\s*\[([^\]]+)\]\s*$/);
+          return { name: m ? m[1] : p.name, sub: m ? m[2] : '', cat: c, lat: +(p.frontLat || p.noorLat), lon: +(p.frontLon || p.noorLon), tel: p.telNo || '', addr: [p.upperAddrName, p.middleAddrName, p.lowerAddrName, p.roadName, p.firstBuildNo].filter(Boolean).join(' ') };
+        });
+        poiCache[key] = { at: Date.now(), list };
+      } catch { list = []; }
+    }
+    out.push(...list);
+  }));
+  const seen = new Set();
+  R.pois = out.map(p => Object.assign(p, { d: rkm(R.from, p) * 1000 })).filter(p => p.d <= R.radius && !seen.has(p.name + p.lat.toFixed(4)) && seen.add(p.name + p.lat.toFixed(4))).sort((a, b) => a.d - b.d);
+}
+const bearing = (a, b) => { const t = Math.PI / 180, y = Math.sin((b.lon - a.lon) * t) * Math.cos(b.lat * t), x = Math.cos(a.lat * t) * Math.sin(b.lat * t) - Math.sin(a.lat * t) * Math.cos(b.lat * t) * Math.cos((b.lon - a.lon) * t); return (Math.atan2(y, x) / t + 360) % 360; };
+function rPoiDraw() {
+  if (!R.map || R.to) return;
+  if (R.mk.pois) { R.map.removeLayer(R.mk.pois); R.mk.pois = null; }
+  const g = R.mk.pois = L.layerGroup().addTo(R.map);
+  R.pois.slice(0, 200).forEach((p, i) => L.marker([p.lat, p.lon], { icon: L.divIcon({ className: 'rpoi' + (R.poi === p ? ' on' : ''), html: `<span>${POI_ICON[p.cat] || '📍'}</span>`, iconSize: [26, 26] }) }).on('click', () => rPoiOpen(i)).addTo(g));
+  rFront();
+  const c = $('#rPoiN'); if (c) c.textContent = R.pois.length ? `${R.pois.length}곳` : (RK().tmap ? '없음' : '');
+}
+// 👀 정면 가게: 빨간 삼각형이 가리키는 쪽(±35°) 가까운 순서
+function rFront() {
+  const el = $('#rFront'); if (!el) return;
+  if (rHead == null || !R.pois.length || !R.from) { el.innerHTML = ''; return; }
+  const f = R.pois.filter(p => { const d = Math.abs(((bearing(R.from, p) - rHead + 540) % 360) - 180); return d <= 35; }).slice(0, 3);
+  el.innerHTML = f.length ? '👀 정면: ' + f.map(p => `<button data-pf="${R.pois.indexOf(p)}">${POI_ICON[p.cat] || ''} ${esc(p.name)} ${Math.round(p.d)}m</button>`).join('') : '';
+}
+let rFrontT = 0; window.addEventListener('deviceorientationabsolute', () => { if (Date.now() - rFrontT > 800) { rFrontT = Date.now(); rFront(); } }, true);
+function rPoiOpen(i) {
+  const p = R.pois[i]; if (!p) return;
+  if (!R.poi) navPush(() => { R.poi = null; rPoiCard(); rPoiDraw(); });
+  R.poi = p; rPoiCard(); rPoiDraw();
+}
+function rPoiCard() {
+  const el = $('#rPoiCard'); if (!el) return;
+  const p = R.poi; if (!p) { el.innerHTML = ''; return; }
+  el.innerHTML = `<div class="card rpcard"><button class="rpx" data-pc="x">✕</button><p class="rptitle">${POI_ICON[p.cat] || '📍'} <b>${esc(p.name)}</b></p>
+    <p class="note small">${esc(p.cat)}${p.sub ? ' · ' + esc(p.sub) : ''} · <b>${Math.round(p.d)}m</b>${p.addr ? ' · ' + esc(p.addr) : ''}</p>
+    ${p.tel ? `<p class="note small">📞 ${esc(p.tel)}</p>` : ''}
+    <div class="row bctl">${p.tel ? '<button data-pc="tel">📞 전화</button>' : ''}<button data-pc="go">🧭 길찾기</button></div>
+    <div class="row bctl"><button data-pc="naver">📖 네이버에서 보기</button><button data-pc="kakao">📖 카카오맵</button></div>
+    <p class="note small">메뉴·가격·영업시간·후기는 네이버·카카오에서 볼 수 있어요</p></div>`;
+}
 const rMeIcon = () => L.divIcon({ className: 'rme', html: `<div class="rdir" style="${rHead == null ? 'display:none' : `transform:rotate(${rHead}deg)`}"><b></b></div><i></i>`, iconSize: [44, 44], iconAnchor: [22, 22] });
 const shortAddr = a => String(a || '').split(' ').filter((w, i) => !(i === 0 && /(특별시|광역시|특별자치시|특별자치도|도)$/.test(w))).filter(w => !/^\d+(-\d+)?$/.test(w)).join(' ');
 const RF = () => window.Capacitor && Capacitor.Plugins && Capacitor.Plugins.FloatPet;
@@ -71,7 +130,8 @@ async function rStart(dest, at) {
   rMapInit();
   if (at && at.lat) { R.q = dest || at.name || ''; R.cands = [{ name: at.name || dest, addr: at.addr || '', lat: at.lat, lon: at.lon }]; return rPick(0); }
   if (dest) return rSearch(dest);
-  R.step = 'dest'; rDraw();
+  R.step = 'dest'; R.poi = null; rDraw();
+  rPois().then(rPoiDraw);
   rTalk(`${R.from && R.from.addr ? '지금 <b>' + esc(shortAddr(R.from.addr)) + '</b> 근처야. ' : ''}어디로 갈까? 아래에 써 줘.`, false);
 }
 async function rSearch(q) {
@@ -232,7 +292,7 @@ function rDraw(force) {
   let body = '';
   if (st === 'dest' || st === 'finding' || st === 'locating' || force === 'start')
     body = `<div class="card"><div class="row"><input id="rQ" placeholder="어디로 갈까? (예: 인천공항, 대전 ○○교회)" enterkeyhint="search"><button class="btn" data-r="find">찾기</button></div></div>
-      <div class="rcat">${[['see', '🌿 볼거리'], ['walk', '🚶 산책'], ['food', '🍚 맛집'], ['stay', '🏨 숙소']].map(([k, n]) => `<button data-rt="${k}">${n}</button>`).join('')}</div>`;
+      <div class="rcat">${[['see', '🌿 볼거리'], ['walk', '🚶 산책'], ['food', '🍚 맛집'], ['stay', '🏨 숙소']].map(([k, n]) => `<button data-rt="${k}" class="${R.cat === k ? 'on' : ''}">${n}</button>`).join('')}</div>`;
   if (st === 'confirm') body = `<div class="card"><div class="row bctl"><button data-r="yes" class="bplay">✅ 맞아</button><button data-r="again">✏️ 다시 찾기</button></div>
       ${R.cands.length > 1 ? `<p class="note small" style="margin:10px 0 4px">혹시 이곳?</p>${R.cands.map((c, i) => `<button class="rcand ${c === R.to ? 'on' : ''}" data-rc="${i}"><b>${esc(c.name)}</b><span>${esc(c.addr)}${R.from ? ' · ' + rkm(R.from, c).toFixed(1) + 'km' : ''}</span></button>`).join('')}` : ''}</div>`;
   if (st === 'airport') { const A = R.airport || {}; body = `<div class="card"><p class="note">터미널</p><div class="seg">${[['1', '1터미널'], ['2', '2터미널'], ['?', '모르겠어']].map(([k, n]) => `<button data-at="${k}" class="${A.t === k ? 'on' : ''}">${n}</button>`).join('')}</div>
@@ -249,7 +309,7 @@ function rDraw(force) {
       ${R.story ? `<div class="card"><h3>📖 ${esc(R.to.name)} 이야기</h3><p class="note" style="line-height:1.75">${esc(R.story)}</p></div>` : ''}`;
   box.innerHTML = `<div class="card rpetc"><p id="rPet">${($('#rPet') || {}).innerHTML || '🐾 길 찾을 준비 중…'}</p></div>
     <div id="rMap" class="rmap"></div>
-    ${(st === 'dest' || st === 'finding' || st === 'locating' || force === 'start') ? `<div class="rrad"><span>반경</span><input type="range" id="rRad" min="0" max="${RSTEPS.length - 1}" step="1" value="${Math.max(0, RSTEPS.indexOf(R.radius))}"><b id="rRadV">${rfmt(R.radius)}</b></div>` : ''}
+    ${(st === 'dest' || st === 'finding' || st === 'locating' || force === 'start') ? `<div class="rrad"><span>반경</span><input type="range" id="rRad" min="0" max="${RSTEPS.length - 1}" step="1" value="${Math.max(0, RSTEPS.indexOf(R.radius))}"><b id="rRadV">${rfmt(R.radius)}</b><small id="rPoiN"></small></div><div id="rFront" class="rfront"></div><div id="rPoiCard"></div>` : ''}
     ${body}
     <p class="note small" style="text-align:center">지도 © OpenStreetMap · 시간·요금은 대략이에요</p>`;
   rMapInit(); rMapShow();
@@ -271,7 +331,7 @@ function rMapShow() {
   if (R.from) { if (!R.mk.me) R.mk.me = L.marker([R.from.lat, R.from.lon], { icon: me }).addTo(R.map); else R.mk.me.setLatLng([R.from.lat, R.from.lon]); }
   if (R.to) { if (!R.mk.to) R.mk.to = L.marker([R.to.lat, R.to.lon]).addTo(R.map); else R.mk.to.setLatLng([R.to.lat, R.to.lon]); R.mk.to.bindTooltip(R.to.name, { permanent: true, direction: 'top', offset: [0, -36] }); }
   const ring = R.map.getContainer().querySelector('.rring');
-  if (R.from && !R.to) ringShow(R.map, R.from, R.radius); else if (ring) ring.remove();
+  if (R.from && !R.to) { ringShow(R.map, R.from, R.radius); rPoiDraw(); } else if (ring) ring.remove();
   if (R.from && R.to) {
     if (R.mk.line) R.map.removeLayer(R.mk.line);
     const pts = R.walk && R.walk.line.length ? R.walk.line : [[R.from.lat, R.from.lon], [R.to.lat, R.to.lon]];
@@ -305,7 +365,26 @@ function rStop(talk) { if (R.watch != null) { try { navigator.geolocation.clearW
 
 document.addEventListener('click', e => {
   if (!e.target.closest || !e.target.closest('#routeBox')) return;
-  const rt = e.target.closest('[data-rt]'); if (rt) return openTour(rt.dataset.rt, R.from ? { lat: R.from.lat, lon: R.from.lon, name: shortAddr(R.from.addr) || '지금 있는 곳' } : null, R.radius);
+  const rt = e.target.closest('[data-rt]');
+  if (rt && (rt.dataset.rt === 'food' || rt.dataset.rt === 'stay') && RK().tmap) {   // 맛집·숙소 = 같은 지도에서 그 가게만 (한 번 더 누르면 전체)
+    R.cat = R.cat === rt.dataset.rt ? 'all' : rt.dataset.rt; R.poi = null; rPoiCard();
+    document.querySelectorAll('[data-rt]').forEach(b => b.classList.toggle('on', b.dataset.rt === R.cat));
+    rPois().then(() => { rPoiDraw(); rTalk(R.cat === 'all' ? '반경 안 가게를 모두 보여 줄게. 점을 누르면 정보가 나와.' : `반경 ${rfmt(R.radius)} 안 ${R.cat === 'food' ? '식당·카페' : '숙소'} <b>${R.pois.length}곳</b>이야. 지도에서 점을 눌러 봐.`, false); });
+    return;
+  }
+  const pf = e.target.closest('[data-pf]'); if (pf) return rPoiOpen(+pf.dataset.pf);
+  const pc = e.target.closest('[data-pc]');
+  if (pc && R.poi) {
+    const a = pc.dataset.pc, p = R.poi, F = RF(), open = u => { if (F && F.openApp) F.openApp({ pkg: '', url: u }); else window.open(u, '_blank'); };
+    if (a === 'x') { R.poi = null; rPoiCard(); rPoiDraw(); }
+    if (a === 'tel' && p.tel) dialNum(p.tel);
+    if (a === 'go') openRoute(p.name, { lat: p.lat, lon: p.lon, name: p.name, addr: p.addr });
+    const q = encodeURIComponent(p.name + ' ' + (p.addr || '').split(' ').slice(0, 3).join(' '));
+    if (a === 'naver') open('https://m.map.naver.com/search2/search.naver?query=' + q);
+    if (a === 'kakao') open('https://m.map.kakao.com/actions/searchView?q=' + q);
+    return;
+  }
+  if (rt) return openTour(rt.dataset.rt, R.from ? { lat: R.from.lat, lon: R.from.lon, name: shortAddr(R.from.addr) || '지금 있는 곳' } : null, R.radius);
   const c = e.target.closest('[data-rc]'); if (c) return rPick(+c.dataset.rc);
   const at = e.target.closest('[data-at]'); if (at) return rAirport(at.dataset.at, null);
   const ak = e.target.closest('[data-ak]'); if (ak) return rAirport(null, ak.dataset.ak);
@@ -324,7 +403,7 @@ document.addEventListener('click', e => {
 });
 document.addEventListener('keydown', e => { if (e.target.id === 'rQ' && e.key === 'Enter') { const q = e.target.value.trim(); if (q) rSearch(q); } });
 // 반경 조절: 지도만 다시 맞춤 (100m ~ 2km)
-document.addEventListener('input', e => { if (e.target.id !== 'rRad') return; R.radius = RSTEPS[+e.target.value] || 30; const v = $('#rRadV'); if (v) v.textContent = rfmt(R.radius); rMapShow(); });
+document.addEventListener('input', e => { if (e.target.id !== 'rRad') return; R.radius = RSTEPS[+e.target.value] || 30; const v = $('#rRadV'); if (v) v.textContent = rfmt(R.radius); R.poi = null; rPoiCard(); rMapShow(); clearTimeout(window._rpT); window._rpT = setTimeout(() => rPois().then(rPoiDraw), 400); });
 if (window.S) delete S.routeRecent;   // 찾은 흔적은 남기지 않음
 
 // 말 알아듣기: "길 찾아 줘", "인천공항 가는 길", "서울역까지 어떻게 가?" · 길찾기 중엔 도착지·"맞아"
