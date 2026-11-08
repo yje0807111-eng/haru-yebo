@@ -20,6 +20,8 @@ public class FloatPetPlugin extends Plugin {
 
     @Override
     public void load() { inst = this; }
+    // 🌙 팻이 "끝"으로 사라질 때: 하루 예보 화면도 닫기
+    static void finishApp() { try { if (inst != null && inst.getActivity() != null) inst.getActivity().runOnUiThread(() -> { try { inst.getActivity().finishAndRemoveTask(); } catch (Exception ignored) { } }); } catch (Exception ignored) { } }
 
     @PluginMethod
     public void hasPermission(PluginCall call) {

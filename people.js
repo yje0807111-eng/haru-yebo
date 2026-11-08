@@ -141,13 +141,17 @@ async function msgGo() {
 }
 function msgTalk(clean) {
   const W = '(문자\\s*메시지|문자|메시지|메세지|카카오\\s*톡|카톡|톡)';
-  let m = clean.match(new RegExp(`^(.{1,12}?)\\s*(한테|에게|께)\\s*${W}\\s*(으로|로)?\\s*(?:["“'‘](.+?)["”'’]\\s*(?:이라고|라고|고)?|(.+?)\\s*(?:이라고|라고))?\\s*(좀\\s*)?(보내|해|써|전해|날려)\\s*(줘|줄래|주라|봐)?[!~.?\\s]*$`));
+  let m = clean.match(new RegExp(`^(.{1,12}?)\\s*(한테|에게|께|님)?\\s*${W}\\s*(으로|로)?\\s*(?:["“'‘](.+?)["”'’]\\s*(?:이라고|라고|고)?|(.+?)\\s*(?:이라고|라고))?\\s*(좀\\s*)?(보내|해|써|전해|날려)\\s*(줘|줄래|주라|봐)?[!~.?\\s]*$`));
   let name, kw, text = '';
   if (m) { name = m[1]; kw = m[3]; text = (m[5] || m[6] || '').trim(); }
   else {
     m = clean.match(new RegExp(`^(.{1,12}?)\\s*(한테|에게|께)\\s*["“'‘]?(.+?)["”'’]?\\s*(이라고|라고)\\s*${W}\\s*(으로|로)?\\s*(좀\\s*)?(보내|해|써|전해|날려)\\s*(줘|줄래|주라|봐)?[!~.?\\s]*$`));
-    if (!m) return false;
-    name = m[1]; text = m[3].trim(); kw = m[5];
+    if (m) { name = m[1]; text = m[3].trim(); kw = m[5]; }
+    else {   // "문자 엄마한테 보내 줘"
+      m = clean.match(new RegExp(`^${W}\\s*(좀\\s*)?(.{1,12}?)\\s*(한테|에게|께)\\s*(좀\\s*)?(보내|해|써|전해|날려)\\s*(줘|줄래|주라|봐)?[!~.?\\s]*$`));
+      if (!m) return false;
+      kw = m[1]; name = m[3];
+    }
   }
   const kind = /카|톡/.test(kw) ? 'kakao' : 'sms';
   const c = findPerson(name);

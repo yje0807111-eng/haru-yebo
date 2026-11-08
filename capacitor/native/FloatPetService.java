@@ -318,6 +318,28 @@ public class FloatPetService extends Service {
         };
     }
     boolean held = false;
+    // 🌙 11-08: 팻을 누르고 "끝" → 쏙 작아지며 사라지고 하루 예보 끝 (울어서 끄기 쉽게)
+    boolean leaving = false;
+    void vanish() {
+        if (pet == null) { quitAll(); return; }
+        leaving = true; held = true;
+        if (bub != null) bub.setVisibility(View.GONE);
+        try { pet.setPivotX(pet.getWidth() / 2f); pet.setPivotY(pet.getHeight() * 0.6f); } catch (Exception ignored) { }
+        final float sx = pet.getScaleX() < 0 ? -1 : 1;
+        pet.animate().scaleX(0.05f * sx).scaleY(0.05f).alpha(0f).setDuration(450).withEndAction(this::quitAll).start();
+    }
+    void quitAll() {
+        getSharedPreferences("pet", 0).edit().putBoolean("on", false).commit();
+        FloatPetPlugin.finishApp();
+        try { stopSelf(); } catch (Exception ignored) { }
+    }
+    boolean endWord(String t) {
+        String s = t == null ? "" : t.trim();
+        if (!s.matches("^(하루야\\s*)?(끝|끝내|끝내기|끝내\\s*줘|끝내자|끝낼게|하루\\s*예보\\s*끝내?)[\\s.!~]*$")) return false;
+        bubble("잘 자~ 또 불러 줘 🐾", 900);
+        h.postDelayed(this::vanish, 700);
+        return true;
+    }
 
     // 1초에 25번: 걷기·뛰기 그림 바꾸며 옆으로 돌아다니기 (팻 기분·움직이는 정도 따라)
     final Runnable tick = new Runnable() {
@@ -456,7 +478,8 @@ public class FloatPetService extends Service {
         final String t = text == null ? "" : text.trim();
         endEdit();
         if (t.isEmpty()) return;
-        if (composing()) { composeConfirm(t); return; }   // ✉️💬 받아 적는 중이면 쓴 글 = 보낼 글
+        if (composing()) { composeConfirm(t); return; }
+        if (endWord(t)) return;   // 🌙 "끝"   // ✉️💬 받아 적는 중이면 쓴 글 = 보낼 글
         bubble("💭 …", 20000);
         ack = false;
         FloatPetPlugin.overlayText(t);
@@ -593,6 +616,7 @@ public class FloatPetService extends Service {
                 sr.destroy(); micRed(false); h.postDelayed(() -> beepRestore(FloatPetService.this), 900);
                 if (m != null && !m.isEmpty() && composing()) { if (m.get(0).matches("^\\s*(그만|취소|안\\s*보내|됐어)[\\s.!~]*$")) { cUntil = 0; bubble("알겠어, 안 보낼게", 2500); } else composeConfirm(m.get(0)); }   // ✉️💬 받아 적기
                 else if (m != null && !m.isEmpty() && HaruNotiListener.kakaoOpen != null && inKakaoChat()) confirmReply(m.get(0));   // 💬 카톡 답장
+                else if (m != null && !m.isEmpty() && endWord(m.get(0))) { }   // 🌙 "끝"
                 else if (m != null && !m.isEmpty()) { bubble("👂 \"" + m.get(0) + "\"", 2500); submit(m.get(0)); }
                 else bubble("잘 못 들었어 🥲 다시 눌러 줘", 3000);
             }
