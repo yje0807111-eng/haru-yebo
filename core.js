@@ -59,6 +59,7 @@ function go(v, fromNav) {
   if (v === 'set') { safe(drawSet, '설정'); if (window.floatStatus) floatStatus(); }
   if (v === 'music' && window.drawMusic) drawMusic(false);
   if (v === 'tv' && window.drawTV) drawTV();
+  if (v !== 'route' && typeof fmOn !== 'undefined' && fmOn && typeof fmClose === 'function') fmClose();   // 다른 화면으로 가면 전체 화면 지도 닫기
   if (v === 'route' && window.rLive && typeof R !== 'undefined' && R.step === 'dest' && !R.to) rLive(true);   // 11-08: 걸으면 지도가 따라오기
 }
 document.addEventListener('click', e => { const b = e.target.closest('[data-go]'); if (b) go(b.dataset.go); });
@@ -226,9 +227,16 @@ function isSearch(text) {
   if (/(너|니가|네가|기분|어때|뭐\s*해|뭐하|좋아해|심심|놀자|힘들|슬퍼|행복)/.test(text)) return false;
   return /(알려\s*(줘|줄래)|(이|가|은|는)\s*뭐야|뜻이\s*뭐|누구야|누군지|어디(에|야|있|인)|언제(야|였|예|인|부터|까지|태어)|얼마(야|예|나|에|인)|방법|어떻게\s*(하|해|돼|되)는)/.test(text);
 }
+// 11-08: 기능 말 알아듣기를 한 곳에 — 팻방 말창과 화면 위 팻이 똑같이 알아듣게
+async function featureTalk(text) {
+  for (const f of [window.mapTalk, window.routeTalk, window.tourTalk, window.ballTalk, window.dgTalk, window.worshipTalk, window.tvTalk]) if (f && f(text)) return true;
+  if (window.musicTalk && await musicTalk(text)) return true;
+  return false;
+}
 async function send(text, opt = {}) {   // opt.talk = 바탕화면 팻에게 한 말(검색 말고 대화)
   text = String(text || '').trim(); if (!text) return;
   t.value = ''; markSign();
+  if (window.mapTalk && mapTalk(text)) return;   // 🗺️ "지도" (길찾기 중이어도 먼저)
   if (view === 'route' && window.routeTalk && routeTalk(text)) return;   // 🧭 길찾기 중: 도착지·"맞아"·목적
   if (view !== 'home') go('home');   // 대답은 다루 마당에서
   const em = stripName(text).match(/^(119|112|1394|일일구|일일이|구급차|소방서|경찰)\s*(에|로|번|을|를|좀)?\s*(전화|신고|불러)/);
@@ -237,17 +245,7 @@ async function send(text, opt = {}) {   // opt.talk = 바탕화면 팻에게 한
   if (smode && !opt.talk) {   // 팻방 말창 = 검색. 단, 알람·시간·전화·명령은 먼저 알아들음 (11-07)
     if (window.peopleTalk && await peopleTalk(text)) return;
     if (await timeTalk(text)) return;
-    if (window.mapTalk && mapTalk(text)) return;
-    if (window.routeTalk && routeTalk(text)) return;
-    if (window.tourTalk && tourTalk(text)) return;
-    if (window.mapTalk && mapTalk(text)) return;
-    if (window.routeTalk && routeTalk(text)) return;
-  if (window.tourTalk && tourTalk(text)) return;
-  if (window.ballTalk && ballTalk(text)) return;
-    if (window.dgTalk && dgTalk(text)) return;
-    if (window.worshipTalk && worshipTalk(text)) return;
-    if (window.tvTalk && tvTalk(text)) return;
-    if (window.musicTalk && await musicTalk(text)) return;
+    if (await featureTalk(text)) return;
     const c0 = findCommand(stripName(text) || text); if (c0) { doCommand(c0.id); return; }
     lastSearch = text; return doSearch(text);
   }   // 팻방 말창 = 검색 (명령은 그대로)
@@ -256,11 +254,7 @@ async function send(text, opt = {}) {   // opt.talk = 바탕화면 팻에게 한
   if (/^(그거\s*)?(찾아\s*봐|찾아\s*줘|검색해\s*줘|검색)[!~.?\s]*$/.test(text) && lastUser) { lastSearch = lastUser; return doSearch(lastUser); }
   if (window.peopleTalk && await peopleTalk(text)) return;
   if (await timeTalk(text)) return;
-  if (window.ballTalk && ballTalk(text)) return;
-    if (window.dgTalk && dgTalk(text)) return;
-    if (window.worshipTalk && worshipTalk(text)) return;
-  if (window.tvTalk && tvTalk(text)) return;
-  if (window.musicTalk && await musicTalk(text)) return;
+  if (await featureTalk(text)) return;
   if (!stripName(text).replace(/[!~?.\s]/g, '') ) { doCommand('call'); return; }
   const cmd = findCommand(stripName(text) || text);
   if (cmd) { doCommand(cmd.id); return; }
