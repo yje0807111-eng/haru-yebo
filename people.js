@@ -135,6 +135,10 @@ async function msgGo() {
     const r = await F.msgSend({ kind, who, num: num || '', text }).catch(() => ({ how: 'fail' }));
     const h = r && r.how;
     if (kind === 'sms') say(h === 'sent' ? `✉️ ${esc(who)}에게 문자 보냈어! ✓` : h === 'open' ? '✉️ 문자 화면에 글을 채워 뒀어. 보내기 단추만 눌러 줘' : '문자를 못 보냈어 🥲', { pose: h === 'sent' ? 'joy' : 'talk', ms: 5000 });
+    if (kind === 'sms' && h === 'sent') {   // 하루 예보를 안 쓰는 사람이면 한 번만 초대 권하기
+      const c = S.contacts.find(x => x.name === who);
+      if (c && !c.pk && !c.invAsked) { c.invAsked = Date.now(); save(); setTimeout(() => say(`💡 ${esc(who)}도 하루 예보를 깔면 문자가 <b>하루 대화방</b>에 남고, <b>무료 통화</b>도 돼. 초대해 볼까?`, { pose: 'joy', ms: 20000, buttons: [{ label: '🔗 초대 보내기', act: () => { hideBubble(); invite(c); } }, { label: '괜찮아', ghost: true }] }), 5200); }
+    }
     else say(h === 'reply' ? `💬 ${esc(who)}에게 카톡 보냈어! ✓` : h === 'share' ? `💬 글은 채워 뒀어! <b>${esc(who)}</b> 님을 찾아 누르고 [확인]만 눌러 줘` : '카톡을 못 열었어 🥲', { pose: 'joy', ms: 9000 });
     return;
   }
@@ -143,13 +147,14 @@ async function msgGo() {
   say('💬 글을 복사해 뒀어! 카톡에서 붙여 넣어 줘', { ms: 5000 });
 }
 function msgTalk(clean) {
-  const W = '(문자\\s*메시지|문자|메시지|메세지|카카오\\s*톡|카톡|톡)';
-  let m = clean.match(new RegExp(`^(.{1,12}?)\\s*(한테|에게|께|님)?\\s*${W}\\s*(으로|로)?\\s*(?:["“'‘](.+?)["”'’]\\s*(?:이라고|라고|고)?|(.+?)\\s*(?:이라고|라고))?\\s*(좀\\s*)?(보내|해|써|전해|날려)\\s*(줘|줄래|주라|봐)?[!~.?\\s]*$`));
+  const W = '((?:(?:일반|보통|그냥|휴대폰)\\s*)?(?:문자\\s*메시지|문자)|메시지|메세지|카카오\\s*톡|카톡|톡)';
   let name, kw, text = '';
-  if (m) { name = m[1]; kw = m[3]; text = (m[5] || m[6] || '').trim(); }
+  // 먼저 "엄마한테 ○○ 라고 문자 보내 줘" (할 말이 앞에)
+  let m = clean.match(new RegExp(`^(.{1,12}?)\\s*(한테|에게|께)\\s*["“'‘]?(.+?)["”'’]?\\s*(이라고|라고)\\s*${W}\\s*(으로|로)?\\s*(좀\\s*)?(보내|해|써|전해|날려)\\s*(줘|줄래|주라|봐)?[!~.?\\s]*$`));
+  if (m) { name = m[1]; text = m[3].trim(); kw = m[5]; }
   else {
-    m = clean.match(new RegExp(`^(.{1,12}?)\\s*(한테|에게|께)\\s*["“'‘]?(.+?)["”'’]?\\s*(이라고|라고)\\s*${W}\\s*(으로|로)?\\s*(좀\\s*)?(보내|해|써|전해|날려)\\s*(줘|줄래|주라|봐)?[!~.?\\s]*$`));
-    if (m) { name = m[1]; text = m[3].trim(); kw = m[5]; }
+    m = clean.match(new RegExp(`^(.{1,12}?)\\s*(한테|에게|께|님)?\\s*${W}\\s*(으로|로)?\\s*(?:["“'‘](.+?)["”'’]\\s*(?:이라고|라고|고)?|(.+?)\\s*(?:이라고|라고))?\\s*(좀\\s*)?(보내|해|써|전해|날려)\\s*(줘|줄래|주라|봐)?[!~.?\\s]*$`));
+    if (m) { name = m[1]; kw = m[3]; text = (m[5] || m[6] || '').trim(); }
     else {   // "문자 엄마한테 보내 줘"
       m = clean.match(new RegExp(`^${W}\\s*(좀\\s*)?(.{1,12}?)\\s*(한테|에게|께)\\s*(좀\\s*)?(보내|해|써|전해|날려)\\s*(줘|줄래|주라|봐)?[!~.?\\s]*$`));
       if (!m) return false;
@@ -158,6 +163,11 @@ function msgTalk(clean) {
   }
   const kind = /카|톡/.test(kw) ? 'kakao' : 'sms';
   const c = findPerson(name);
+  // 💬 11-09: 하루 예보로 연결된 사람(🔗)한테 "문자" = 하루 대화방으로 (저장됨) · "일반 문자"라고 하면 휴대폰 문자
+  if (kind === 'sms' && c && c.pk && !/일반|보통|그냥|휴대폰/.test(kw) && window.openChat) {
+    if (text) openChat(c.id).then(() => chatSend(text)); else openChat(c.id, { ask: true, listen: true });
+    return true;
+  }
   if (kind === 'sms') {
     if (!c) { say(`📞 연락처에서 <b>${esc(name)}</b>을(를) 못 찾았어. 이름을 다시 말해 줄래?`, { ms: 5000 }); return true; }
     const p = c.phones && c.phones[0];
