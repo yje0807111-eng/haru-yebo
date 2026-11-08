@@ -43,6 +43,7 @@ function drawSet() {
   $('#setBox').innerHTML = `
   <div class="card"><h3>나와 팻 <button class="mutebtn ${S.talk.mute ? 'on' : ''}" id="s_mute">${S.talk.mute ? '🔇 소리 꺼짐' : '🔊 소리 켜짐'}</button></h3>
     <label class="note">내 이름 <input id="s_name" value="${esc(S.me.name)}" placeholder="예: 푸른이"></label>
+    <label class="chk"><input type="checkbox" id="s_senior" ${S.me.senior ? 'checked' : ''}> 👴 만 65세 이상 (길찾기에서 지하철을 무료로 계산)</label>
     <label class="note">팻 이름 <input id="s_bname" value="${esc(S.me.buddyName)}" placeholder="예: 사랑이"></label></div>
   <div class="card"><h3>🐾 팻 종류</h3><div class="seg" id="s_sp">${[['dog', '🐶 강아지'], ['cat', '🐱 고양이'], ['pig', '🐷 돼지']].map(([k, n]) => `<button data-sp="${k}" class="${(S.me.species || 'dog') === k ? 'on' : ''}">${n}</button>`).join('')}</div><p class="note small">누르면 바로 바뀌어요</p></div>
   <div class="card"><h3>🐶 팻 크기</h3><p class="note small">10 = 아주 작게 · 100 = 크게</p><div class="sizes" id="s_size">${[10, 20, 30, 40, 50, 60, 70, 80, 90, 100].map(n => `<button data-sz="${n}" class="${(S.me.size || 100) === n ? 'on' : ''}">${n}</button>`).join('')}</div></div>
@@ -66,6 +67,7 @@ ${window.musicCard ? musicCard() : ''}
 }
 $('#setBox').addEventListener('input', e => {
   if (e.target.id === 's_name') dset({ me: { name: e.target.value.trim() } });
+  if (e.target.id === 's_senior') dset({ me: { senior: e.target.checked } });
   if (e.target.id === 's_mapp') dset({ music: { app: e.target.value } });
   if (e.target.id === 's_bname') dset({ me: { buddyName: e.target.value.trim() } });
   if (e.target.id === 's_vol') dset({ talk: { volume: +e.target.value / 100, cries: +e.target.value > 0 } });

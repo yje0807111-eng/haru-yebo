@@ -134,7 +134,7 @@ function dialNum(num) {
 document.addEventListener('click', e => { const a = e.target.closest && e.target.closest('a[href^="tel:"]'); if (a) { e.preventDefault(); dialNum(a.getAttribute('href').slice(4)); } }, true);
 function petMenu() {
   setPose(pick(['joy', 'love', 'wave', 'laugh'])); fx('hop'); cry(true); P.until = performance.now() + 3000; P.target = null; markSign();
-  const b = [['🏘️ 동네 날씨', () => openView('town')], ['🎨 내 방', () => openView('room')], ['📒 주소록', () => openView('people')], ['🛡️ 지킴이', () => openView('safe')], ['⏰ 시간·알람', () => openView('time')], ['⚙️ 설정', () => openView('set'), 'setb'], ['🎵 뮤직', () => openMusic()], ['📺 TV', () => openTV()], ['📖 안내소식', () => openGuide()], ['🌙 끝내기', quitApp, 'quitb']];
+  const b = [['🏘️ 동네 날씨', () => openView('town')], ['🎨 내 방', () => openView('room')], ['📒 주소록', () => openView('people')], ['🛡️ 지킴이', () => openView('safe')], ['⏰ 시간·알람', () => openView('time')], ['🧭 길찾기', () => openRoute('')], ['⚙️ 설정', () => openView('set'), 'setb'], ['🎵 뮤직', () => openMusic()], ['📺 TV', () => openTV()], ['📖 안내소식', () => openGuide()], ['🌙 끝내기', quitApp, 'quitb']];
   clearTimeout(bubbleT);
   bubble.querySelector('.text').innerHTML = animalize(pick([`멍! 뭐 할까? 🐾`, `불렀어? 헤헤 🐶`, `${S.me.name ? esc(S.me.name) + '! ' : ''}뭐 도와줄까?`]));
   const box = bubble.querySelector('.btns'); box.innerHTML = '<div class="petmenu"></div>';
@@ -214,6 +214,7 @@ function isSearch(text) {
 async function send(text, opt = {}) {   // opt.talk = 바탕화면 팻에게 한 말(검색 말고 대화)
   text = String(text || '').trim(); if (!text) return;
   t.value = ''; markSign();
+  if (view === 'route' && window.routeTalk && routeTalk(text)) return;   // 🧭 길찾기 중: 도착지·"맞아"·목적
   if (view !== 'home') go('home');   // 대답은 다루 마당에서
   const em = stripName(text).match(/^(119|112|1394|일일구|일일이|구급차|소방서|경찰)\s*(에|로|번|을|를|좀)?\s*(전화|신고|불러)/);
   if (em && window.sosCall) { sosCall(/^(119|일일구|구급차|소방서)/.test(em[1]) ? '119' : /^(112|일일이|경찰)/.test(em[1]) ? '112' : '1394'); return; }
@@ -221,7 +222,9 @@ async function send(text, opt = {}) {   // opt.talk = 바탕화면 팻에게 한
   if (smode && !opt.talk) {   // 팻방 말창 = 검색. 단, 알람·시간·전화·명령은 먼저 알아들음 (11-07)
     if (window.peopleTalk && await peopleTalk(text)) return;
     if (await timeTalk(text)) return;
-    if (window.ballTalk && ballTalk(text)) return;
+    if (window.routeTalk && routeTalk(text)) return;
+    if (window.routeTalk && routeTalk(text)) return;
+  if (window.ballTalk && ballTalk(text)) return;
     if (window.dgTalk && dgTalk(text)) return;
     if (window.worshipTalk && worshipTalk(text)) return;
     if (window.tvTalk && tvTalk(text)) return;

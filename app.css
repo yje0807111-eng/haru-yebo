@@ -376,3 +376,14 @@ body.smode .talk { background: #fff; border: 0; box-shadow: 0 2px 12px rgba(49,1
 
 /* 11-07 한글 줄바꿈: 낱말 중간에서 자르지 않기 */
 #intro .itext, #bubble .text, .note, .card h3 { word-break: keep-all; overflow-wrap: break-word; }
+
+/* 11-08 🧭 길찾기 */
+.rmap { height: 260px; border-radius: 18px; overflow: hidden; margin-bottom: 10px; background: #e9eef3; z-index: 0; }
+.rpetc #rPet { margin: 0; font-size: 16px; line-height: 1.6; word-break: keep-all; }
+.rme i { display: block; width: 18px; height: 18px; border-radius: 50%; background: #3182f6; border: 3px solid #fff; box-shadow: 0 0 0 4px rgba(49,130,246,.25); box-sizing: border-box; }
+.rcand { display: block; width: 100%; text-align: left; border: 0; background: #f2f4f6; border-radius: 12px; padding: 10px 12px; margin: 6px 0; }
+.rcand.on { background: #e8f3ff; outline: 2px solid #3182f6; }
+.rcand span { display: block; font-size: 12.5px; color: #6b7684; margin-top: 2px; }
+.rroute .rtag { margin: 0 0 4px; font-weight: 800; color: #3182f6; font-size: 13.5px; }
+.rroute .rbig { font-size: 20px; font-weight: 800; margin: 4px 0; }
+.leaflet-tooltip { font-weight: 700; }

@@ -11,6 +11,7 @@
 <link rel="apple-touch-icon" href="icon-192.png">
 <title>하루 예보</title>
 <link rel="stylesheet" href="app.css">
+<link rel="stylesheet" href="lib/leaflet/leaflet.css">
 </head>
 <body class="petonly">
 <div id="app">
@@ -72,6 +73,12 @@
     <div id="bibleBox"></div>
   </section>
 
+  <!-- 🧭 길찾기 -->
+  <section class="view" data-v="route">
+    <header><h2>🧭 길찾기</h2></header>
+    <div id="routeBox"></div>
+  </section>
+
   <!-- 📺 TV방 -->
   <section class="view" data-v="tv">
     <header><h2>📺 TV</h2></header>
@@ -129,6 +136,9 @@
 <script src="bible.js"></script>
 <script src="daangn.js"></script>
 <script src="ballgame.js"></script>
+<script src="lib/leaflet/leaflet.js"></script>
+<script src="keys.js"></script>
+<script src="route.js"></script>
 <script src="native.js"></script>
 </body>
 </html>
