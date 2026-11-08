@@ -456,6 +456,7 @@ public class FloatPetService extends Service {
         final String t = text == null ? "" : text.trim();
         endEdit();
         if (t.isEmpty()) return;
+        if (composing()) { composeConfirm(t); return; }   // ✉️💬 받아 적는 중이면 쓴 글 = 보낼 글
         bubble("💭 …", 20000);
         ack = false;
         FloatPetPlugin.overlayText(t);
@@ -498,6 +499,7 @@ public class FloatPetService extends Service {
         if (bub != null) bub.setVisibility(View.GONE);
         if ("kakao".equals(k)) openKakao();
         else if ("reply".equals(k)) sendReply(replyText);
+        else if ("csend".equals(k)) composeSend();
         else if ("tel".equals(k)) { try { Intent i = new Intent(Intent.ACTION_DIAL, android.net.Uri.parse("tel:" + android.net.Uri.encode(telNum.replaceAll("[^0-9+*#]", "")))); i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK); startActivity(i); } catch (Exception e) { bubble("전화 화면을 못 열었어 🥲", 3000); } }
     }
     void bubbleK(String kind, String text, int ms) { nextKind = kind; bubble(text, ms); h.postDelayed(() -> { if (bub == null || bub.getVisibility() != View.VISIBLE) bubKind = ""; }, ms + 100); }
@@ -527,6 +529,33 @@ public class FloatPetService extends Service {
         return now < replyUntil && now - replyStart < 60000;
     }
     long replyStart = 0;
+    // ✉️💬 11-08: "엄마에게 문자(카톡) 보내 줘" → 어떻게 보낼까? → 말하면 받아 적고 → 말풍선 누르면 보냄
+    String cKind = "", cWho = "", cNum = "", cText = ""; long cUntil = 0;
+    boolean composing() { return System.currentTimeMillis() < cUntil; }
+    String cIcon() { return "sms".equals(cKind) ? "✉️ " : "💬 "; }
+    String cWhat() { return "sms".equals(cKind) ? "문자" : "카톡"; }
+    void composeStart(String kind, String who, String num, String text) {
+        cKind = kind; cWho = who == null ? "" : who; cNum = num == null ? "" : num; cText = "";
+        if (text != null && !text.trim().isEmpty()) { composeConfirm(text.trim()); return; }
+        cUntil = System.currentTimeMillis() + 90000;
+        bubble(cIcon() + cWho + "에게 " + cWhat() + " 어떻게 보낼까?\n말해 줘 🎤", 4000);
+        h.postDelayed(() -> { if (composing() && cText.isEmpty()) listen(); }, 1600);   // 바로 듣기
+    }
+    void composeConfirm(String text) {
+        cText = text; cUntil = System.currentTimeMillis() + 30000;   // 30초 안에 나를 누르면 다시 받아 적기
+        bubbleK("csend", cIcon() + cWho + "에게 이렇게 보낼까?\n\"" + text + "\"\n👉 여기를 누르면 보내요 (다시 말하려면 나를 눌러)", 30000);
+    }
+    void composeSend() {
+        String text = cText; cUntil = 0; cText = "";
+        if (text.isEmpty()) return;
+        if ("sms".equals(cKind)) {
+            String r = HaruSend.sms(this, cNum, text);
+            bubble("sent".equals(r) ? "✉️ " + cWho + "에게 문자 보냈어! ✓" : "open".equals(r) ? "✉️ 문자 화면에 글을 채워 뒀어.\n보내기 단추만 눌러 줘" : "문자를 못 보냈어 🥲", 5000);
+        } else {
+            String r = HaruSend.kakao(this, cWho, text);
+            bubble("reply".equals(r) ? "💬 " + cWho + "에게 카톡 보냈어! ✓" : "share".equals(r) ? "💬 글은 채워 뒀어!\n" + cWho + " 님을 찾아 누르고 [확인]만 눌러 줘" : "카톡을 못 열었어 🥲 글은 복사해 뒀어", 9000);
+        }
+    }
     void confirmReply(String text) {
         replyText = text;
         bubbleK("reply", "💬 " + HaruNotiListener.kakaoWho + "에게 이렇게 보낼까?\n\"" + text + "\"\n👉 여기를 누르면 보내요 (다시 말하려면 나를 눌러)", 20000);
@@ -555,14 +584,15 @@ public class FloatPetService extends Service {
         if (alarmOn) { stopAlarmByTap(); return; }   // 알람 울리는 중이면 누르면 그만
         if (Build.VERSION.SDK_INT >= 23 && checkSelfPermission(android.Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) { open("mic"); return; }
         if (!SpeechRecognizer.isRecognitionAvailable(this)) { open("mic"); return; }
-        bubble(inKakaoChat() ? "🎤 " + HaruNotiListener.kakaoWho + "에게 보낼 말을 해 줘!" : "👂 듣고 있어… 말해 줘!", 9000);
+        bubble(composing() ? cIcon() + cWho + "에게 보낼 말을 해 줘! 🎤" : inKakaoChat() ? "🎤 " + HaruNotiListener.kakaoWho + "에게 보낼 말을 해 줘!" : "👂 듣고 있어… 말해 줘!", 9000);
         micRed(true);
         final SpeechRecognizer sr = SpeechRecognizer.createSpeechRecognizer(this);
         sr.setRecognitionListener(new RecognitionListener() {
             public void onResults(Bundle b) {
                 ArrayList<String> m = b.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
                 sr.destroy(); micRed(false); h.postDelayed(() -> beepRestore(FloatPetService.this), 900);
-                if (m != null && !m.isEmpty() && HaruNotiListener.kakaoOpen != null && inKakaoChat()) confirmReply(m.get(0));   // 💬 카톡 답장
+                if (m != null && !m.isEmpty() && composing()) { if (m.get(0).matches("^\\s*(그만|취소|안\\s*보내|됐어)[\\s.!~]*$")) { cUntil = 0; bubble("알겠어, 안 보낼게", 2500); } else composeConfirm(m.get(0)); }   // ✉️💬 받아 적기
+                else if (m != null && !m.isEmpty() && HaruNotiListener.kakaoOpen != null && inKakaoChat()) confirmReply(m.get(0));   // 💬 카톡 답장
                 else if (m != null && !m.isEmpty()) { bubble("👂 \"" + m.get(0) + "\"", 2500); submit(m.get(0)); }
                 else bubble("잘 못 들었어 🥲 다시 눌러 줘", 3000);
             }
@@ -694,6 +724,7 @@ public class FloatPetService extends Service {
             if (sp.getBoolean("cries", true)) me.bark(true, sp.getFloat("vol", 0.5f));
         });
     }
+    static boolean composeStatic(String kind, String who, String num, String text) { if (me == null) return false; me.h.post(() -> me.composeStart(kind, who, num, text)); return true; }
     static void sayTelStatic(String text, String tel, int ms) { if (me != null) me.h.post(() -> { me.telNum = tel; me.bubbleK("tel", text, ms); }); }
     // ⏰ 알람: 팻이 울며 알려 줌 (팻을 누르면 그만)
     boolean alarmOn = false; int alarmN = 0;

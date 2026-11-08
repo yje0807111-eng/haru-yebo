@@ -97,10 +97,73 @@ async function pmodeSend(text) {
   if (/^(그만|끝|됐어)[!~.\s]*$/.test(text)) { endPmode(); say('알겠어, 다시 나랑 이야기하자 🐶', { ms: 2500 }); return; }
   const c = S.contacts.find(x => x.id === pmode.cid); if (c) await sendTo(c, text);
 }
+// ✉️💬 11-08: "엄마에게 문자(카톡) 보내 줘" → 어떻게 보낼까? → 말하면 받아 적고 → 말풍선 누르면 보냄
+let MC = null;
+const FPx = () => window.Capacitor && Capacitor.Plugins && Capacitor.Plugins.FloatPet;
+const mcIcon = k => k === 'sms' ? '✉️' : '💬', mcWhat = k => k === 'sms' ? '문자' : '카톡';
+async function msgCompose(kind, who, num, text) {
+  const F = FPx();
+  if (document.hidden && F && F.compose) { const r = await F.compose({ kind, who, num: num || '', text: text || '' }).catch(() => null); if (r && r.ok) return; }
+  MC = { kind, who, num, text: '', until: Date.now() + 90000 };
+  if (text) return msgConfirm(text);
+  say(`${mcIcon(kind)} <b>${esc(who)}</b>에게 ${mcWhat(kind)} 어떻게 보낼까?<br>말해 줘 🎤 <span class="small">(글로 써도 돼)</span>`, { pose: 'joy', ms: 20000, buttons: [{ label: '그만', ghost: true, act: () => { MC = null; hideBubble(); } }] });
+  if (window.Native && Native.listen) setTimeout(msgListen, 700);
+}
+async function msgListen() {
+  if (!MC) return;
+  let txt = ''; try { txt = await Native.listen(); } catch { }
+  txt = String(txt || '').trim();
+  if (txt) msgPending(txt); else if (MC && !MC.text) say('잘 못 들었어 🥲 다시 말하려면 🎤 를 눌러 줘 (글로 써도 돼)', { ms: 6000 });
+}
+function msgConfirm(text) {
+  MC.text = text; MC.until = Date.now() + 30000;
+  say(`${mcIcon(MC.kind)} <b>${esc(MC.who)}</b>에게 이렇게 보낼까?<br>"${esc(text)}"<br><span class="small">👉 말풍선을 누르면 보내요</span>`, { pose: 'letter', ms: 30000, tap: msgGo, buttons: [{ label: '보내기', act: msgGo }, ...(window.Native && Native.listen ? [{ label: '🎤 다시 말하기', act: () => { hideBubble(); msgListen(); } }] : []), { label: '그만', ghost: true, act: () => { MC = null; hideBubble(); } }] });
+}
+window.msgPending = function (text) {   // 받아 적는 중이면 이 말 = 보낼 글
+  if (!MC || Date.now() > MC.until) { MC = null; return false; }
+  if (/^(그만|취소|안\s*보내|됐어)[!~.\s]*$/.test(text)) { MC = null; say('알겠어, 안 보낼게', { ms: 2500 }); return true; }
+  msgConfirm(text); return true;
+};
+async function msgGo() {
+  if (!MC || !MC.text) return;
+  const { kind, who, num, text } = MC; MC = null; hideBubble();
+  const F = FPx();
+  if (F && F.msgSend) {
+    const r = await F.msgSend({ kind, who, num: num || '', text }).catch(() => ({ how: 'fail' }));
+    const h = r && r.how;
+    if (kind === 'sms') say(h === 'sent' ? `✉️ ${esc(who)}에게 문자 보냈어! ✓` : h === 'open' ? '✉️ 문자 화면에 글을 채워 뒀어. 보내기 단추만 눌러 줘' : '문자를 못 보냈어 🥲', { pose: h === 'sent' ? 'joy' : 'talk', ms: 5000 });
+    else say(h === 'reply' ? `💬 ${esc(who)}에게 카톡 보냈어! ✓` : h === 'share' ? `💬 글은 채워 뒀어! <b>${esc(who)}</b> 님을 찾아 누르고 [확인]만 눌러 줘` : '카톡을 못 열었어 🥲', { pose: 'joy', ms: 9000 });
+    return;
+  }
+  if (kind === 'sms') { location.href = `sms:${String(num).replace(/[^0-9+]/g, '')}?body=${encodeURIComponent(text)}`; return; }
+  try { await navigator.clipboard.writeText(text); } catch { }
+  say('💬 글을 복사해 뒀어! 카톡에서 붙여 넣어 줘', { ms: 5000 });
+}
+function msgTalk(clean) {
+  const W = '(문자\\s*메시지|문자|메시지|메세지|카카오\\s*톡|카톡|톡)';
+  let m = clean.match(new RegExp(`^(.{1,12}?)\\s*(한테|에게|께)\\s*${W}\\s*(으로|로)?\\s*(?:["“'‘](.+?)["”'’]\\s*(?:이라고|라고|고)?|(.+?)\\s*(?:이라고|라고))?\\s*(좀\\s*)?(보내|해|써|전해|날려)\\s*(줘|줄래|주라|봐)?[!~.?\\s]*$`));
+  let name, kw, text = '';
+  if (m) { name = m[1]; kw = m[3]; text = (m[5] || m[6] || '').trim(); }
+  else {
+    m = clean.match(new RegExp(`^(.{1,12}?)\\s*(한테|에게|께)\\s*["“'‘]?(.+?)["”'’]?\\s*(이라고|라고)\\s*${W}\\s*(으로|로)?\\s*(좀\\s*)?(보내|해|써|전해|날려)\\s*(줘|줄래|주라|봐)?[!~.?\\s]*$`));
+    if (!m) return false;
+    name = m[1]; text = m[3].trim(); kw = m[5];
+  }
+  const kind = /카|톡/.test(kw) ? 'kakao' : 'sms';
+  const c = findPerson(name);
+  if (kind === 'sms') {
+    if (!c) { say(`📒 주소록에서 <b>${esc(name)}</b>을(를) 못 찾았어. 이름을 다시 말해 줄래?`, { ms: 5000 }); return true; }
+    const p = c.phones && c.phones[0];
+    if (!p) { say(`${esc(c.name)} 번호가 없어 🥲`, { ms: 4000 }); return true; }
+    msgCompose('sms', c.name, p.num, text); return true;
+  }
+  msgCompose('kakao', c ? c.name : name.trim(), '', text); return true;
+}
 const findPerson = nm => { nm = String(nm || '').trim(); return S.contacts.find(c => c.name === nm) || (nm.length >= 2 ? S.contacts.find(c => c.name.includes(nm) || nm.includes(c.name)) : null); };
 async function peopleTalk(text) {
   const clean = stripName(text);
   if (/HARU-npub1[0-9a-z]+-[0-9a-z]{6}/.test(clean)) { const r = await join(clean); say(r === 'ok' ? '🔗 연결 신청을 보냈어! 상대가 받으면 알려 줄게 🐶' : r === 'self' ? '이건 내가 만든 초대 코드야~' : r === 'net' ? '인터넷 문제로 못 보냈어. 다시 붙여 넣어 줘' : '초대 코드가 이상해. 받은 글을 통째로 붙여 넣어 줘!', { pose: 'joy', ms: 6000 }); return true; }
+  if (msgTalk(clean)) return true;   // ✉️💬 문자·카톡 보내기
   const call = clean.match(/^(.{1,12}?)\s*(한테|에게|께|에)?\s*(전화|통화)\s*(좀\s*)?(걸어\s*(줘|줄래)?|해\s*(줘|줄래)|연결해?\s*(줘)?|하자|할래)?[!~.?\s]*$/);
   if (call) { const c = findPerson(call[1]); const p = c && c.phones[0]; if (c) { if (!p) say(`${esc(c.name)} 번호가 없어 🥲`); else say(`📞 <b>${esc(c.name)}</b>  ${esc(p.num)}<br><span class="small">👉 말풍선을 누르면 전화 화면이 열려요. 초록 단추만 누르면 걸려요</span>`, { pose: 'joy', ms: 20000, telNum: p.num, tap: () => dialNum(p.num), buttons: [{ label: '📞 전화 화면 열기', tel: p.num }, { label: '아니', ghost: true }] }); return true; } }
   const m = clean.match(/^(.{1,12}?)\s*(한테|에게|께)\s*["“'‘]?(.+?)["”'’]?\s*(라고|이라고|고)?\s*(전해|보내|말해|알려)\s*(줘|줄래|주라)?[!~.?\s]*$/);

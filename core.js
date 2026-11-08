@@ -237,6 +237,7 @@ async function featureTalk(text) {
 async function send(text, opt = {}) {   // opt.talk = 바탕화면 팻에게 한 말(검색 말고 대화)
   text = String(text || '').trim(); if (!text) return;
   t.value = ''; markSign();
+  if (window.msgPending && msgPending(text)) return;   // ✉️💬 받아 적는 중
   if (window.mapTalk && mapTalk(text)) return;   // 🗺️ "지도" (길찾기 중이어도 먼저)
   if (view === 'route' && window.routeTalk && routeTalk(text)) return;   // 🧭 길찾기 중: 도착지·"맞아"·목적
   if (view !== 'home') go('home');   // 대답은 다루 마당에서

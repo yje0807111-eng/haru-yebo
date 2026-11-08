@@ -442,6 +442,33 @@ public class FloatPetPlugin extends Plugin {
     private void smsReply(PluginCall call) { JSObject r = new JSObject(); r.put("granted", HaruSms.can(getContext())); r.put("day", HaruSms.lastDay(getContext())); call.resolve(r); }
     @PluginMethod
     public void smsDaily(PluginCall call) { JSObject r = new JSObject(); r.put("sent", HaruSms.daily(getContext())); r.put("day", HaruSms.lastDay(getContext())); call.resolve(r); }
+    // ✉️💬 11-08: 말로 문자·카톡 — compose = 화면 위 팻이 받아 적기 · msgSend = 바로 보내기(앱 안에서)
+    @PluginMethod
+    public void compose(PluginCall call) {
+        if ("sms".equals(call.getString("kind", "")) && getPermissionState("sms") != PermissionState.GRANTED && getActivity() != null && !getActivity().isFinishing() && hasWindowFocusSafe()) { requestPermissionForAlias("sms", call, "composePermCb"); return; }
+        composeGo(call);
+    }
+    private boolean hasWindowFocusSafe() { try { return getActivity().hasWindowFocus(); } catch (Exception e) { return false; } }
+    @PermissionCallback
+    private void composePermCb(PluginCall call) { composeGo(call); }
+    private void composeGo(PluginCall call) {
+        JSObject r = new JSObject();
+        r.put("ok", FloatPetService.composeStatic(call.getString("kind", "sms"), call.getString("who", ""), call.getString("num", ""), call.getString("text", "")));
+        call.resolve(r);
+    }
+    @PluginMethod
+    public void msgSend(PluginCall call) {
+        if ("sms".equals(call.getString("kind", "")) && getPermissionState("sms") != PermissionState.GRANTED) { requestPermissionForAlias("sms", call, "msgPermCb"); return; }
+        msgGo(call);
+    }
+    @PermissionCallback
+    private void msgPermCb(PluginCall call) { msgGo(call); }
+    private void msgGo(PluginCall call) {
+        JSObject r = new JSObject();
+        String kind = call.getString("kind", "sms"), text = call.getString("text", "");
+        r.put("how", "sms".equals(kind) ? HaruSend.sms(getContext(), call.getString("num", ""), text) : HaruSend.kakao(getContext(), call.getString("who", ""), text));
+        call.resolve(r);
+    }
     @PluginMethod
     public void smsSend(PluginCall call) { JSObject r = new JSObject(); r.put("ok", HaruSms.send(getContext(), call.getString("num", ""), call.getString("text", ""))); call.resolve(r); }
     // 🎾 공 던지기 게임 (11-07): 하루 예보가 앞에 있으면 뒤로 보내고 화면 위 팻과 놀기
