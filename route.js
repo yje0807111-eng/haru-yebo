@@ -2,7 +2,7 @@
 const R = { step: 'idle', from: null, to: null, cands: [], purpose: '', airport: null, watch: null, lastSay: 0, lastLeft: 0, map: null, mk: {}, story: '' };
 const RK = () => window.HARU_KEYS || {};
 const rkm = (a, b) => { const t = Math.PI / 180, dl = (b.lat - a.lat) * t, dn = (b.lon - a.lon) * t, x = Math.sin(dl / 2) ** 2 + Math.cos(a.lat * t) * Math.cos(b.lat * t) * Math.sin(dn / 2) ** 2; return 6371 * 2 * Math.atan2(Math.sqrt(x), Math.sqrt(1 - x)); };
-const won = n => Math.round(n / 100) * 100 > 0 ? (Math.round(n / 100) * 100).toLocaleString() + '원' : '0원';
+const won = (n, r) => { n = r ? Math.round(n / 100) * 100 : Math.round(n); return n > 0 ? n.toLocaleString() + '원' : '0원'; };   // r = 택시처럼 대략
 const mins = m => m >= 60 ? `${Math.floor(m / 60)}시간 ${Math.round(m % 60)}분` : `${Math.round(m)}분`;
 const RF = () => window.Capacitor && Capacitor.Plugins && Capacitor.Plugins.FloatPet;
 function rSpeak(text) { const F = RF(); const t = String(text).replace(/<[^>]+>/g, ' ').replace(/[🐾🧭📍✈️⛪🚇🚌🚕🚶💰⚡😌👴🎉💛]/gu, ''); if (F && F.ttsSpeak) F.ttsSpeak({ text: t, id: 'route' + Date.now() }).catch(() => {}); else if (window.speechSynthesis) { speechSynthesis.cancel(); const u = new SpeechSynthesisUtterance(t); u.lang = 'ko-KR'; speechSynthesis.speak(u); } }
@@ -76,7 +76,7 @@ async function rRoutes(again) {
   const out = [];
   if (R.pt) out.push(...R.pt);   // 🚇🚌 지하철·버스 (단추로 찾은 것)
   if (d && d < 2.2) out.unshift({ icon: '🚶', title: '걸어가기', min: roadKm / 4.2 * 60, fare: 0, note: '조금만 걸으면 0원이야. 지름길로 안내해 줄게', tag: '💰 돈 안 드는 길' });
-  if (d >= 0.8) { const rk = d * 1.25, tmin = 6 + rk / (rk > 20 ? 58 : 24) * 60, taxi = (4800 + Math.max(0, rk - 1.6) * 760) * 1.12; out.push({ icon: '🚕', title: '택시', min: tmin, fare: taxi, note: `대략이야. 차가 막히면 더 나와${rk > 30 ? ' · 고속도로 통행료 따로' : ''}`, tag: '' }); }
+  if (d >= 0.8) { const rk = d * 1.25, tmin = 6 + rk / (rk > 20 ? 58 : 24) * 60, taxi = (4800 + Math.max(0, rk - 1.6) * 760) * 1.12; out.push({ icon: '🚕', title: '택시', approx: true, min: tmin, fare: taxi, note: `대략이야. 차가 막히면 더 나와${rk > 30 ? ' · 고속도로 통행료 따로' : ''}`, tag: '' }); }
   R.routes = out; rDraw();
   const best = out.filter(r => r.tag).map(r => `${r.tag}: ${r.title} ${mins(r.min)}`).join(', ');
   if (again && R.pt && R.pt.length) { const f = R.pt[0], c = R.pt.find(r => r.tag && r.tag.startsWith('💰')); rTalk(`${f.tag}: ${esc(f.title.replace(/[🚇🚌]/gu, ''))}, <b>${mins(f.min)} · ${won(f.fare)}</b>.${c ? ` 돈을 아끼려면 ${mins(c.min)} · <b>${won(c.fare)}</b> 길도 있어.` : ''} 어떤 걸로 갈까?`); rDraw(); return; }
@@ -112,15 +112,15 @@ function odsayPick(paths) {
   {
     const list = paths.map(p => {
       const i = p.info || {}, subs = p.subPath || [], bus = subs.some(s => s.trafficType === 2), sub = subs.some(s => s.trafficType === 1);
-      const legs = subs.filter(s => s.trafficType !== 3).map(s => s.trafficType === 1 ? `🚇 ${(s.lane && s.lane[0] && s.lane[0].name) || '지하철'} ${s.startName}→${s.endName}` : `🚌 ${(s.lane && s.lane[0] && s.lane[0].busNo) || '버스'} ${s.startName}→${s.endName}`);
+      const legs = subs.filter(s => s.trafficType !== 3).map(s => s.trafficType === 1 ? `🚇 ${((s.lane && s.lane[0] && s.lane[0].name) || '지하철').replace(/^수도권\s*/, '')} ${s.startName}→${s.endName}` : `🚌 ${(s.lane && s.lane[0] && s.lane[0].busNo) || '버스'} ${s.startName}→${s.endName}`);
       const transfers = (i.busTransitCount || 0) + (i.subwayTransitCount || 0) - 1;
       let fare = i.payment || 0; if (S.me.senior && !bus) fare = 0;
-      return { icon: sub && bus ? '🚇🚌' : sub ? '🚇' : '🚌', title: legs.join(' → '), min: i.totalTime || 0, fare, walk: i.totalWalk || 0, transfers: Math.max(0, transfers), note: `갈아타기 ${Math.max(0, transfers)}번 · 걷기 ${Math.round((i.totalWalk || 0) / 70)}분${S.me.senior && !bus ? ' · 어르신 지하철 무료' : ''}`, tag: '' };
+      return { icon: '', title: legs.join(' → '), min: i.totalTime || 0, fare, walk: i.totalWalk || 0, transfers: Math.max(0, transfers), note: `갈아타기 ${Math.max(0, transfers)}번 · 걷기 ${Math.round((i.totalWalk || 0) / 70)}분${S.me.senior && !bus ? ' · 어르신 지하철 무료' : ''}`, tag: '' };
     });
     if (!list.length) return [];
     const fast = list.slice().sort((a, b) => a.min - b.min)[0];
     // 💰 싼 길: 300원 넘게 아끼고 시간이 1.5배 안쪽일 때만 (몇십 원 아끼려고 한참 돌아가지 않게)
-    let cheap = list.filter(r => fast.fare - r.fare >= 300 && r.min <= fast.min * 1.5).sort((a, b) => a.fare - b.fare || a.min - b.min)[0] || fast;
+    let cheap = list.filter(r => fast.fare - r.fare >= 500 && r.min <= fast.min * 1.3).sort((a, b) => a.fare - b.fare || a.min - b.min)[0] || fast;
     const easy = list.slice().sort((a, b) => a.transfers - b.transfers || a.walk - b.walk || a.min - b.min)[0];
     fast.tag = '⚡ 가장 빠른 길'; if (cheap !== fast) cheap.tag = '💰 가장 싼 길'; if (easy !== fast && easy !== cheap) easy.tag = '😌 가장 편한 길 (갈아타기 적게)';
     if (cheap !== fast) cheap.note += ` · ${mins(cheap.min - fast.min)} 더 걸리지만 ${won(fast.fare - cheap.fare)} 아껴`;
@@ -162,7 +162,7 @@ function rDraw(force) {
       <p class="note small">모르면 비행기 표나 문자에 적힌 <b>T1 / T2</b>를 봐 줘. 대한항공·아시아나·델타·에어프랑스 등은 2터미널이야.</p>
       <p class="note" style="margin-top:10px">무슨 일로?</p><div class="seg">${[['out', '✈️ 출국'], ['in', '🙋 마중(입국)']].map(([k, n]) => `<button data-ak="${k}" class="${A.kind === k ? 'on' : ''}">${n}</button>`).join('')}</div></div>`; }
   if (st === 'why') body = `<div class="card"><div class="tvapps">${[['예배', '⛪ 예배'], ['약속', '🤝 약속·만남'], ['병원', '🏥 병원'], ['구경', '🌿 구경·관광'], ['볼일', '📋 볼일'], ['', '그냥 가자']].map(([k, n]) => `<button data-rp="${k}">${n}</button>`).join('')}</div></div>`;
-  if (st === 'routes' || st === 'going') body = `${(R.routes || []).map(r => `<div class="card rroute">${r.tag ? `<p class="rtag">${r.tag}</p>` : ''}<p><b>${r.icon} ${esc(r.title)}</b></p><p class="rbig">${mins(r.min)} · ${won(r.fare)}</p><p class="note small">${esc(r.note || '')}</p></div>`).join('')}
+  if (st === 'routes' || st === 'going') body = `${(R.routes || []).map(r => `<div class="card rroute">${r.tag ? `<p class="rtag">${r.tag}</p>` : ''}<p><b>${r.icon ? r.icon + ' ' : ''}${esc(r.title)}</b></p><p class="rbig">${mins(r.min)} · ${r.approx ? '약 ' + won(r.fare, 1) : won(r.fare)}</p><p class="note small">${esc(r.note || '')}</p></div>`).join('')}
       ${RK().odsay && !R.ptDone ? '<div class="card"><button class="btn" data-r="pt" style="width:100%;font-size:17px;padding:14px">🚇🚌 지하철·버스로 가는 길 찾기</button></div>' : ''}
       <div class="card"><p class="note">${RK().odsay ? '실시간 버스 도착·내릴 역 알림은 지도 앱이 더 정확해요' : '지하철·버스 길은 지도 앱에서 바로 볼 수 있어요'}</p><div class="row bctl"><button data-r="kakao">🗺️ 카카오맵</button><button data-r="naver">🗺️ 네이버 지도</button></div>
       <div class="row bctl"><button data-r="go" class="bplay">${R.watch ? '⏹ 안내 그만' : '🐾 같이 가자 (내 위치 따라 안내)'}</button></div></div>
