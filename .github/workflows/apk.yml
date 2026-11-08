@@ -16,6 +16,12 @@ jobs:
         with: { node-version: 20 }
       - uses: actions/setup-java@v4
         with: { distribution: temurin, java-version: 17 }
+      # Gradle 내려받기를 보관 (깃허브 504 로 실패하지 않게, 11-08)
+      - name: Gradle 보관
+        uses: actions/cache@v4
+        with:
+          path: ~/.gradle/wrapper/dists
+          key: gradle-wrapper-dists-v1
       # 서명 열쇠를 같은 것으로 계속 쓰기 (바뀌면 앱을 지우고 다시 깔아야 해서)
       - name: 서명 열쇠 이어 쓰기
         uses: actions/cache@v4
@@ -66,7 +72,7 @@ jobs:
           printf '\ndependencies { implementation "com.google.mlkit:text-recognition-korean:16.0.0" }\n' >> android/app/build.gradle   # 🧾 영수증 글자 읽기
           cd android
           chmod +x gradlew
-          ./gradlew assembleDebug --no-daemon -q
+          for i in 1 2 3; do ./gradlew assembleDebug --no-daemon -q && break; echo "다시 해 보기 $i"; sleep 20; done   # 내려받기 오류면 3번까지
           cp app/build/outputs/apk/debug/app-debug.apk ../../haru-yebo.apk
           cp app/build/outputs/apk/debug/app-debug.apk ../../haru-yebo-${{ github.run_number }}.apk
       - name: 내려받을 곳에 올리기
