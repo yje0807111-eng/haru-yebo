@@ -13,7 +13,7 @@ function drawTime() {
     ${al.map(a => `<div class="trow" data-al="${a.id}"><input type="datetime-local" data-k="at" value="${(d => `${d.getFullYear()}-${p2(d.getMonth() + 1)}-${p2(d.getDate())}T${p2(d.getHours())}:${p2(d.getMinutes())}`)(new Date(a.at))}">
       <label class="chk" style="margin:0"><input type="checkbox" data-k="daily" ${a.daily ? 'checked' : ''}>매일</label><input class="txt" data-k="label" value="${esc(a.label || '')}" placeholder="무엇을? (예: 약 먹기)"><button class="btn small ghost" data-del="al">🗑</button></div>`).join('') || '<p class="note">맞춰 둔 알람이 없어.</p>'}</div>
   <div class="card"><h3>🎂 생일 <button class="btn small" id="bdAdd">➕</button></h3>
-    <p class="note small">3일 전·하루 전·당일에 알려 줘요. 주소록에 넣은 생일도 같이 챙겨요.</p>
+    <p class="note small">3일 전·하루 전·당일에 알려 줘요. 연락처에 넣은 생일도 같이 챙겨요.</p>
     ${S.birthdays.map(b => `<div class="trow" data-bd="${b.id}"><input data-k="name" value="${esc(b.name)}" placeholder="이름" style="flex:1"><select data-k="m">${Array.from({ length: 12 }, (_, i) => `<option value="${i + 1}" ${b.m === i + 1 ? 'selected' : ''}>${i + 1}월</option>`).join('')}</select><select data-k="d">${Array.from({ length: 31 }, (_, i) => `<option value="${i + 1}" ${b.d === i + 1 ? 'selected' : ''}>${i + 1}일</option>`).join('')}</select><button class="btn small ghost" data-del="bd">🗑</button></div>`).join('')}</div>`;
 }
 $('#timeBox').addEventListener('click', e => {
@@ -45,23 +45,23 @@ function drawSet() {
     <label class="note">내 이름 <input id="s_name" value="${esc(S.me.name)}" placeholder="예: 푸른이"></label>
     <label class="chk"><input type="checkbox" id="s_senior" ${S.me.senior ? 'checked' : ''}> 👴 만 65세 이상 (길찾기에서 지하철을 무료로 계산)</label>
     <label class="note">팻 이름 <input id="s_bname" value="${esc(S.me.buddyName)}" placeholder="예: 사랑이"></label></div>
-  <div class="card"><h3>🐾 팻 종류</h3><div class="seg" id="s_sp">${[['dog', '🐶 강아지'], ['cat', '🐱 고양이'], ['pig', '🐷 돼지']].map(([k, n]) => `<button data-sp="${k}" class="${(S.me.species || 'dog') === k ? 'on' : ''}">${n}</button>`).join('')}</div><p class="note small">누르면 바로 바뀌어요</p></div>
-  <div class="card"><h3>🐶 팻 크기</h3><p class="note small">10 = 아주 작게 · 100 = 크게</p><div class="sizes" id="s_size">${[10, 20, 30, 40, 50, 60, 70, 80, 90, 100].map(n => `<button data-sz="${n}" class="${(S.me.size || 100) === n ? 'on' : ''}">${n}</button>`).join('')}</div></div>
 ${window.Native ? `<div class="card"><h3>🐶 화면 위 팻</h3><label class="chk"><input type="checkbox" id="s_float" ${S.floatOff ? '' : 'checked'}> 하루 예보를 닫아도 다른 앱 위에 팻 띄우기</label><p class="note small" id="s_floatSt"></p><p class="note small">팻을 끌어서 옮기고, 누르면 하루 예보가 열려요.</p><button class="btn ghost small" id="s_diag">🩺 팻 상태 보기</button><pre id="s_diagOut" style="white-space:pre-wrap;font-size:11px;max-height:300px;overflow:auto"></pre></div>` : ''}
-  <div class="card"><h3>🐾 팻 기분</h3><div class="seg" id="s_temper">${[['active', '😆 활발'], ['normal', '🙂 평범'], ['shy', '🥺 소심']].map(([k, n]) => `<button data-tm="${k}" class="${(S.me.temper || 'normal') === k ? 'on' : ''}">${n}</button>`).join('')}</div><p class="note small">활발 = 화면을 아주 신나게 뛰어다녀요 · 소심 = 거의 가만히</p></div>
-  <div class="card"><h3>말 걸고 움직이는 정도</h3>
+  <div class="card"><h3>🐾 팻 모습</h3><p class="sub">종류</p><div class="seg" id="s_sp">${[['dog', '🐶 강아지'], ['cat', '🐱 고양이'], ['pig', '🐷 돼지']].map(([k, n]) => `<button data-sp="${k}" class="${(S.me.species || 'dog') === k ? 'on' : ''}">${n}</button>`).join('')}</div><p class="note small">누르면 바로 바뀌어요</p>
+  <p class="sub">크기</p><p class="note small">10 = 아주 작게 · 100 = 크게</p><div class="sizes" id="s_size">${[10, 20, 30, 40, 50, 60, 70, 80, 90, 100].map(n => `<button data-sz="${n}" class="${(S.me.size || 100) === n ? 'on' : ''}">${n}</button>`).join('')}</div>
+  <p class="sub">기분 (움직임)</p><div class="seg" id="s_temper">${[['active', '😆 활발'], ['normal', '🙂 평범'], ['shy', '🥺 소심']].map(([k, n]) => `<button data-tm="${k}" class="${(S.me.temper || 'normal') === k ? 'on' : ''}">${n}</button>`).join('')}</div><p class="note small">활발 = 화면을 아주 신나게 뛰어다녀요 · 소심 = 거의 가만히</p></div>
+  <div class="card"><h3>🗣️ 말 거는 정도 · 소리</h3>
     <div class="seg" id="s_freq">${[['often', '자주'], ['normal', '보통'], ['rare', '가끔'], ['quiet', '조용히']].map(([k, n]) => `<button data-f="${k}" class="${S.talk.freq === k ? 'on' : ''}">${n}</button>`).join('')}</div><p class="note small">말 걸기: 자주 = 5분마다 · 보통 = 20분 · 가끔 = 30분 · 조용히 = 말 안 함</p>
     <p class="note" style="margin:12px 0 4px">🎤 마이크 켜질 때 '띵' 소리</p><div class="seg" id="s_mb">${[[2, '보통'], [1, '작게'], [0, '끄기']].map(([k, n]) => `<button data-mb="${k}" class="${(S.talk.micBeep ?? 1) === k ? 'on' : ''}">${n}</button>`).join('')}</div>
     <label class="note" style="display:block;margin-top:10px">🔊 짖는 소리 크기 <input type="range" id="s_vol" min="0" max="100" step="5" value="${Math.round(S.talk.volume * 100)}" style="padding:0;border:0"></label></div>
 ${window.Native ? `<div class="card"><h3>💬 카톡 알림</h3><label class="chk"><input type="checkbox" id="s_kakao" ${S.kakaoOff ? '' : 'checked'}> 카톡이 오면 팻이 알려 주기</label><p class="note small" id="s_kakaoSt">확인 중…</p><p class="note small">카톡 대화방을 연 뒤 1분 동안 나를 누르고 말하면 답장이 돼요</p></div>` : ''}
+  <div class="card"><h3>🔔 알림</h3><button class="btn ghost" id="s_notif">알림 허락하기</button><p class="note small">알람이 울릴 때 휴대폰 알림도 같이 띄워요.</p></div>
 ${window.musicCard ? musicCard() : ''}
   <div class="card"><h3>📤 친구·가족에게 알려 주기</h3><p class="note small">카카오톡 등으로 '하루 예보 받기' 주소를 보내요. 받은 사람이 누르면 바로 받을 수 있어요.</p><button class="btn" id="s_share">📤 하루 예보 보내기</button></div>
   <div class="card"><h3>🤖 AI 연결 (선택)</h3>
     <p class="note small">연결하면 팻이 더 똑똑하게 이야기하고 검색 결과도 짧게 정리해 줘요. 열쇠는 이 휴대폰에만 저장돼요. 연결하지 않아도 기본 대화·검색은 돼요.</p>
     <div class="seg" id="s_ai"><button data-p="none" class="${S.ai.provider !== 'claude' ? 'on' : ''}">연결 안 함</button><button data-p="claude" class="${S.ai.provider === 'claude' ? 'on' : ''}">Claude</button></div>
     <input id="s_key" type="password" placeholder="Claude API 열쇠 붙여 넣기 (sk-ant-…)" value="${S.ai.key ? '••••••••' : ''}" style="margin-top:8px" autocomplete="off"></div>
-  <div class="card"><h3>🔔 알림</h3><button class="btn ghost" id="s_notif">알림 허락하기</button><p class="note small">알람이 울릴 때 휴대폰 알림도 같이 띄워요.</p></div>
-  <div class="card"><h3>📱 이 앱</h3><p class="note small">하루 예보 휴대폰판 <span id="s_ver"></span> · 주소록·대화는 이 휴대폰에만 저장돼요.</p>${window.Native ? `<button class="btn ghost small" id="s_upd">🔄 새 버전 확인${Native.upd ? ' <i class="badge">1</i>' : ''}</button>` : ''}<p class="note small" id="s_updSt"></p></div>`;
+  <div class="card"><h3>📱 이 앱</h3><p class="note small">하루 예보 휴대폰판 <span id="s_ver"></span> · 연락처·대화·마음 카드는 이 휴대폰에만 저장돼요.</p>${window.Native ? `<button class="btn ghost small" id="s_upd">🔄 새 버전 확인${Native.upd ? ' <i class="badge">1</i>' : ''}</button>` : ''}<p class="note small" id="s_updSt"></p></div>`;
   if (window.Native && Native.kakaoCheck) Native.kakaoCheck().then(ok => { const e = $('#s_kakaoSt'); if (e) e.innerHTML = S.kakaoOff ? '꺼져 있어요' : ok ? '✅ 켜져 있어요 — 카톡이 오면 알려 드려요' : '⚠️ 휴대폰 설정에서 허락이 필요해요 <button class="btn small" id="s_kakaoGo">허락하러 가기</button>'; });
   fetch('version.json').then(r => r.json()).then(v => { const e = $('#s_ver'); if (e) e.textContent = '(' + v.build + '판)'; }).catch(() => {});
 }

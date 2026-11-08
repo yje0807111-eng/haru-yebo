@@ -51,7 +51,7 @@ function onPeople(ev) {
     let c = list.find(x => x.pk === ev.from) || list.find(x => x.name === name && !x.pk);
     if (!c) { c = { id: uid(), name, phones: [], addr: '', bday: null, memo: '' }; list.push(c); }
     c.pk = ev.from; save();
-    say(`🔗 ${esc(c.name)}이랑 연결됐어! 주소록에 넣어 뒀어 🐶`, { pose: 'joy', ms: 10000, important: true });
+    say(`🔗 ${esc(c.name)}이랑 연결됐어! 연락처에 넣어 뒀어 🐶`, { pose: 'joy', ms: 10000, important: true });
     if (view === 'people') drawPeople();
     return;
   }
@@ -156,7 +156,7 @@ function msgTalk(clean) {
   const kind = /카|톡/.test(kw) ? 'kakao' : 'sms';
   const c = findPerson(name);
   if (kind === 'sms') {
-    if (!c) { say(`📒 주소록에서 <b>${esc(name)}</b>을(를) 못 찾았어. 이름을 다시 말해 줄래?`, { ms: 5000 }); return true; }
+    if (!c) { say(`📞 연락처에서 <b>${esc(name)}</b>을(를) 못 찾았어. 이름을 다시 말해 줄래?`, { ms: 5000 }); return true; }
     const p = c.phones && c.phones[0];
     if (!p) { say(`${esc(c.name)} 번호가 없어 🥲`, { ms: 4000 }); return true; }
     msgCompose('sms', c.name, p.num, text); return true;
@@ -171,9 +171,9 @@ async function peopleTalk(text) {
   const call = clean.match(/^(.{1,12}?)\s*(한테|에게|께|에)?\s*(전화|통화)\s*(좀\s*)?(걸어\s*(줘|줄래)?|해\s*(줘|줄래)|연결해?\s*(줘)?|하자|할래)?[!~.?\s]*$/);
   if (call) { const c = findPerson(call[1]); const p = c && c.phones[0]; if (c) { if (!p) say(`${esc(c.name)} 번호가 없어 🥲`); else say(`📞 <b>${esc(c.name)}</b>  ${esc(p.num)}<br><span class="small">👉 말풍선을 누르면 전화 화면이 열려요. 초록 단추만 누르면 걸려요</span>`, { pose: 'joy', ms: 20000, telNum: p.num, tap: () => dialNum(p.num), buttons: [{ label: '📞 전화 화면 열기', tel: p.num }, { label: '아니', ghost: true }] }); return true; } }
   const m = clean.match(/^(.{1,12}?)\s*(한테|에게|께)\s*["“'‘]?(.+?)["”'’]?\s*(라고|이라고|고)?\s*(전해|보내|말해|알려)\s*(줘|줄래|주라)?[!~.?\s]*$/);
-  if (m) { const c = findPerson(m[1]); if (c && c.pk) { await sendTo(c, m[3].trim()); return true; } if (c) { say(`${esc(c.name)}는 아직 하루 예보로 연결 전이야. 📒 주소록에서 🔗 초대해 줘!`, { ms: 5000 }); return true; } }
+  if (m) { const c = findPerson(m[1]); if (c && c.pk) { await sendTo(c, m[3].trim()); return true; } if (c) { say(`${esc(c.name)}는 아직 하루 예보로 연결 전이야. 📞 연락처에서 🔗 초대해 줘!`, { ms: 5000 }); return true; } }
   const k = clean.match(/^(.{1,12}?)\s*(랑|이랑|하고|와|과)\s*(연결|이야기|얘기|대화|톡)/);
-  if (k) { const c = findPerson(k[1]); if (c && c.pk) { startPmode(c); say(`💌 ${esc(c.name)}랑 연결했어! 말창에 쓰면 내가 전해 줄게`, { pose: 'joy' }); return true; } if (c) { say(`${esc(c.name)}는 아직 연결 전이야. 📒 주소록에서 🔗 초대해 줘!`); return true; } }
+  if (k) { const c = findPerson(k[1]); if (c && c.pk) { startPmode(c); say(`💌 ${esc(c.name)}랑 연결했어! 말창에 쓰면 내가 전해 줄게`, { pose: 'joy' }); return true; } if (c) { say(`${esc(c.name)}는 아직 연결 전이야. 📞 연락처에서 🔗 초대해 줘!`); return true; } }
   return false;
 }
 
@@ -199,7 +199,7 @@ async function pickPhoneContacts() {
       if (l) {
         const n = addContacts(l); drawPeople();
         st(`✅ ${l.length}명을 읽어서 새로 ${n}명을 넣었어요!`);
-        say(`📒 ${n}명을 주소록에 넣었어! 생일 있는 사람은 미리 알려 줄게 🎂`, { pose: 'joy', ms: 7000 });
+        say(`📒 ${n}명을 연락처에 넣었어! 생일 있는 사람은 미리 알려 줄게 🎂`, { pose: 'joy', ms: 7000 });
         return;
       }
     } catch (e) {
@@ -221,7 +221,7 @@ $('#vcfFile').onchange = async e => {
   const f = e.target.files[0]; e.target.value = ''; if (!f) return;
   const buf = new Uint8Array(await f.arrayBuffer()); let text = new TextDecoder('utf-8').decode(buf);
   if (/�/.test(text)) { try { text = new TextDecoder('euc-kr').decode(buf); } catch { } }
-  const n = addContacts(parseVcf(text)); say(`📒 ${n}명을 주소록에 넣었어!`, { pose: 'joy' }); drawPeople();
+  const n = addContacts(parseVcf(text)); say(`📒 ${n}명을 연락처에 넣었어!`, { pose: 'joy' }); drawPeople();
 };
 function parseVcf(text) {
   const qp = s => { const bytes = []; s = s.replace(/=\r?\n/g, ''); for (let i = 0; i < s.length; i++) { if (s[i] === '=' && /^[0-9A-F]{2}$/i.test(s.substr(i + 1, 2))) { bytes.push(parseInt(s.substr(i + 1, 2), 16)); i += 2; } else bytes.push(...new TextEncoder().encode(s[i])); } return new TextDecoder().decode(new Uint8Array(bytes)); };

@@ -89,7 +89,7 @@ function drawSafe() {
     <p class="note">보호자를 고르면 매일 아침 처음 휴대폰을 열 때 <b>안부 문자</b>를 저절로 보내요. (아침 7시 넘어서, 하루 한 번)</p>
     <label class="chk"><input type="checkbox" id="g_daily" ${g.daily ? 'checked' : ''}> 매일 보호자에게 안부 문자 보내기</label>
     ${gList.length ? gList.map(c => `<div class="grow"><span>👤 <b>${esc(c.name)}</b> <span class="note small">${esc((c.phones[0] || {}).num || '번호 없음')}</span></span><button class="pb" data-gdel="${c.id}">빼기</button></div>`).join('') : '<p class="note small">아직 보호자가 없어요. 아래에서 골라 주세요.</p>'}
-    <div class="row" style="margin-top:6px"><select id="g_pick"><option value="">➕ 주소록에서 보호자 고르기</option>${S.contacts.filter(c => c.phones[0] && !(g.guardians || []).includes(c.id)).sort((x, y) => (y.fav ? 1 : 0) - (x.fav ? 1 : 0) || x.name.localeCompare(y.name, 'ko')).map(c => `<option value="${c.id}">${c.fav ? '⭐ ' : ''}${esc(c.name)}</option>`).join('')}</select></div>
+    <div class="row" style="margin-top:6px"><select id="g_pick"><option value="">➕ 연락처에서 보호자 고르기</option>${S.contacts.filter(c => c.phones[0] && !(g.guardians || []).includes(c.id)).sort((x, y) => (y.fav ? 1 : 0) - (x.fav ? 1 : 0) || x.name.localeCompare(y.name, 'ko')).map(c => `<option value="${c.id}">${c.fav ? '⭐ ' : ''}${esc(c.name)}</option>`).join('')}</select></div>
     <p class="note small" style="margin:10px 0 4px">보낼 말</p><input id="g_msg" value="${esc(g.msg || DEF_HELLO)}">
     <div class="row" style="margin-top:8px"><button class="btn small ghost" id="g_test">📨 지금 한 번 보내 보기</button></div>
     <p class="note small" id="g_st">${g.smsDay ? '마지막으로 보낸 날: ' + esc(g.smsDay) : ''}</p></div>

@@ -503,3 +503,54 @@ body.fullmap .rmyloc { position: fixed; bottom: 96px; z-index: 970; }
 .rring span { left: auto !important; top: 10px !important; right: 10px; transform: none !important; opacity: .9; }
 body.fullmap .rring span { display: none; }
 .rring span, .m3lab { display: none !important; }
+
+/* ── 11-08 💞 소개팅 */
+.mhero { background: linear-gradient(135deg, #FFE8F0, #FFF4D6); border-radius: 20px; padding: 18px 16px; margin-bottom: 12px; display: flex; flex-direction: column; gap: 6px; }
+.mhero > b { font-size: 18px; letter-spacing: -.4px; }
+.mhero span b { font-weight: 800; color: #333d4b; }
+.mhero span { font-size: 14px; color: #4e5968; line-height: 1.6; }
+.mdoors { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
+.mdoors button { border: 0; background: #fff; border-radius: 20px; padding: 18px 8px 14px; box-shadow: 0 2px 10px rgba(0,0,0,.05); display: flex; flex-direction: column; align-items: center; gap: 4px; font: inherit; color: var(--ink); }
+.mdoors i { font-style: normal; font-size: 34px; }
+.mdoors b { font-size: 16px; }
+.mdoors small { font-size: 12px; color: #8b95a1; }
+.mdoors button:active { background: #f2f4f6; }
+.mcard h3, .mwant h4 { display: flex; align-items: center; justify-content: space-between; }
+.mwant { margin-top: 12px; padding-top: 10px; border-top: 1px solid #f2f4f6; }
+.mwant h4 { margin: 0 0 4px; font-size: 15px; }
+.mrow { display: flex; gap: 10px; padding: 6px 0; font-size: 14px; border-bottom: 1px solid #f7f8fa; }
+.mrow span { flex: none; width: 84px; color: #8b95a1; }
+.mrow b { font-weight: 600; color: #333d4b; word-break: keep-all; }
+.mintro { margin: 10px 0 0; padding: 10px 12px; background: #f9fafb; border-radius: 12px; font-size: 14px; color: #4e5968; }
+.lnk { border: 0; background: none; color: #3182f6; font: inherit; font-size: 13.5px; font-weight: 700; padding: 4px; }
+.view[data-v="match"] #matchBox { display: flex; flex-direction: column; flex: 1; min-height: 0; }
+.mchat { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; padding: 4px 2px 10px; min-height: 160px; }
+.mmsg { max-width: 82%; padding: 10px 13px; border-radius: 18px; font-size: 15px; line-height: 1.5; word-break: keep-all; }
+.mmsg.m-pet { align-self: flex-start; background: #fff; border-bottom-left-radius: 6px; box-shadow: 0 1px 6px rgba(0,0,0,.05); }
+.mmsg.m-me { align-self: flex-end; background: #3182f6; color: #fff; border-bottom-right-radius: 6px; }
+.mans { background: #fff; border-radius: 20px; padding: 12px; box-shadow: 0 -2px 12px rgba(0,0,0,.04); }
+.mopts { display: flex; flex-wrap: wrap; gap: 6px; }
+.mopts + .mopts { margin-top: 6px; }
+.mopts button { border: 0; background: #f2f4f6; color: #333d4b; border-radius: 999px; padding: 8px 13px; font: inherit; font-size: 14px; font-weight: 600; }
+.mopts button.on { background: #3182f6; color: #fff; }
+.mopts button.ghost { background: none; color: #8b95a1; text-decoration: underline; }
+.mopts.two { display: grid; grid-template-columns: 1fr 1fr; }
+.mopts.two button { border-radius: 14px; padding: 14px 8px; font-size: 15px; }
+.mrowin { display: flex; gap: 6px; margin-top: 10px; align-items: center; }
+.mrowin input { border: 0; background: #f2f4f6; border-radius: 12px; }
+.mmic { width: 42px; height: 42px; flex: none; border: 0; border-radius: 50%; background: #f2f4f6; font-size: 18px; }
+.mmic.rec { background: #ff8a8a; }
+.view[data-v="set"] .card p.sub { margin: 12px 0 6px; font-size: 13px; font-weight: 700; color: #8b95a1; }
+.view[data-v="set"] .card h3 + p.sub { margin-top: 2px; }
+
+/* 11-08 팻방 메뉴: 그림 위 · 글 아래로 깔끔하게 */
+.petmenu { gap: 8px !important; }
+.petmenu button { display: flex !important; flex-direction: column; align-items: center; justify-content: center; gap: 4px; padding: 12px 2px 10px !important; background: #fff !important; box-shadow: 0 1px 4px rgba(0,0,0,.06); position: relative; }
+.petmenu button .mi { font-style: normal; font-size: 24px; line-height: 1; }
+.petmenu button span { font-size: 13.5px; font-weight: 700; color: #333d4b; }
+.petmenu button:active { background: #f2f4f6 !important; }
+.petmenu button.quitb { flex-direction: row !important; gap: 6px; background: #f2f4f6 !important; box-shadow: none; padding: 10px !important; }
+.petmenu button.quitb .mi { font-size: 16px; }
+.petmenu button.quitb span { color: #6b7684; }
+.petmenu .badge { position: absolute; top: 6px; right: 10px; }
+.mans { max-height: 52vh; overflow-y: auto; }

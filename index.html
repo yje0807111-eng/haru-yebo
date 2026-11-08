@@ -28,21 +28,15 @@
 
   </section>
 
-  <!-- 🏘️ 우리 동네 날씨 -->
-  <section class="view" data-v="town">
-    <header><h2>🏘️ 우리 동네 날씨</h2></header>
-    <div id="townBox"></div>
+  <!-- 💞 소개팅 -->
+  <section class="view" data-v="match">
+    <header><h2>💞 소개팅</h2></header>
+    <div id="matchBox"></div>
   </section>
 
-  <!-- 🎨 내 방 꾸미기 -->
-  <section class="view" data-v="room">
-    <header><h2>🎨 내 방 꾸미기</h2></header>
-    <div id="roomBox"></div>
-  </section>
-
-  <!-- 📒 주소록 -->
+  <!-- 📞 연락처 -->
   <section class="view" data-v="people">
-    <header><h2>📒 주소록</h2><button class="btn small" id="pAdd">➕ 추가</button></header>
+    <header><h2>📞 연락처</h2><button class="btn small" id="pAdd">➕ 추가</button></header>
     <div class="card" id="pAsk"></div>
     <div class="row"><input id="pQ" placeholder="🔍 이름·번호 찾기"></div>
     <div class="row"><input id="pCode" placeholder="🔗 받은 초대 코드 붙여 넣기"><button class="btn small" id="pJoin">연결</button></div>
@@ -113,9 +107,8 @@
 
   <nav class="tabs" id="tabs">
     <button data-go="home" class="on">🐶<span id="tabPet">다루</span></button>
-    <button data-go="town">🏘️<span>동네</span></button>
-    <button data-go="room">🎨<span>내 방</span></button>
-    <button data-go="people">📒<span>주소록</span></button>
+    <button data-go="match">💞<span>소개팅</span></button>
+    <button data-go="people">📞<span>연락처</span></button>
     <button data-go="safe">🛡️<span>지킴이</span></button>
     <button data-go="time">⏰<span>시간</span></button>
     <button data-go="set">⚙️<span>설정</span></button>
@@ -130,8 +123,7 @@
 <script src="chars/pig/manifest.js"></script>
 <script src="core.js"></script>
 <script src="people.js"></script>
-<script src="town.js"></script>
-<script src="myroom.js"></script>
+<script src="match.js"></script>
 <script src="safe.js"></script>
 <script src="timeset.js"></script>
 <script src="guide.js"></script>

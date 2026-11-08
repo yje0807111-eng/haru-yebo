@@ -52,9 +52,8 @@ function go(v, fromNav) {
   $$('.view').forEach(e => e.classList.toggle('on', e.dataset.v === v));
   $$('#tabs button').forEach(b => b.classList.toggle('on', b.dataset.go === v));
   const safe = (f, name) => { try { f(); } catch (e) { const box = document.querySelector(`.view[data-v="${v}"]`); if (box) box.insertAdjacentHTML('beforeend', `<div class="card"><p class="note">⚠️ ${name} 화면을 그리다 문제가 생겼어요: ${esc(String(e && e.message || e)).slice(0, 160)}</p></div>`); } };   // 11-07: 화면 그리기 오류가 나도 열리고, 이유가 보이게
-  if (v === 'people') safe(drawPeople, '주소록');
-  if (v === 'town') safe(drawTown, '동네');
-  if (v === 'room') safe(drawRoom, '내 방');
+  if (v === 'people') safe(drawPeople, '연락처');
+  if (v === 'match' && window.drawMatch) safe(drawMatch, '소개팅');
   if (v === 'safe') safe(drawSafe, '지킴이');
   if (v === 'time') safe(drawTime, '시간');
   if (v === 'set') { safe(drawSet, '설정'); if (window.floatStatus) floatStatus(); }
@@ -151,11 +150,11 @@ function dialNum(num) {
 document.addEventListener('click', e => { const a = e.target.closest && e.target.closest('a[href^="tel:"]'); if (a) { e.preventDefault(); dialNum(a.getAttribute('href').slice(4)); } }, true);
 function petMenu() {
   setPose(pick(['joy', 'love', 'wave', 'laugh'])); fx('hop'); cry(true); P.until = performance.now() + 3000; P.target = null; markSign();
-  const b = [['🏘️ 동네 날씨', () => openView('town')], ['🎨 내 방', () => openView('room')], ['📒 주소록', () => openView('people')], ['🛡️ 지킴이', () => openView('safe')], ['⏰ 시간·알람', () => openView('time')], ['🧭 길찾기', () => openRoute('')], ['⚙️ 설정', () => openView('set'), 'setb'], ['🎵 뮤직', () => openMusic()], ['📺 TV', () => openTV()], ['📖 안내소식', () => openGuide()], ['🌙 끝내기', quitApp, 'quitb']];
+  const b = [['💞 소개팅', () => openView('match')], ['📞 연락처', () => openView('people')], ['🧭 길찾기', () => openRoute('')], ['🎵 뮤직', () => openMusic()], ['📺 TV', () => openTV()], ['⏰ 시간·알람', () => openView('time')], ['🛡️ 지킴이', () => openView('safe')], ['📖 안내소식', () => openGuide()], ['⚙️ 설정', () => openView('set'), 'setb'], ['🌙 끝내기', quitApp, 'quitb']];
   clearTimeout(bubbleT);
   bubble.querySelector('.text').innerHTML = animalize(pick([`멍! 뭐 할까? 🐾`, `불렀어? 헤헤 🐶`, `${S.me.name ? esc(S.me.name) + '! ' : ''}뭐 도와줄까?`]));
   const box = bubble.querySelector('.btns'); box.innerHTML = '<div class="petmenu"></div>';
-  for (const [label, act, cls] of b) { const el = document.createElement('button'); el.textContent = label; if (cls) el.className = cls; if (cls === 'setb' && window.Native && Native.upd) el.innerHTML = label + ' <i class="badge">1</i>'; el.onclick = ev => { ev.stopPropagation(); act(); }; box.firstChild.appendChild(el); }
+  for (const [label, act, cls] of b) { const el = document.createElement('button'); const sp = label.indexOf(' '); el.innerHTML = `<i class="mi">${label.slice(0, sp)}</i><span>${label.slice(sp + 1)}</span>`; if (cls) el.className = cls; if (cls === 'setb' && window.Native && Native.upd) el.innerHTML += ' <i class="badge">1</i>'; el.onclick = ev => { ev.stopPropagation(); act(); }; box.firstChild.appendChild(el); }
   bubble.hidden = false;   // 11-07: 메뉴는 계속 떠 있음 — 말창을 누르면 닫혀요
 }
 pet.addEventListener('click', petMenu);
@@ -230,7 +229,7 @@ function isSearch(text) {
 }
 // 11-08: 기능 말 알아듣기를 한 곳에 — 팻방 말창과 화면 위 팻이 똑같이 알아듣게
 async function featureTalk(text) {
-  for (const f of [window.mapTalk, window.routeTalk, window.tourTalk, window.ballTalk, window.dgTalk, window.worshipTalk, window.tvTalk]) if (f && f(text)) return true;
+  for (const f of [window.matchTalk, window.mapTalk, window.routeTalk, window.tourTalk, window.ballTalk, window.dgTalk, window.worshipTalk, window.tvTalk]) if (f && f(text)) return true;
   if (window.musicTalk && await musicTalk(text)) return true;
   return false;
 }

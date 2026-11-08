@@ -120,7 +120,7 @@
     setTimeout(() => N.checkUpdate(false), 2500);
     N.alarmSync();
     if (window.tvWantAt && Date.now() - window.tvWantAt < 8000) { if (view !== 'tv') go('tv'); }
-    else if (window.mapWantAt && Date.now() - window.mapWantAt < 8000) { }   // 11-08: 지도를 열려고 앞으로 온 것 → 지도 그대로   // 11-07: TV 를 틀려고 앞으로 온 것 → TV 그대로
+    else if ((window.mapWantAt && Date.now() - window.mapWantAt < 8000) || (window.wantViewAt && Date.now() - window.wantViewAt < 8000)) { }   // 11-08: 지도를 열려고 앞으로 온 것 → 지도 그대로   // 11-07: TV 를 틀려고 앞으로 온 것 → TV 그대로
     else { petOnly(true);   // 앱을 열면 → 앱 안 팻만
     setTimeout(() => { if (!document.hidden && bubble.hidden) petMenu(); }, 500); }   // 11-06: 들어오자마자 메뉴
     const r = await FP.takePending().catch(() => null); if (r && r.text) send(r.text, { talk: true });   // 바탕화면에서 하던 말 이어서
