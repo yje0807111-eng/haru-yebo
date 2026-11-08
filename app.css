@@ -494,3 +494,6 @@ body.fullmap.fmcard #fmUI .fmpet, body.fullmap.fmcard #fmUI .fmsay, body.fullmap
 body[data-view]:not([data-view="home"]) #talk { display: none !important; }
 .rmyloc { position: absolute; left: 50%; bottom: 12px; transform: translateX(-50%); z-index: 650; border: 0; background: #3182f6; color: #fff; font-weight: 800; font-size: 14px; padding: 9px 14px; border-radius: 20px; box-shadow: 0 2px 10px rgba(0,0,0,.25); }
 body.fullmap .rmyloc { position: fixed; bottom: 96px; z-index: 970; }
+
+#fmUI .fmr b { color: #3182f6; padding: 6px 8px; font-size: 15px; white-space: nowrap; }
+#fmUI .fmr small { color: #8b95a1; font-size: 12px; padding-right: 8px; white-space: nowrap; align-self: center; }

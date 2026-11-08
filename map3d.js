@@ -1,5 +1,6 @@
 // 🏙️ 3D 지도 (11-08): 길찾기 첫 화면에서 [3D]를 고르면 건물이 솟은 입체 지도 — MapLibre + OpenFreeMap (무료·열쇠 없음)
 // 3D 를 처음 고를 때만 도구를 불러옴 (평소엔 가벼운 2D)
+let m3Busy = false;
 let m3 = null, m3Me = null, m3Pts = [], m3Loading = null;
 const m3Active = () => !!(S.map3d && typeof R !== 'undefined' && R.from && !R.to && ['dest', 'finding', 'locating'].includes(R.step) && view === 'route');
 function loadML() {
@@ -35,13 +36,15 @@ async function m3Init(el) {
     m3Show(); m3Pois();
   });
   m3.on('rotate', m3Arrow);
+  try { m3.touchZoomRotate.enable({ around: 'center' }); m3.scrollZoom.enable({ around: 'center' }); m3.doubleClickZoom.disable(); } catch { }
+  m3.on('zoomend', () => { if (m3Busy || !m3 || !m3Active()) return; const el = m3.getContainer(), px = Math.max(80, Math.min(el.clientWidth, el.clientHeight) * 0.42), c = m3.getCenter(); rRadiusSet(px * 78271.517 * Math.cos(c.lat * Math.PI / 180) / Math.pow(2, m3.getZoom()), true); const src = m3.getSource('ring'); if (src) src.setData(m3Circle({ lat: c.lat, lon: c.lng }, R.radius)); });
   m3.on('dragend', () => { const c = m3.getCenter(); rBrowseTo({ lat: c.lat, lon: c.lng }); });
 }
 function m3Show() {
   if (!m3 || !R.from) return;
   const el = m3.getContainer();
   const c = rCenter(), z = m3Zoom(el, c.lat, R.radius);
-  m3.setMinZoom(0); m3.setMaxZoom(22); m3.jumpTo({ center: [c.lon, c.lat], zoom: z }); m3.setMinZoom(z); m3.setMaxZoom(z);   // 손가락 확대 대신 거리 단추
+  m3Busy = true; m3.jumpTo({ center: [c.lon, c.lat], zoom: z }); m3Busy = false;
   const src = m3.getSource && m3.getSource('ring'); if (src) src.setData(m3Circle(c, R.radius));
   if (typeof rBrowseBtn === 'function') rBrowseBtn();
   if (!m3Me) { const d = document.createElement('div'); d.className = 'rme'; d.style.width = d.style.height = '44px'; d.innerHTML = `<div class="rdir" style="display:none"><b></b></div><i></i>`; m3Me = new maplibregl.Marker({ element: d, rotationAlignment: 'viewport' }).setLngLat([R.from.lon, R.from.lat]).addTo(m3); }

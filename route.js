@@ -10,11 +10,25 @@ const RSTEPS = [30, 50, 100, 200, 300, 500, 700, 1000, 1500, 2000];
 const rfmt = m => m >= 1000 ? m / 1000 + 'km' : m + 'm';
 // 🔵 원은 늘 같은 크기 — 반경에 맞게 지도만 확대·축소 (지도 너비의 80% = 지름)
 function ringZoom(map, lat, meters) { const el = map.getContainer(), px = Math.max(80, Math.min(el.clientWidth, el.clientHeight) * 0.4); return Math.min(21, Math.log2(156543.03392 * Math.cos(lat * Math.PI / 180) * px / meters)); }
+const rNice = m => m < 100 ? Math.round(m / 10) * 10 : m < 1000 ? Math.round(m / 50) * 50 : Math.round(m / 100) * 100;
+let rZoomBusy = false;
+function rRadiusSet(m, fromPinch) {   // 반경이 바뀌면: 글자·단추·가게 다시
+  const max = (typeof fmOn !== 'undefined' && fmOn) ? 500 : 2000;
+  const v = Math.max(30, Math.min(max, rNice(m)));
+  const clamped = v !== rNice(m);
+  R.radius = v;
+  document.querySelectorAll('.rring span, .m3lab').forEach(e => e.textContent = (e.classList.contains('m3lab') ? '반경 ' : '') + rfmt(v));
+  const rv = $('#rRadV'); if (rv) rv.textContent = rfmt(v);
+  const rr = $('#rRad'); if (rr) { let bi = 0; RSTEPS.forEach((s, i) => { if (Math.abs(s - v) < Math.abs(RSTEPS[bi] - v)) bi = i; }); rr.value = bi; }
+  const fl = $('#fmRad'); if (fl) fl.textContent = '반경 ' + rfmt(v);
+  if (clamped || !fromPinch) rMapShow();
+  clearTimeout(window._rpT); window._rpT = setTimeout(() => { R.focus = null; rPois().then(rPoiDraw); }, 250);
+}
 function ringShow(map, at, meters) {
   const el = map.getContainer(); let r = el.querySelector('.rring');
   if (!r) { r = document.createElement('div'); r.className = 'rring'; r.innerHTML = '<span></span>'; el.appendChild(r); }
   r.querySelector('span').textContent = rfmt(meters);
-  map.setView([at.lat, at.lon], ringZoom(map, at.lat, meters), { animate: false });
+  rZoomBusy = true; map.setView([at.lat, at.lon], ringZoom(map, at.lat, meters), { animate: false }); rZoomBusy = false;
 }
 // 🧭 보고 있는 방향: 파란 점 앞 빨간 삼각형 (지도는 돌리지 않음)
 let rHead = null;
@@ -363,7 +377,9 @@ function rMapInit() {
   R.map = L.map(el, { zoomControl: false, attributionControl: false, zoomAnimation: false, fadeAnimation: false, markerZoomAnimation: false, inertia: false, zoomSnap: 0, maxZoom: 21 }).setView(R.from ? [R.from.lat, R.from.lon] : [37.5665, 126.978], 14);
   L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 21, maxNativeZoom: 19 }).addTo(R.map);
   R.mk = {};
-  R.map.touchZoom.disable(); R.map.doubleClickZoom.disable(); R.map.scrollWheelZoom.disable(); R.map.boxZoom.disable();
+  R.map.doubleClickZoom.disable(); R.map.boxZoom.disable();
+  R.map.options.touchZoom = 'center'; R.map.options.scrollWheelZoom = 'center';   // 손가락으로 넓히고 좁히기 — 가운데(원)는 그대로
+  R.map.on('zoomend', () => { if (rZoomBusy || !R.map || R.to) return; const el = R.map.getContainer(), px = Math.max(80, Math.min(el.clientWidth, el.clientHeight) * 0.4), c = R.map.getCenter(); rRadiusSet(px * 156543.03392 * Math.cos(c.lat * Math.PI / 180) / Math.pow(2, R.map.getZoom()), true); });
   R.map.on('dragend', () => { const c = R.map.getCenter(); rBrowseTo({ lat: c.lat, lon: c.lng }); });
   const m0 = R.map; setTimeout(() => { if (m0 && R.map === m0 && document.body.contains(m0.getContainer())) m0.invalidateSize(false); }, 200);
 }
@@ -447,7 +463,7 @@ document.addEventListener('click', e => {
 });
 document.addEventListener('keydown', e => { if (e.target.id === 'rQ' && e.key === 'Enter') { const q = e.target.value.trim(); if (q) rSearch(q); } });
 // 반경 조절: 지도만 다시 맞춤 (100m ~ 2km)
-document.addEventListener('input', e => { if (e.target.id !== 'rRad') return; R.radius = RSTEPS[+e.target.value] || 30; const v = $('#rRadV'); if (v) v.textContent = rfmt(R.radius); R.poi = null; rPoiCard(); rMapShow(); clearTimeout(window._rpT); window._rpT = setTimeout(() => rPois().then(rPoiDraw), 300); });
+document.addEventListener('input', e => { if (e.target.id !== 'rRad') return; R.poi = null; rPoiCard(); rRadiusSet(RSTEPS[+e.target.value] || 30); });
 if (window.S) delete S.routeRecent;   // 찾은 흔적은 남기지 않음
 
 // 말 알아듣기: "길 찾아 줘", "인천공항 가는 길", "서울역까지 어떻게 가?" · 길찾기 중엔 도착지·"맞아"

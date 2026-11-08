@@ -24,7 +24,7 @@ function fmUI() {
   let u = document.getElementById('fmUI'); if (u) u.remove();
   u = document.createElement('div'); u.id = 'fmUI';
   const petSrc = (document.querySelector('#pet') || document.querySelector('.pet img') || {}).src || '';
-  u.innerHTML = `<div class="fmtop"><button class="fmx" data-fm="x">✕</button><div class="fmr">${FM_STEPS.map(m => `<button data-fmr="${m}" class="${R.radius === m ? 'on' : ''}">${rfmt(m)}</button>`).join('')}</div></div>
+  u.innerHTML = `<div class="fmtop"><button class="fmx" data-fm="x">✕</button><div class="fmr"><b id="fmRad">반경 ${rfmt(R.radius)}</b><small>두 손가락으로 넓히고 좁혀요</small></div></div>
     <button class="fmpet" data-fm="ask" title="눌러서 물어보기">${petSrc ? `<img src="${esc(petSrc)}" alt="">` : '🐾'}</button>
     <div class="fmsay" id="fmSay" hidden></div>`;
   document.body.appendChild(u);
@@ -61,7 +61,7 @@ async function fmAnswer(q) {
   if (!list.length) return fmSay(`가까운 곳에 "${esc(kw)}"이(가) 없어 🥲`);
   // 찾은 곳이 보이게: 거리 단계를 넓히고 그 가게들만 지도에
   const far = list[0].d, step = FM_STEPS.find(m => m >= far * 1.15) || 500;
-  if (step > R.radius) { R.radius = step; fmUI(); rMapShow(); }
+  if (step > R.radius) rRadiusSet(step);
   R.focus = list.filter(p => p.d <= Math.max(R.radius, far)).slice(0, 10); rPoiFilter(); rPoiDraw(); R.poi = null; rPoiOpen(0);
   fmSay(`가장 가까운 <b>${esc(list[0].name)}</b>은(는) <b>${Math.round(list[0].d)}m</b> 거리야${list[1] ? ` · 다음은 ${esc(list[1].name)} ${Math.round(list[1].d)}m` : ''}`);
 }
