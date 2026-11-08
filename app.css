@@ -428,3 +428,21 @@ body.smode .talk { background: #fff; border: 0; box-shadow: 0 2px 12px rgba(49,1
 .rpcard .rptitle { font-size: 18px; margin: 0 28px 4px 0; }
 .rpcard .rpx { position: absolute; right: 10px; top: 10px; border: 0; background: #f2f4f6; border-radius: 50%; width: 30px; height: 30px; }
 .rcat button.on { background: #e8f3ff; color: #3182f6; outline: 2px solid #3182f6; }
+
+/* 11-08 2D / 3D 지도 */
+.rmapw { position: relative; }
+.rmode { position: absolute; right: 10px; top: 10px; z-index: 600; display: flex; background: #fff; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,.18); overflow: hidden; }
+.rmode button { border: 0; background: #fff; padding: 7px 12px; font-weight: 800; font-size: 13px; color: #6b7684; }
+.rmode button.on { background: #3182f6; color: #fff; }
+.rmap.m3 { height: 380px; }
+.m3lab { position: absolute; left: 10px; top: 10px; z-index: 5; background: #3182f6; color: #fff; font: 800 12px/1 sans-serif; padding: 6px 9px; border-radius: 10px; }
+.maplibregl-marker.rme i { position: absolute; left: 13px; top: 13px; }
+
+/* 11-08 동서남북 */
+.rcomp { position: absolute; right: 10px; bottom: 10px; z-index: 600; width: 58px; height: 58px; border-radius: 50%; background: rgba(255,255,255,.92); box-shadow: 0 2px 8px rgba(0,0,0,.18); pointer-events: none; }
+.rcomp i { position: absolute; font: 800 12px/1 sans-serif; font-style: normal; color: #4e5968; }
+.rcomp i:nth-child(1) { left: 50%; top: 4px; transform: translateX(-50%); color: #f03e3e; }
+.rcomp i:nth-child(2) { right: 5px; top: 50%; transform: translateY(-50%); }
+.rcomp i:nth-child(3) { left: 50%; bottom: 4px; transform: translateX(-50%); }
+.rcomp i:nth-child(4) { left: 5px; top: 50%; transform: translateY(-50%); }
+.rcomp b { position: absolute; left: 50%; top: 50%; width: 6px; height: 6px; margin: -3px 0 0 -3px; border-radius: 50%; background: #8b95a1; }

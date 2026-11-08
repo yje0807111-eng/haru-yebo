@@ -47,6 +47,7 @@ async function rPois(force) {
 function rPoiFilter() { R.pois = (R.poiAll || []).map(p => Object.assign(p, { d: rkm(R.from, p) * 1000 })).filter(p => p.d <= R.radius).sort((a, b) => a.d - b.d); }
 const bearing = (a, b) => { const t = Math.PI / 180, y = Math.sin((b.lon - a.lon) * t) * Math.cos(b.lat * t), x = Math.cos(a.lat * t) * Math.sin(b.lat * t) - Math.sin(a.lat * t) * Math.cos(b.lat * t) * Math.cos((b.lon - a.lon) * t); return (Math.atan2(y, x) / t + 360) % 360; };
 function rPoiDraw() {
+  if (typeof m3Active === 'function' && m3Active()) return m3Pois();
   if (!R.map || R.to) return;
   if (R.mk.pois) { R.map.removeLayer(R.mk.pois); R.mk.pois = null; }
   const g = R.mk.pois = L.layerGroup().addTo(R.map);
@@ -87,7 +88,7 @@ function rLive(on) {
     const me = { lat: p.coords.latitude, lon: p.coords.longitude };
     if (R.from && rkm(R.from, me) * 1000 < 3) return;   // 제자리 흔들림은 무시
     R.from = Object.assign(R.from || {}, me);
-    if (R.map) { if (R.mk.me) R.mk.me.setLatLng([me.lat, me.lon]); ringShow(R.map, R.from, R.radius); }
+    if (typeof m3Active === 'function' && m3Active()) m3Show(); else if (R.map) { if (R.mk.me) R.mk.me.setLatLng([me.lat, me.lon]); ringShow(R.map, R.from, R.radius); }
     await rPois(); rPoiDraw(); rPoiCard();
     if (Date.now() - rLiveAddrAt > 30000 && !R.poi) { rLiveAddrAt = Date.now(); const a = await addrOf(me); if (a && R.step === 'dest' && !R.to) { R.from.addr = a; rTalk(`지금 <b>${esc(shortAddr(a))}</b> 근처야. 어디로 갈까? 아래에 써 줘.`, false); } }
   }, () => { }, { enableHighAccuracy: true, maximumAge: 2000, timeout: 20000 });
@@ -301,6 +302,7 @@ async function rBrief() {
 
 function rDraw(force) {
   if (R.map) { try { R.map.remove(); } catch { } R.map = null; }   // 11-08: 화면을 바꾸기 전에 지도 치우기 (_leaflet_pos 오류)
+  if (window.m3Remove) m3Remove();
   const box = $('#routeBox'); if (!box) return;
   const st = R.step;
   let body = '';
@@ -322,7 +324,7 @@ function rDraw(force) {
       ${R.tips ? `<div class="card"><p class="note" style="line-height:1.75">${R.tips}</p>${R.purpose === '예배' ? `<button class="btn ghost small" data-r="web">⛪ 예배 시간 찾아보기</button>` : ''}</div>` : ''}
       ${R.story ? `<div class="card"><h3>📖 ${esc(R.to.name)} 이야기</h3><p class="note" style="line-height:1.75">${esc(R.story)}</p></div>` : ''}`;
   box.innerHTML = `<div class="card rpetc"><p id="rPet">${($('#rPet') || {}).innerHTML || '🐾 길 찾을 준비 중…'}</p></div>
-    <div id="rMap" class="rmap"></div>
+    <div class="rmapw"><div id="rMap" class="rmap ${S.map3d && (st === 'dest' || st === 'finding' || st === 'locating' || force === 'start') ? 'm3' : ''}"></div>${(st === 'dest' || st === 'finding' || st === 'locating' || force === 'start') ? `<div class="rcomp" id="rComp"><i>북</i><i>동</i><i>남</i><i>서</i><b></b></div><div class="rmode"><button data-m3="0" class="${S.map3d ? '' : 'on'}">2D</button><button data-m3="1" class="${S.map3d ? 'on' : ''}">3D</button></div>` : ''}</div>
     ${(st === 'dest' || st === 'finding' || st === 'locating' || force === 'start') ? `<div class="rrad"><span>반경</span><input type="range" id="rRad" min="0" max="${RSTEPS.length - 1}" step="1" value="${Math.max(0, RSTEPS.indexOf(R.radius))}"><b id="rRadV">${rfmt(R.radius)}</b><small id="rPoiN"></small></div><div id="rFront" class="rfront"></div><div id="rPoiCard"></div>` : ''}
     ${body}
     <p class="note small" style="text-align:center">지도 © OpenStreetMap · 시간·요금은 대략이에요</p>`;
@@ -331,7 +333,9 @@ function rDraw(force) {
 
 // ── 지도 (Leaflet)
 function rMapInit() {
-  const el = $('#rMap'); if (!el || !window.L) return;
+  const el = $('#rMap');
+  if (typeof m3Active === 'function' && m3Active()) { if (el && (!m3 || m3.getContainer() !== el)) m3Init(el); return; }
+  if (!el || !window.L) return;
   if (R.map && R.map.getContainer() === el && document.body.contains(el)) return;
   try { if (R.map) R.map.remove(); } catch { }
   R.map = L.map(el, { zoomControl: false, attributionControl: false, zoomAnimation: false, fadeAnimation: false, markerZoomAnimation: false, inertia: false, zoomSnap: 0, maxZoom: 21 }).setView(R.from ? [R.from.lat, R.from.lon] : [37.5665, 126.978], 14);
@@ -340,6 +344,7 @@ function rMapInit() {
   const m0 = R.map; setTimeout(() => { if (m0 && R.map === m0 && document.body.contains(m0.getContainer())) m0.invalidateSize(false); }, 200);
 }
 function rMapShow() {
+  if (typeof m3Active === 'function' && m3Active()) return m3Show();
   if (!R.map) return;
   const me = rMeIcon();
   if (R.from) { if (!R.mk.me) R.mk.me = L.marker([R.from.lat, R.from.lon], { icon: me }).addTo(R.map); else R.mk.me.setLatLng([R.from.lat, R.from.lon]); }
