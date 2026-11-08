@@ -19,7 +19,18 @@ async function addrOf(p) {
   try { const j = await (await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${p.lat}&lon=${p.lon}&accept-language=ko&zoom=18`)).json(); const a = j.address || {};
     return [a.city || a.province || a.state, a.borough || a.county || a.city_district, a.suburb || a.quarter || a.neighbourhood, a.road, a.house_number].filter(Boolean).join(' ') || j.display_name || ''; } catch { return ''; }
 }
+async function tmapPlace(q) {
+  try {
+    const c = R.from ? `&centerLon=${R.from.lon}&centerLat=${R.from.lat}` : '';
+    const r = await fetch(`https://apis.openapi.sk.com/tmap/pois?version=1&searchKeyword=${encodeURIComponent(q)}&count=8${c}`, { headers: { appKey: RK().tmap } });
+    if (!r.ok) return null;
+    const j = await r.json(), list = (((j.searchPoiInfo || {}).pois || {}).poi) || [];
+    return list.map(p => ({ name: p.name, addr: [p.upperAddrName, p.middleAddrName, p.lowerAddrName, p.detailAddrName, p.firstNo ? p.firstNo + (p.secondNo && p.secondNo !== '0' ? '-' + p.secondNo : '') : ''].filter(Boolean).join(' '), lat: +(p.frontLat || p.noorLat), lon: +(p.frontLon || p.noorLon), kind: p.upperBizName || '', tel: p.telNo || '' }));
+  } catch { return null; }
+}
 async function findPlace(q) {
+  if (RK().tmap) { const t = await tmapPlace(q); if (t && t.length) { R.tmapOrder = true; return t; } }
+  R.tmapOrder = false;
   const near = R.from ? `&viewbox=${R.from.lon - 1.5},${R.from.lat + 1.5},${R.from.lon + 1.5},${R.from.lat - 1.5}` : '';
   const get = async extra => { try { return await (await fetch(`https://nominatim.openstreetmap.org/search?format=jsonv2&q=${encodeURIComponent(q)}&countrycodes=kr&accept-language=ko&limit=6${extra}`)).json(); } catch { return []; } };
   let r = await get(near); if (!r.length) r = await get('');
@@ -29,7 +40,7 @@ async function findPlace(q) {
 // ── 화면
 function openRoute(dest) {
   hideBubble(); petOnly(false); go('route');
-  rStop(); R.to = null; R.cands = []; R.purpose = ''; R.airport = null; R.story = '';
+  rStop(); R.to = null; R.cands = []; R.purpose = ''; R.airport = null; R.story = ''; R.walk = null;
   rDraw('start');
   rStart(dest);
 }
@@ -49,7 +60,7 @@ async function rSearch(q) {
   R.step = 'finding'; rDraw(); rTalk(`"${esc(q)}" 찾는 중…`, false);
   R.q = q; R.cands = await findPlace(q);
   if (!R.cands.length) { R.step = 'dest'; rDraw(); return rTalk(`"${esc(q)}"을(를) 못 찾았어 🥲 동네 이름을 붙여서 다시 말해 줘. (예: 대전 ○○교회)`); }
-  if (R.from) R.cands.sort((a, b) => rkm(R.from, a) - rkm(R.from, b));
+  if (R.from && !R.tmapOrder) R.cands.sort((a, b) => rkm(R.from, a) - rkm(R.from, b));   // TMAP 은 맞는 순서 그대로
   rPick(0);
 }
 function rPick(i) {
@@ -75,13 +86,32 @@ async function rRoutes(again) {
   const d = R.from ? rkm(R.from, R.to) : 0, roadKm = d * 1.3;
   const out = [];
   if (R.pt) out.push(...R.pt);   // 🚇🚌 지하철·버스 (단추로 찾은 것)
-  if (d && d < 2.2) out.unshift({ icon: '🚶', title: '걸어가기', min: roadKm / 4.2 * 60, fare: 0, note: '조금만 걸으면 0원이야. 지름길로 안내해 줄게', tag: '💰 돈 안 드는 길' });
+  if (d && d < 2.5) {
+    if (!again) R.walk = RK().tmap && R.from ? await tmapWalk() : null;
+    const wk = R.walk;
+    out.unshift({ icon: '🚶', title: wk ? `걸어가기 (지름길 ${wk.km.toFixed(1)}km, 돌 곳 ${wk.turns.length}번)` : '걸어가기', min: wk ? wk.min : roadKm / 4.2 * 60, fare: 0, note: wk ? '조금만 걸으면 0원이야. "같이 가자" 하면 돌 곳마다 알려 줄게' : '조금만 걸으면 0원이야', tag: '💰 돈 안 드는 길' });
+  }
   if (d >= 0.8) { const rk = d * 1.25, tmin = 6 + rk / (rk > 20 ? 58 : 24) * 60, taxi = (4800 + Math.max(0, rk - 1.6) * 760) * 1.12; out.push({ icon: '🚕', title: '택시', approx: true, min: tmin, fare: taxi, note: `대략이야. 차가 막히면 더 나와${rk > 30 ? ' · 고속도로 통행료 따로' : ''}`, tag: '' }); }
   R.routes = out; rDraw();
   const best = out.filter(r => r.tag).map(r => `${r.tag}: ${r.title} ${mins(r.min)}`).join(', ');
   if (again && R.pt && R.pt.length) { const f = R.pt[0], c = R.pt.find(r => r.tag && r.tag.startsWith('💰')); rTalk(`${f.tag}: ${esc(f.title.replace(/[🚇🚌]/gu, ''))}, <b>${mins(f.min)} · ${won(f.fare)}</b>.${c ? ` 돈을 아끼려면 ${mins(c.min)} · <b>${won(c.fare)}</b> 길도 있어.` : ''} 어떤 걸로 갈까?`); rDraw(); return; }
   rTalk(`${esc(R.to.name)}까지 ${d.toFixed(1)}km야. ${RK().odsay ? '아래 <b>🚇🚌 지하철·버스로 가는 길 찾기</b>를 누르면 빠른 길·싼 길·편한 길을 알려 줄게.' : '지하철·버스 길은 아래 <b>카카오맵</b>이나 <b>네이버 지도</b> 단추로 바로 볼 수 있어.'}${S.me.senior ? ' 어르신은 지하철이 무료야!' : ''}`);
   rBrief();
+}
+// 🚶 TMAP 보행자 길: 지름길 선 + 돌 곳 안내
+async function tmapWalk() {
+  try {
+    const r = await fetch('https://apis.openapi.sk.com/tmap/routes/pedestrian?version=1', { method: 'POST', headers: { appKey: RK().tmap, 'Content-Type': 'application/json' }, body: JSON.stringify({ startX: String(R.from.lon), startY: String(R.from.lat), endX: String(R.to.lon), endY: String(R.to.lat), startName: '출발', endName: R.to.name.slice(0, 20) }) });
+    if (!r.ok) return null;
+    const j = await r.json(), f = j.features || []; if (!f.length) return null;
+    const p0 = f[0].properties || {}, line = [], turns = [];
+    for (const x of f) {
+      const g = x.geometry || {};
+      if (g.type === 'LineString') for (const c of g.coordinates) line.push([c[1], c[0]]);
+      if (g.type === 'Point' && x.properties && x.properties.description && (x.properties.pointType || '') !== 'SP') turns.push({ lat: g.coordinates[1], lon: g.coordinates[0], text: x.properties.description.replace(/<[^>]+>/g, ''), done: false });
+    }
+    return { km: (p0.totalDistance || 0) / 1000, min: (p0.totalTime || 0) / 60, line, turns };
+  } catch { return null; }
 }
 // ODsay (열쇠가 있을 때): 지하철·버스 경로 2~3개 — 무료는 하루 30번(모두 합쳐서)이라 단추로만, 같은 길은 저장해 둔 것
 async function rTransit() {
@@ -190,7 +220,12 @@ function rMapShow() {
   const me = L.divIcon({ className: 'rme', html: '<i></i>', iconSize: [18, 18] });
   if (R.from) { if (!R.mk.me) R.mk.me = L.marker([R.from.lat, R.from.lon], { icon: me }).addTo(R.map); else R.mk.me.setLatLng([R.from.lat, R.from.lon]); }
   if (R.to) { if (!R.mk.to) R.mk.to = L.marker([R.to.lat, R.to.lon]).addTo(R.map); else R.mk.to.setLatLng([R.to.lat, R.to.lon]); R.mk.to.bindTooltip(R.to.name, { permanent: true, direction: 'top', offset: [0, -36] }); }
-  if (R.from && R.to) { if (R.mk.line) R.map.removeLayer(R.mk.line); R.mk.line = L.polyline([[R.from.lat, R.from.lon], [R.to.lat, R.to.lon]], { color: '#3182f6', weight: 3, dashArray: '6 8' }).addTo(R.map); R.map.fitBounds(L.latLngBounds([[R.from.lat, R.from.lon], [R.to.lat, R.to.lon]]).pad(0.3)); }
+  if (R.from && R.to) {
+    if (R.mk.line) R.map.removeLayer(R.mk.line);
+    const pts = R.walk && R.walk.line.length ? R.walk.line : [[R.from.lat, R.from.lon], [R.to.lat, R.to.lon]];
+    R.mk.line = L.polyline(pts, R.walk ? { color: '#3182f6', weight: 5, opacity: .85 } : { color: '#3182f6', weight: 3, dashArray: '6 8' }).addTo(R.map);
+    if (!R.watch) R.map.fitBounds(L.latLngBounds(pts.concat([[R.from.lat, R.from.lon]])).pad(0.25)); else R.map.panTo([R.from.lat, R.from.lon]);
+  }
   else if (R.to) R.map.setView([R.to.lat, R.to.lon], 15);
 }
 
@@ -203,6 +238,7 @@ function rGo() {
     R.from = { lat: p.coords.latitude, lon: p.coords.longitude, addr: R.from && R.from.addr };
     rMapShow();
     const left = rkm(R.from, R.to), now = Date.now();
+    if (R.walk) { const tn = R.walk.turns.find(x => !x.done && rkm(R.from, x) < 0.03); if (tn) { tn.done = true; R.lastSay = now; R.lastLeft = left; rTalk(`🚶 ${esc(tn.text)}`); return; } }
     if (left < 0.06) { rTalk(`🎉 <b>${esc(R.to.name)}</b>에 도착했어! 수고했어 💛`); rStop(); return; }
     const step = left > 5 ? 1 : left > 1 ? 0.3 : 0.1;
     if (!R.lastLeft || Math.abs(R.lastLeft - left) >= step || now - R.lastSay > 180000) {
