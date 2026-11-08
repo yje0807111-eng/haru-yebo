@@ -148,7 +148,7 @@
   };
   if (FP) FP.addListener('alarm', d => { const a = S.alarms.find(x => x.id === d.id || x.id + '_s' === d.id) || { id: d.id, at: Date.now(), label: '' }; FP.alarmStop({ id: d.id }).catch(() => {}); ring(a); });
   if (FP) FP.addListener('music', d => { window.musicNow = d; if (!document.hidden && d.playing) { setPose('dance'); P.until = performance.now() + 8000; if (d.title) say(`🎵 ${esc(d.title)}${d.artist ? ' · ' + esc(d.artist) : ''}`, { ms: 3500 }); } });
-  if (FP) FP.addListener('petTap', d => { petOnly(true); const w = d && d.what; if (w === 'talk') setTimeout(() => { hideBubble(); t.focus(); }, 300); else if (w === 'mic') setTimeout(() => $('#micBtn').click(), 500); else setTimeout(petMenu, 400); });
+  if (FP) FP.addListener('petTap', d => { const w = d && d.what; if (w && w.startsWith('chat:') && window.openChat) { setTimeout(() => openChat(w.slice(5)), 300); return; } petOnly(true); if (w === 'talk') setTimeout(() => { hideBubble(); t.focus(); }, 300); else if (w === 'mic') setTimeout(() => $('#micBtn').click(), 500); else setTimeout(petMenu, 400); });
   // 켤 때 알람 다시 예약 · 새 버전 확인(하루 한 번)
   window.addEventListener('load', () => {
     setTimeout(() => N.schedule(S.alarms), 2000);

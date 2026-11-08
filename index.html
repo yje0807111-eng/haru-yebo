@@ -34,6 +34,11 @@
     <div id="matchBox"></div>
   </section>
 
+  <!-- 💬 대화방 -->
+  <section class="view" data-v="chat">
+    <div id="chatBox"></div>
+  </section>
+
   <!-- 📞 연락처 -->
   <section class="view" data-v="people">
     <header><h2>📞 연락처</h2><button class="btn small" id="pAdd">➕ 추가</button></header>
@@ -114,6 +119,7 @@
     <button data-go="set">⚙️<span>설정</span></button>
   </nav>
 </div>
+<audio id="callAudio" autoplay playsinline></audio>
 <input type="file" id="vcfFile" accept=".vcf,text/vcard,text/x-vcard" hidden>
 <script src="lib/alarm.js"></script>
 <script src="lib/commands.js"></script>
@@ -124,6 +130,7 @@
 <script src="core.js"></script>
 <script src="people.js"></script>
 <script src="match.js"></script>
+<script src="chat.js"></script>
 <script src="safe.js"></script>
 <script src="timeset.js"></script>
 <script src="guide.js"></script>

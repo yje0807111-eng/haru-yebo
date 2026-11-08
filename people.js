@@ -57,15 +57,17 @@ function onPeople(ev) {
   }
   const c = list.find(x => x.pk === ev.from); if (!c) return;   // 연결된 사람 것만 받음
   const tel = (c.phones[0] || {}).num;
+  if (String(ev.t).startsWith('call') && window.callSignal) return callSignal(c, ev);   // 📞 하루 통화
+  if (ev.t === 'pmsg' && window.chatIncoming) { chatIncoming(c, String(ev.text || '').slice(0, 500), ev.at); return; }   // 💬 대화방
   if (ev.t === 'pmsg') {
     const text = String(ev.text || '').slice(0, 500);
     S.pchats[c.id] = [...(S.pchats[c.id] || []), { who: 'them', text, at: ev.at }].slice(-100); save();
-    say(`💌 ${esc(c.name)}한테 연락 왔어~<br>"${esc(text)}"`, { pose: 'letter', ms: 30000, important: true, buttons: [{ label: '✍️ 답장하기', act: () => startPmode(c) }, { label: '나중에', ghost: true }] });
+    say(`💌 ${esc(c.name)}한테 연락 왔어~<br>"${esc(text)}"`, { pose: 'letter', ms: 30000, important: true, buttons: [{ label: '✍️ 답장하기', act: () => (window.openChat ? openChat(c.id, { ask: true }) : startPmode(c)) }, { label: '나중에', ghost: true }] });
     cry(true); if (navigator.vibrate) navigator.vibrate(200);
     if (view === 'people') drawPeople();
   }
-  if (ev.t === 'hello') { c.lastHello = ev.at; save(); say(`🌤 ${esc(c.name)}님이 오늘도 잘 있대!${ev.mood ? ` (마음 날씨: ${esc(ev.mood)})` : ''}`, { pose: 'joy', ms: 9000, buttons: [{ label: '💌 답장하기', act: () => startPmode(c) }, { label: '좋아', ghost: true }] }); }
-  if (ev.t === 'guard') { say(ev.sos ? `🚨🚨 ${esc(c.name)}님이 "도와주세요"를 외쳐서 119에 전화했대! 바로 연락해 봐!` : `🚨 ${esc(c.name)}님이 ${ev.days || 1}일 동안 소식이 없어. 안부를 확인해 볼까?`, { pose: 'sad', ms: 60000, important: true, buttons: [...(tel ? [{ label: '📞 전화하기', tel }] : []), { label: '💌 말 걸기', act: () => startPmode(c) }] }); if (navigator.vibrate) navigator.vibrate([400, 200, 400, 200, 400]); }
+  if (ev.t === 'hello') { c.lastHello = ev.at; save(); say(`🌤 ${esc(c.name)}님이 오늘도 잘 있대!${ev.mood ? ` (마음 날씨: ${esc(ev.mood)})` : ''}`, { pose: 'joy', ms: 9000, buttons: [{ label: '💌 답장하기', act: () => (window.openChat ? openChat(c.id, { ask: true }) : startPmode(c)) }, { label: '좋아', ghost: true }] }); }
+  if (ev.t === 'guard') { say(ev.sos ? `🚨🚨 ${esc(c.name)}님이 "도와주세요"를 외쳐서 119에 전화했대! 바로 연락해 봐!` : `🚨 ${esc(c.name)}님이 ${ev.days || 1}일 동안 소식이 없어. 안부를 확인해 볼까?`, { pose: 'sad', ms: 60000, important: true, buttons: [...(tel ? [{ label: '📞 전화하기', tel }] : []), { label: '💌 말 걸기', act: () => (window.openChat ? openChat(c.id, { ask: true }) : startPmode(c)) }] }); if (navigator.vibrate) navigator.vibrate([400, 200, 400, 200, 400]); }
 }
 // 초대 코드 (PC 와 같은 모양: HARU-npub…-토큰)
 async function invite(c) {
@@ -90,6 +92,7 @@ function startPmode(c) { petOnly(false); pmode = window.pmode = { cid: c.id, nam
 function endPmode() { pmode = window.pmode = null; document.body.classList.remove('pmode'); t.placeholder = `${bn()}에게 말 걸기…`; }
 async function sendTo(c, msg) {
   const r = await nsend(c.pk, 'pmsg', msg, { name: nameOf() });
+  if (r.ok && window.chatAdd) { chatAdd(c.id, { who: 'me', text: msg, at: Date.now() }); c.lastSent = Date.now(); }
   if (r.ok) { S.pchats[c.id] = [...(S.pchats[c.id] || []), { who: 'me', text: msg, at: Date.now() }].slice(-100); save(); say(`💌 ${esc(c.name)}에게 전했어!`, { pose: 'letter', ms: 3000 }); }
   else say('앗, 못 보냈어. 인터넷을 확인해 줘 🥲', { ms: 4000 });
 }
@@ -168,6 +171,7 @@ async function peopleTalk(text) {
   const clean = stripName(text);
   if (/HARU-npub1[0-9a-z]+-[0-9a-z]{6}/.test(clean)) { const r = await join(clean); say(r === 'ok' ? '🔗 연결 신청을 보냈어! 상대가 받으면 알려 줄게 🐶' : r === 'self' ? '이건 내가 만든 초대 코드야~' : r === 'net' ? '인터넷 문제로 못 보냈어. 다시 붙여 넣어 줘' : '초대 코드가 이상해. 받은 글을 통째로 붙여 넣어 줘!', { pose: 'joy', ms: 6000 }); return true; }
   if (msgTalk(clean)) return true;   // ✉️💬 문자·카톡 보내기
+  if (window.chatTalk && chatTalk(clean)) return true;   // 💬 대화방 · 📞 하루 통화
   const call = clean.match(/^(.{1,12}?)\s*(한테|에게|께|에)?\s*(전화|통화)\s*(좀\s*)?(걸어\s*(줘|줄래)?|해\s*(줘|줄래)|연결해?\s*(줘)?|하자|할래)?[!~.?\s]*$/);
   if (call) { const c = findPerson(call[1]); const p = c && c.phones[0]; if (c) { if (!p) say(`${esc(c.name)} 번호가 없어 🥲`); else say(`📞 <b>${esc(c.name)}</b>  ${esc(p.num)}<br><span class="small">👉 말풍선을 누르면 전화 화면이 열려요. 초록 단추만 누르면 걸려요</span>`, { pose: 'joy', ms: 20000, telNum: p.num, tap: () => dialNum(p.num), buttons: [{ label: '📞 전화 화면 열기', tel: p.num }, { label: '아니', ghost: true }] }); return true; } }
   const m = clean.match(/^(.{1,12}?)\s*(한테|에게|께)\s*["“'‘]?(.+?)["”'’]?\s*(라고|이라고|고)?\s*(전해|보내|말해|알려)\s*(줘|줄래|주라)?[!~.?\s]*$/);
@@ -249,8 +253,9 @@ function drawPeople() {
   const favs = list.filter(c => c.fav), rest = list.filter(c => !c.fav);
   const rowHtml = c => {
     const p = c.phones[0], open = pOpen === c.id, tk = pTalk === c.id, show = pShow === c.id || open || tk;
-    return `<div class="prow" data-c="${c.id}"><div class="top">${q ? '' : '<span class="grip" title="끌어서 순서 바꾸기">☰</span>'}<span class="nm">${esc(c.name)}${c.pk ? ' 🔗' : ''}</span><span class="ph">${p ? esc(p.num) : ''}</span></div>
-      ${show ? `<div class="acts4">${p ? `<a class="pb" href="tel:${esc(p.num.replace(/-/g, ''))}">📞 전화</a><button class="pb" data-a="sms">💬 문자</button>` : '<span></span><span></span>'}<button class="pb" data-a="edit">✏️ 수정</button><button class="pb ${c.fav ? 'on' : ''}" data-a="fav" title="${c.fav ? '즐겨찾기에서 빼기' : '즐겨찾기에 넣기'}">${c.fav ? '↓' : '↑'}</button></div>${c.bday ? `<p class="note small" style="margin:4px 2px 0">🎂 생일 ${c.bday.m}/${c.bday.d}</p>` : ''}` : ''}
+    return `<div class="prow" data-c="${c.id}"><div class="top">${q ? '' : '<span class="grip" title="끌어서 순서 바꾸기">☰</span>'}<span class="nm">${esc(c.name)}${c.pk ? ' 🔗' : ''}${c.unread ? ` <i class="unr">${c.unread}</i>` : ''}</span><span class="ph">${p ? esc(p.num) : ''}</span></div>
+      ${show ? `<div class="acts4">${p ? `<a class="pb" href="tel:${esc(p.num.replace(/-/g, ''))}">📞 전화</a><button class="pb" data-a="sms">✉️ 문자</button>` : '<span></span><span></span>'}<button class="pb" data-a="edit">✏️ 수정</button><button class="pb ${c.fav ? 'on' : ''}" data-a="fav" title="${c.fav ? '즐겨찾기에서 빼기' : '즐겨찾기에 넣기'}">${c.fav ? '↓' : '↑'}</button></div>${c.bday ? `<p class="note small" style="margin:4px 2px 0">🎂 생일 ${c.bday.m}/${c.bday.d}</p>` : ''}` : ''}
+      ${show ? (c.pk ? `<div class="acts2"><button class="pb hb" data-a="talk">💬 대화방</button><button class="pb hb" data-a="hcall">📞 하루 통화</button></div>` : `<div class="acts2"><button class="pb" data-a="invite" style="grid-column:1/-1">🔗 하루 예보로 초대 (대화·통화 무료)</button></div>`) : ''}
       ${tk ? `<div class="msgs">${(S.pchats[c.id] || []).slice(-30).map(m => `<div class="m ${m.who}">${esc(m.text)}</div>`).join('') || '<p class="note small">첫 마디를 보내 봐!</p>'}</div><div class="row"><input data-f="pm" placeholder="${esc(c.name)}에게 보낼 말"><button class="btn small" data-a="psend">보내기</button></div>` : ''}
       ${open ? `<div class="edit"><input data-f="name" value="${esc(c.name)}" placeholder="이름"><input data-f="phones" value="${esc(c.phones.map(x => x.num).join(', '))}" placeholder="전화번호" inputmode="tel">
         <div class="row">생일 <select data-f="bm"><option value="">-</option>${Array.from({ length: 12 }, (_, i) => `<option ${c.bday && c.bday.m === i + 1 ? 'selected' : ''} value="${i + 1}">${i + 1}월</option>`).join('')}</select><select data-f="bd"><option value="">-</option>${Array.from({ length: 31 }, (_, i) => `<option ${c.bday && c.bday.d === i + 1 ? 'selected' : ''} value="${i + 1}">${i + 1}일</option>`).join('')}</select></div>
@@ -271,6 +276,8 @@ $('#pList').addEventListener('click', async e => {
   if (act === 'close') { pOpen = null; return drawPeople(); }
   if (act === 'del') { if (confirm(`${c.name}을(를) 지울까?`)) { S.contacts = S.contacts.filter(x => x.id !== c.id); save(); pOpen = null; drawPeople(); } return; }
   if (act === 'invite') return invite(c);
+  if (act === 'talk' && window.openChat) return openChat(c.id);
+  if (act === 'hcall' && window.callStart) return callStart(c.id);
   if (act === 'fav') { c.fav = !c.fav; save(); pShow = c.id; say(c.fav ? `⭐ ${esc(c.name)} 즐겨찾기에 넣었어` : `${esc(c.name)} 즐겨찾기에서 뺐어`, { ms: 2200 }); return drawPeople(); }
   if (act === 'sms') { const n = (c.phones[0] || {}).num; if (!n) return; const url = 'sms:' + n.replace(/-/g, ''); const F = window.Capacitor && Capacitor.Plugins && Capacitor.Plugins.FloatPet; if (F && F.openApp) F.openApp({ pkg: '', url }).catch(() => {}); else location.href = url; return; }
   if (act === 'talk') { pTalk = pTalk === c.id ? null : c.id; return drawPeople(); }

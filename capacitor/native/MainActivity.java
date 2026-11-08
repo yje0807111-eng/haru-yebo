@@ -9,6 +9,7 @@ public class MainActivity extends BridgeActivity {
     public void onCreate(Bundle savedInstanceState) {
         registerPlugin(FloatPetPlugin.class);   // 화면 위 팻
         super.onCreate(savedInstanceState);
+        try { getBridge().getWebView().getSettings().setMediaPlaybackRequiresUserGesture(false); } catch (Exception ignored) { }   // 📞 통화 소리 바로 나오게
         // 11-08: 휴대폰 뒤로 가기 = 앱 안에서 바로 전 화면으로 (첫 화면이면 앱을 뒤로 보내기)
         //  새 안드로이드(뒤로 가기 몸짓)에서도 꼭 여기로 오도록 등록
         getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {

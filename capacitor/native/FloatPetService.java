@@ -526,7 +526,7 @@ public class FloatPetService extends Service {
     // ── 💬 카톡: 노란 말풍선 → 누르면 그 대화방 → 팻 누르고 말하면 글로 써서 보내기(한 번 더 확인)
     GradientDrawable bubBg;
     String bubKind = "", nextKind = "";          // "" 보통 · "kakao" 누르면 대화방 · "reply" 누르면 보내기
-    String replyText = "", telNum = "";
+    String replyText = "", telNum = "", openWhat = "";
     long replyUntil = 0;          // 이 시간까지는 팻을 누르고 한 말 = 카톡 답장
     void bubTap() {
         String k = bubKind; bubKind = "";
@@ -534,6 +534,7 @@ public class FloatPetService extends Service {
         if ("kakao".equals(k)) openKakao();
         else if ("reply".equals(k)) sendReply(replyText);
         else if ("csend".equals(k)) composeSend();
+        else if ("open".equals(k)) open(openWhat);   // 💬📞 대화방·전화 열기
         else if ("tel".equals(k)) { try { Intent i = new Intent(Intent.ACTION_DIAL, android.net.Uri.parse("tel:" + android.net.Uri.encode(telNum.replaceAll("[^0-9+*#]", "")))); i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK); startActivity(i); } catch (Exception e) { bubble("전화 화면을 못 열었어 🥲", 3000); } }
     }
     void bubbleK(String kind, String text, int ms) { nextKind = kind; bubble(text, ms); h.postDelayed(() -> { if (bub == null || bub.getVisibility() != View.VISIBLE) bubKind = ""; }, ms + 100); }
@@ -762,6 +763,7 @@ public class FloatPetService extends Service {
         });
     }
     static boolean composeStatic(String kind, String who, String num, String text) { if (me == null) return false; me.h.post(() -> me.composeStart(kind, who, num, text)); return true; }
+    static void sayOpenStatic(String text, String what, int ms) { if (me != null) me.h.post(() -> { me.openWhat = what; me.bubbleK("open", text, ms); }); }
     static void sayTelStatic(String text, String tel, int ms) { if (me != null) me.h.post(() -> { me.telNum = tel; me.bubbleK("tel", text, ms); }); }
     // ⏰ 알람: 팻이 울며 알려 줌 (팻을 누르면 그만)
     boolean alarmOn = false; int alarmN = 0;

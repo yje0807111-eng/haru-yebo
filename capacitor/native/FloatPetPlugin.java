@@ -390,6 +390,8 @@ public class FloatPetPlugin extends Plugin {
     @PluginMethod
     public void say(PluginCall call) {
         String tel = call.getString("tel", "");
+        String op = call.getString("open", "");
+        if (op != null && !op.isEmpty()) { FloatPetService.sayOpenStatic(call.getString("text", ""), op, call.getInt("ms", 20000)); call.resolve(); return; }   // 💬 누르면 하루 예보의 그 화면(대화방·전화)
         if (tel != null && !tel.isEmpty()) FloatPetService.sayTelStatic(call.getString("text", ""), tel, call.getInt("ms", 20000));   // 📞 누르면 전화 화면
         else FloatPetService.sayStatic(call.getString("text", ""), call.getInt("ms", 6000));
         call.resolve();
@@ -470,6 +472,17 @@ public class FloatPetPlugin extends Plugin {
         String kind = call.getString("kind", "sms"), text = call.getString("text", "");
         r.put("how", "sms".equals(kind) ? HaruSend.sms(getContext(), call.getString("num", ""), text) : HaruSend.kakao(getContext(), call.getString("who", ""), text));
         call.resolve(r);
+    }
+    // 📞 통화 (11-09): 스피커로 듣기 켜기·끄기 · 통화 모드
+    @PluginMethod
+    public void speaker(PluginCall call) {
+        try {
+            android.media.AudioManager am = (android.media.AudioManager) getContext().getSystemService(android.content.Context.AUDIO_SERVICE);
+            boolean inCall = Boolean.TRUE.equals(call.getBoolean("call", true));
+            am.setMode(inCall ? android.media.AudioManager.MODE_IN_COMMUNICATION : android.media.AudioManager.MODE_NORMAL);
+            am.setSpeakerphoneOn(inCall && Boolean.TRUE.equals(call.getBoolean("on", false)));
+        } catch (Exception ignored) { }
+        call.resolve();
     }
     @PluginMethod
     public void smsSend(PluginCall call) { JSObject r = new JSObject(); r.put("ok", HaruSms.send(getContext(), call.getString("num", ""), call.getString("text", ""))); call.resolve(r); }
