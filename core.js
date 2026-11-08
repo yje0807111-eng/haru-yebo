@@ -31,7 +31,21 @@ const bn = () => S.me.buddyName || '다루';
 
 // ── 화면 바꾸기
 let view = 'home';
-function go(v) {
+// 11-08 뒤로 가기: 화면을 바꿀 때마다 '되돌리기'를 쌓아 두고, 휴대폰 뒤로 가기 단추를 누르면 바로 전 화면으로
+const NAV = []; let navPopping = false;
+function navPush(restore) { NAV.push(restore); if (NAV.length > 30) NAV.shift(); }
+function navReset() { NAV.length = 0; }
+// 휴대폰 뒤로 가기 단추가 누르면 여기로 옴 (MainActivity) → 처리했으면 true, 아니면 앱을 뒤로 보냄
+window.haruBack = function () {
+  if (typeof bubble !== 'undefined' && !bubble.hidden && bubble.querySelector('.petmenu')) { hideBubble(); return true; }
+  const f = NAV.pop();
+  if (f) { navPopping = true; try { f(); } catch { } navPopping = false; return true; }
+  if (view !== 'home') { go('home', true); return true; }
+  return false;
+};
+function go(v, fromNav) {
+  const prev = view;
+  if (!fromNav && !navPopping) { if (v === 'home') navReset(); else if (v !== prev) navPush(() => go(prev, true)); }
   if (view === 'set' && v !== 'set' && typeof setUndo === 'function') setUndo();   // 11-06: 저장 안 하고 나가면 예전 그대로
   view = v;
   $$('.view').forEach(e => e.classList.toggle('on', e.dataset.v === v));

@@ -13,6 +13,14 @@ public class MainActivity extends BridgeActivity {
     // 뒤로 가기 = 앱을 끄지 않고 뒤로 보내기 (바탕화면에서 팻이 계속 대답하려고)
     @Override
     public void onBackPressed() {
+        // 11-08: 앱 안에서 다른 화면을 보고 있으면 → 바로 전 화면으로 (팻방 첫 화면이면 뒤로 보내기)
+        try {
+            android.webkit.WebView w = getBridge().getWebView();
+            if (w != null) {
+                w.evaluateJavascript("(window.haruBack && window.haruBack()) ? '1' : '0'", v -> { if (v == null || !v.contains("1")) moveTaskToBack(true); });
+                return;
+            }
+        } catch (Exception ignored) { }
         moveTaskToBack(true);
     }
 

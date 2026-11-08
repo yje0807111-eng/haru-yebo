@@ -398,3 +398,11 @@ body.smode .talk { background: #fff; border: 0; box-shadow: 0 2px 12px rgba(49,1
 .tnum i { display: flex; align-items: center; justify-content: center; width: 24px; height: 24px; border-radius: 50%; background: #ff6b35; color: #fff; font: 700 12px/1 sans-serif; font-style: normal; border: 2px solid #fff; box-shadow: 0 1px 4px rgba(0,0,0,.3); box-sizing: border-box; }
 
 .rflight { margin-top: 10px; background: #e8f3ff; border-radius: 12px; padding: 10px 12px; line-height: 1.7; font-size: 14.5px; }
+
+/* 11-08 길찾기 첫 화면: 지도 아래 반경 · 네 단추 */
+.rrad { display: flex; align-items: center; gap: 10px; background: #fff; border-radius: 14px; padding: 8px 14px; margin: -2px 0 10px; box-shadow: 0 1px 6px rgba(0,0,0,.05); }
+.rrad span { font-weight: 700; color: #4e5968; font-size: 14px; }
+.rrad input { flex: 1; padding: 0; border: 0; accent-color: #3182f6; }
+.rrad b { min-width: 52px; text-align: right; color: #3182f6; }
+.rcat { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin: 0 0 10px; }
+.rcat button { border: 0; background: #fff; border-radius: 14px; padding: 14px 4px; font-weight: 800; font-size: 15px; box-shadow: 0 1px 6px rgba(0,0,0,.06); }

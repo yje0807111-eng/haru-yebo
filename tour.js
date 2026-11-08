@@ -1,6 +1,6 @@
 // 🌿 둘러보기 (11-08): 지금 있는 곳(또는 도착지) 근처 볼거리·산책 코스·숙소·맛집
 // 자료: 한국관광공사(열쇠는 비밀 금고 TOUR_KEY) + 오픈스트리트맵(공원·공원 안 볼거리, 열쇠 없음) + TMAP 걷는 길
-const TO = { tab: 'see', at: null, items: [], view: [], course: null, sel: null, map: null, watch: null, next: 0 };
+const TO = { radius: 100, tab: 'see', at: null, items: [], view: [], course: null, sel: null, map: null, watch: null, next: 0 };
 const TOUR_API = 'https://apis.data.go.kr/B551011/KorService2';
 const TTYPE = { see: [12, 14], food: [39], stay: [32], walk: [12, 14] };
 const TNAME = { 12: '관광지', 14: '문화시설', 15: '행사', 25: '여행코스', 28: '레포츠', 32: '숙소', 38: '쇼핑', 39: '맛집' };
@@ -152,9 +152,10 @@ async function durPick(i) {
 }
 
 // ── 화면
-async function openTour(tab, at) {
+async function openTour(tab, at, radius) {
   hideBubble(); petOnly(false); go('tour');
-  TO.tab = tab || TO.tab || 'see'; TO.sel = null; TO.course = null; trStop();
+  TO.tab = tab || TO.tab || 'see'; TO.sel = null; TO.course = null; TO.say = ''; trStop();
+  TO.radius = radius || (window.R && R.radius) || TO.radius || 100;
   TO.at = at || (window.R && R.arrived) || null;
   trDraw('loading');
   if (!TO.at) { const p = await myPos(); TO.at = p ? { lat: p.lat, lon: p.lon, name: '지금 있는 곳' } : (S.place.lat ? { lat: S.place.lat, lon: S.place.lon, name: S.place.label } : null); }
@@ -166,11 +167,12 @@ async function trLoad() {
   trDraw('loading');
   const green = TO.tab === 'see' || TO.tab === 'walk';
   if (!RK().tour && !green) { trSay('맛집·숙소는 <b>갤럭시 앱</b>에서 돼요 (관광 자료 열쇠가 앱에만 있어요)'); TO.items = []; return trDraw(); }
-  const radius = TO.tab === 'stay' ? 5000 : TO.tab === 'food' ? 1000 : TO.tab === 'walk' ? 2500 : 2500;
+  const radius = TO.radius;
   if (green) trSay('공원·볼거리를 찾는 중…', false);
-  const tab0 = TO.tab, [k, tp] = await Promise.all([trNear(TO.at, TTYPE[TO.tab], radius, TO.tab === 'walk' ? 25 : 15), green ? tmapAround(TO.at, '공원', radius / 1000, 80) : Promise.resolve([])]);
+  const tab0 = TO.tab, [k, tp] = await Promise.all([trNear(TO.at, TTYPE[TO.tab], radius, TO.tab === 'walk' ? 25 : 15), green ? tmapAround(TO.at, '공원', Math.max(1, radius / 1000 + 0.5), 80) : Promise.resolve([])]);
   if (TO.tab !== tab0) return;
-  const parks = green ? parkGroups(tp, TO.at) : [];
+  const edge = x => x.dist - (x.area ? Math.sqrt(x.area) / 2 : 0);   // 큰 공원은 가장자리부터 재기
+  const parks = green ? parkGroups(tp, TO.at).filter(x => edge(x) <= radius) : [];
   if (k === null && !parks.length) { trSay('자료를 못 불러왔어 🥲 잠시 뒤에 다시 해 줘'); TO.items = []; return trDraw(); }
   TO.items = green ? trMerge(k || [], parks) : (k || []);
   if (TO.tab === 'see') {
@@ -178,9 +180,10 @@ async function trLoad() {
     osmNear(TO.at, radius).then(o => { if (TO.tab !== 'see' || !o || !o.length) return; const n0 = TO.items.length; TO.items = trMerge(TO.items, o.filter(x => x.kind !== '공원' || x.area >= 8000)); if (TO.items.length > n0 && !TO.sel) trDraw(); });   // 오픈스트리트맵은 오는 대로 더하기
   }
   if (TO.tab === 'walk') { durNear(await addrOf(TO.at)).then(d => { TO.duru = d; if (TO.tab === 'walk' && d.length) trDraw(); }); return trCourse(60); }
-  const n = TO.items.length, what = { see: '볼거리', food: '맛집', stay: '숙소' }[TO.tab];
+  TO.items = TO.items.filter(x => (x.area ? x.dist - Math.sqrt(x.area) / 2 : x.dist) <= radius + 30);
+  const n = TO.items.length, what = { see: '볼거리', food: '맛집', stay: '숙소' }[TO.tab], rr = radius >= 1000 ? radius / 1000 + 'km' : radius + 'm';
   const big = TO.items.filter(x => x.area >= 100000).slice(0, 2).map(x => esc(x.title));
-  trSay(n ? `<b>${esc(TO.at.name)}</b> 근처 ${what} <b>${n}곳</b>을 찾았어!${big.length ? ` 큰 공원 ${big.join(', ')}도 있어 🌳` : ''} 누르면 자세히 알려 줘.` : `근처에 ${what} 정보가 없어 🥲`);
+  trSay(n ? `반경 ${rr} 안 ${what} <b>${n}곳</b>${big.length ? ` (큰 공원 ${big.join(', ')})` : ''}. 누르면 자세히 보여 줘.` : `반경 ${rr} 안에는 ${what}이(가) 없어. 지도 아래에서 반경을 넓혀 봐.`);
   trDraw();
 }
 
@@ -205,8 +208,8 @@ async function trWalkRoute(start, stops) {
 }
 async function trCourse(minutes, inner) {
   TO.course = null; TO.courseMin = minutes; trDraw('loading'); trSay('가장 좋은 산책 코스를 만드는 중…', false);
-  const lim = minutes <= 30 ? 1100 : minutes <= 60 ? 2200 : 3200;
-  const parks = TO.items.filter(x => x.area >= 30000 && x.dist <= lim).sort((a, b) => b.area / (1 + b.dist / 400) - a.area / (1 + a.dist / 400));
+  const lim = TO.radius;
+  const parks = TO.items.filter(x => x.area >= 30000 && x.dist - Math.sqrt(x.area) / 2 <= lim).sort((a, b) => b.area / (1 + b.dist / 400) - a.area / (1 + a.dist / 400));
   const main = parks[0];
   let stops = [];
   if (main) {
@@ -249,11 +252,12 @@ async function trCourse(minutes, inner) {
   if (!rt) while (stops.length > 1 && km / 4 * 60 + stops.length * 5 > minutes * 1.3) { stops.pop(); km = 0; cur = TO.at; for (const s of stops) { km += rkm(cur, s) * 1.3; cur = s; } km += rkm(cur, TO.at) * 1.3; }
   TO.course = stops.length ? { min: minutes, stops, park: main || null, km: rt ? rt.km : km, time: (rt ? rt.min : km / 4 * 60) + stops.length * 5, line: rt ? rt.line : null, turns: rt ? rt.turns : [] } : null;
   const c = TO.course;
-  trSay(c ? `${main ? `<b>${esc(main.title)}</b>${main.area >= 100000 ? ` (약 ${(main.area / 10000).toFixed(0)}만㎡)` : ''}을(를) 걷는 ` : ''}${minutes}분 산책 코스야: ${c.stops.map(s => esc(s.title)).join(' → ')} → 다시 출발점. 약 <b>${c.km.toFixed(1)}km · ${mins(c.time)}</b>${c.line ? ' (실제 걷는 길)' : ''}. <b>🐾 같이 걷기</b>를 누르면 돌 곳과 볼거리를 하나씩 알려 줄게!` : '근처에 이어 걸을 만한 곳이 적어 🥲 다른 곳에서 해 볼까?');
+  trSay(c ? `${main ? `<b>${esc(main.title)}</b>${main.area >= 100000 ? ` (약 ${(main.area / 10000).toFixed(0)}만㎡)` : ''}을(를) 걷는 ` : ''}${minutes}분 산책 코스야: ${c.stops.map(s => esc(s.title)).join(' → ')} → 다시 출발점. 약 <b>${c.km.toFixed(1)}km · ${mins(c.time)}</b>${c.line ? ' (실제 걷는 길)' : ''}. <b>🐾 같이 걷기</b>를 누르면 돌 곳과 볼거리를 하나씩 알려 줄게!` : `반경 ${TO.radius >= 1000 ? TO.radius / 1000 + 'km' : TO.radius + 'm'} 안에는 걸을 만한 공원·볼거리가 없어. 지도 아래에서 반경을 넓혀 봐.`);
   trDraw();
 }
 async function trPick(i) {
   const it = TO.view[i]; if (!it) return;
+  if (!TO.sel) navPush(() => { TO.sel = null; trDraw(); });
   TO.sel = Object.assign({}, it, { loading: true }); trDraw();
   const d = await trDetailAny(it); TO.sel = Object.assign({}, it, d || {}, { img: (d && d.img) || it.img, loading: false }); trDraw();
   if (TO.sel.overview) trSay(`<b>${esc(it.title)}</b> — ${esc(TO.sel.overview.slice(0, 120))}…`, false);
@@ -265,25 +269,30 @@ function trDraw(st) {
   const tabs = [['see', '🌿 볼거리'], ['walk', '🚶 산책 코스'], ['food', '🍚 맛집'], ['stay', '🏨 숙소']];
   const list = TO.view = TO.tab === 'walk' ? (TO.course ? TO.course.stops : []) : TO.items;
   const S0 = TO.sel;
+  if (TO.map) { try { TO.map.remove(); } catch { } TO.map = null; }
   box.innerHTML = `<div class="seg mtabs">${tabs.map(([k, n]) => `<button data-tt="${k}" class="${TO.tab === k ? 'on' : ''}">${n}</button>`).join('')}</div>
     <div class="card rpetc"><p id="tPet">🐾 ${st === 'loading' && !TO.say ? '찾는 중…' : (TO.say || '')}</p></div>
     <div id="tMap" class="rmap"></div>
+    ${S0 ? '' : `<div class="rrad"><span>반경</span><input type="range" id="tRad" min="0" max="${RSTEPS.length - 1}" step="1" value="${Math.max(0, RSTEPS.indexOf(TO.radius))}"><b id="tRadV">${TO.radius >= 1000 ? TO.radius / 1000 + 'km' : TO.radius + 'm'}</b></div>`}
     ${TO.tab === 'walk' ? `<div class="card"><div class="seg">${[30, 60, 90].map(m => `<button data-tm="${m}" class="${TO.courseMin === m ? 'on' : ''}">${m}분</button>`).join('')}</div>${TO.course ? `<div class="row bctl"><button data-tg="1" class="bplay">${TO.watch ? '⏹ 걷기 그만' : '🐾 같이 걷기'}</button>${TO.course.trail ? '<button data-ts2="start">🧭 출발점까지 길찾기</button>' : ''}</div>` : ''}</div>
       ${(TO.duru || []).length ? `<div class="card"><h3>🥾 근처 공식 걷기길 (두루누비)</h3>${TO.duru.map((c, i) => `<button class="rcand ${TO.course && TO.course.trail === c ? 'on' : ''}" data-du="${i}"><b>${esc(c.name)}</b><span>${esc(c.sigun)} · ${c.km}km · 약 ${mins(c.min)} · ${['', '쉬움', '보통', '어려움'][c.level] || ''}</span></button>`).join('')}</div>` : ''}` : ''}
     ${S0 ? `<div class="card tsel">${S0.img ? `<img src="${esc(S0.img)}" alt="">` : ''}<h3>${esc(S0.title)}</h3><p class="note small">${esc(tlabel(S0))}${S0.dist ? ' · ' + (S0.dist / 1000).toFixed(1) + 'km' : ''}${S0.addr ? ' · ' + esc(S0.addr) : ''}</p>
       <p class="note" style="line-height:1.7">${S0.loading ? '불러오는 중…' : esc((S0.overview || '소개 글이 없어요').slice(0, 600))}${S0.overview && S0.overview.length > 600 ? '…' : ''}</p>
-      <div class="row bctl"><button data-ts="say">🔊 들려줘</button><button data-ts="go">🧭 여기로 길찾기</button>${S0.type === 32 ? '<button data-ts="price">💰 가격 보기</button>' : ''}${S0.home ? '<button data-ts="home">🌐 누리집</button>' : ''}</div></div>` : ''}
-    ${list.map((x, i) => `<button class="titem ${S0 && S0.id === x.id ? 'on' : ''}" data-ti="${i}">${x.img ? `<img src="${esc(x.img)}" alt="" loading="lazy">` : `<span class="tnoimg">${x.kind === '공원' || /정원|숲|연못/.test(x.kind || '') ? '🌳' : '📍'}</span>`}<span><b>${TO.tab === 'walk' ? (i + 1) + '. ' : ''}${esc(x.title)}</b><small>${esc(tlabel(x))}${x.area >= 100000 ? ' · 큰 공원' : ''} · ${(x.dist / 1000).toFixed(1)}km</small></span></button>`).join('')}
+      <div class="row bctl"><button data-ts="go">🧭 여기로 길찾기</button>${S0.type === 32 ? '<button data-ts="price">💰 가격 보기</button>' : ''}${S0.home ? '<button data-ts="home">🌐 누리집</button>' : ''}</div></div>` : ''}
+    ${S0 ? '' : list.map((x, i) => `<button class="titem ${S0 && S0.id === x.id ? 'on' : ''}" data-ti="${i}">${x.img ? `<img src="${esc(x.img)}" alt="" loading="lazy">` : `<span class="tnoimg">${x.kind === '공원' || /정원|숲|연못/.test(x.kind || '') ? '🌳' : '📍'}</span>`}<span><b>${TO.tab === 'walk' ? (i + 1) + '. ' : ''}${esc(x.title)}</b><small>${esc(tlabel(x))}${x.area >= 100000 ? ' · 큰 공원' : ''} · ${(x.dist / 1000).toFixed(1)}km</small></span></button>`).join('')}
     <p class="note small" style="text-align:center">자료: 한국관광공사 · 오픈스트리트맵${RK().tmap ? ' · TMAP' : ''}${TO.tab === 'stay' ? ' · 가격·빈방·예약은 숙소 앱에서 본인이 직접' : ''}</p>`;
   trMapDraw(list);
 }
 function trMapDraw(list) {
+  list = list || [];
   const el = $('#tMap'); if (!el || !window.L || !TO.at) return;
   try { if (TO.map) TO.map.remove(); } catch { }
   TO.map = L.map(el, { zoomControl: false, attributionControl: false, zoomAnimation: false, fadeAnimation: false, markerZoomAnimation: false, inertia: false }).setView([TO.at.lat, TO.at.lon], 15);
   L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(TO.map);
   TO.meMk = L.marker([TO.at.lat, TO.at.lon], { icon: L.divIcon({ className: 'rme', html: '<i></i>', iconSize: [18, 18] }) }).addTo(TO.map);
   const pts = [[TO.at.lat, TO.at.lon]];
+  if (TO.sel) list = [TO.sel];
+  else { const cc = L.circle([TO.at.lat, TO.at.lon], { radius: TO.radius, color: '#3182f6', weight: 1.5, fillOpacity: .06 }).addTo(TO.map); const bb = cc.getBounds(); pts.push([bb.getSouth(), bb.getWest()], [bb.getNorth(), bb.getEast()]); }
   list.slice(0, 25).forEach((x, i) => { L.marker([x.lat, x.lon], { icon: L.divIcon({ className: 'tnum', html: `<i>${TO.tab === 'walk' ? i + 1 : ''}</i>`, iconSize: [24, 24] }) }).addTo(TO.map).on('click', () => trPick(i)); pts.push([x.lat, x.lon]); });
   const c = TO.course;
   if (TO.tab === 'walk' && c) {
@@ -332,7 +341,7 @@ function trGo() {
 function trStop(talk) { if (TO.watch != null) { try { navigator.geolocation.clearWatch(TO.watch); } catch { } TO.watch = null; if (talk) trSay('산책 안내를 멈췄어'); } }
 document.addEventListener('click', e => {
   if (!e.target.closest || !e.target.closest('#tourBox')) return;
-  const tt = e.target.closest('[data-tt]'); if (tt) { TO.tab = tt.dataset.tt; TO.sel = null; TO.course = null; TO.say = ''; trStop(); return trLoad(); }
+  const tt = e.target.closest('[data-tt]'); if (tt) { const pt = TO.tab; if (pt !== tt.dataset.tt) navPush(() => { TO.tab = pt; TO.sel = null; TO.course = null; TO.say = ''; trStop(); trLoad(); }); TO.tab = tt.dataset.tt; TO.sel = null; TO.course = null; TO.say = ''; trStop(); return trLoad(); }
   const ti = e.target.closest('[data-ti]'); if (ti) return trPick(+ti.dataset.ti);
   const tm = e.target.closest('[data-tm]'); if (tm) { TO.sel = null; trStop(); return trCourse(+tm.dataset.tm); }
   if (e.target.closest('[data-tg]')) return trGo();
@@ -340,7 +349,6 @@ document.addEventListener('click', e => {
   if (e.target.closest('[data-ts2]') && TO.course && TO.course.start) return openRoute(TO.course.start.name, TO.course.start);
   const ts = e.target.closest('[data-ts]'); if (!ts || !TO.sel) return;
   const a = ts.dataset.ts, F = RF();
-  if (a === 'say') rSpeak(`${TO.sel.title}. ${TO.sel.overview || ''}`);
   if (a === 'go') openRoute(TO.sel.title);
   const open = u => { if (F && F.openApp) F.openApp({ pkg: '', url: u }); else window.open(u, '_blank'); };
   if (a === 'price') open('https://m.search.naver.com/search.naver?query=' + encodeURIComponent(TO.sel.title + ' 숙박 가격'));
@@ -355,3 +363,11 @@ function tourTalk(text) {
   if (/(근처|주변|여기|이\s*동네).*(볼\s*거리|볼거리|볼\s*거\s*(있|없|많)|뭐\s*볼|구경|관광|가\s*볼\s*(만한|데)|뭐\s*있|공원)|^(둘러보기|관광지\s*(알려|찾아))/.test(t)) { openTour('see'); return true; }
   return false;
 }
+
+// 반경 조절 (둘러보기 화면): 바꾸면 그 반경 안에서 다시 찾기
+let trRadT = 0;
+document.addEventListener('input', e => {
+  if (e.target.id !== 'tRad') return;
+  TO.radius = RSTEPS[+e.target.value] || 100; const v = $('#tRadV'); if (v) v.textContent = TO.radius >= 1000 ? TO.radius / 1000 + 'km' : TO.radius + 'm';
+  clearTimeout(trRadT); trRadT = setTimeout(() => { TO.sel = null; TO.course = null; TO.say = ''; trStop(); trLoad(); }, 500);
+});
