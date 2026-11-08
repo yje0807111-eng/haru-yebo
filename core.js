@@ -239,7 +239,7 @@ async function send(text, opt = {}) {   // opt.talk = 바탕화면 팻에게 한
   t.value = ''; markSign();
   if (window.msgPending && msgPending(text)) return;   // ✉️💬 받아 적는 중
   if (window.mapTalk && mapTalk(text)) return;   // 🗺️ "지도" (길찾기 중이어도 먼저)
-  if (view === 'route' && window.routeTalk && routeTalk(text)) return;   // 🧭 길찾기 중: 도착지·"맞아"·목적
+  if (view === 'route' && !document.hidden && window.routeTalk && routeTalk(text)) return;   // 11-08: 앱이 뒤에 있을 땐(화면 위 팻) 목적지로 빼앗지 않음   // 🧭 길찾기 중: 도착지·"맞아"·목적
   if (view !== 'home') go('home');   // 대답은 다루 마당에서
   const em = stripName(text).match(/^(119|112|1394|일일구|일일이|구급차|소방서|경찰)\s*(에|로|번|을|를|좀)?\s*(전화|신고|불러)/);
   if (em && window.sosCall) { sosCall(/^(119|일일구|구급차|소방서)/.test(em[1]) ? '119' : /^(112|일일이|경찰)/.test(em[1]) ? '112' : '1394'); return; }

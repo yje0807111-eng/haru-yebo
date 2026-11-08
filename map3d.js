@@ -31,8 +31,7 @@ async function m3Init(el) {
       if (m3.getLayer('building-3d')) m3.setPaintProperty('building-3d', 'fill-extrusion-opacity', 0.85);
     } catch { }
     m3.addSource('ring', { type: 'geojson', data: m3Circle(rCenter(), R.radius) });
-    m3.addLayer({ id: 'ring-fill', type: 'fill', source: 'ring', paint: { 'fill-color': '#3182f6', 'fill-opacity': 0.08 } });
-    m3.addLayer({ id: 'ring-line', type: 'line', source: 'ring', paint: { 'line-color': '#3182f6', 'line-width': 2.5 } });
+    // 11-08: 반경 원은 지움 (손가락으로 넓히고 좁히면 반경 글자만 바뀜)
     m3Show(); m3Pois();
   });
   m3.on('rotate', m3Arrow);

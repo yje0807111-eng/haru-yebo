@@ -497,3 +497,9 @@ body.fullmap .rmyloc { position: fixed; bottom: 96px; z-index: 970; }
 
 #fmUI .fmr b { color: #3182f6; padding: 6px 8px; font-size: 15px; white-space: nowrap; }
 #fmUI .fmr small { color: #8b95a1; font-size: 12px; padding-right: 8px; white-space: nowrap; align-self: center; }
+
+/* 11-08 반경 원 지우기 — 반경 글자만 오른쪽 위 구석에 */
+.rring { left: 0 !important; top: 0 !important; width: 100% !important; height: 100% !important; max-height: none !important; transform: none !important; border: 0 !important; border-radius: 0 !important; background: none !important; }
+.rring span { left: auto !important; top: 10px !important; right: 10px; transform: none !important; opacity: .9; }
+body.fullmap .rring span { display: none; }
+.rring span, .m3lab { display: none !important; }
