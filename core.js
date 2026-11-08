@@ -86,12 +86,13 @@ const P = { x: 0.5, dir: 1, target: null, speed: 0.08, pose: 'idle', frames: nul
 function setPose(p) {
   P.pose = p; CH = (window.CHARS || {})[SP()];
   // 강아지 걷기·뛰기: 얼굴·뒤통수가 안 잘린 그림 두 장을 번갈아 (11-05) — 고양이·돼지는 PC 와 같은 움직이는 그림
-  const CYC = SP() === 'dog' ? { walk: [['걷기1.webp', '걷기2.webp'], 5], run: [['뛰기1.webp', '뛰기2.webp'], 7] } : {};
-  if (CYC[p]) { P.frames = CYC[p][0]; P.fps = CYC[p][1]; P.fi = 0; P.face = -1; P.hk = 1; pet.src = DIR() + P.frames[0]; return; }
+  const VW = CH && CH.anims && CH.anims.walk && CH.anims.walk.video ? CH.anims.walk : null;   // 11-09 영상으로 만든 걷기
+  const CYC = SP() === 'dog' ? { walk: VW ? [VW.frames, VW.fps] : [['걷기1.webp', '걷기2.webp'], 5], run: [['뛰기1.webp', '뛰기2.webp'], 7] } : {};
+  if (CYC[p]) { P.frames = CYC[p][0]; P.fps = CYC[p][1]; P.fi = 0; P.loop0 = 0; P.face = -1; P.hk = p === 'walk' && VW && CH.refH ? VW.h / CH.refH : 1; pet.src = DIR() + P.frames[0]; return; }
   const names = POSES[p] || POSES.idle, R = (CH && CH.refH) || 0;
   for (const n of names) {
     const an = CH && CH.anims && CH.anims[n];
-    if (an) { P.frames = an.frames; P.fps = an.fps || 8; P.fi = 0; P.face = an.face || 0; P.hk = R && an.h ? an.h * (an.sc || 1) / R : 1; pet.src = DIR() + P.frames[0]; return; }   // 크기: PC 와 같은 셈(동작 그림 높이 ÷ 기준 높이)
+    if (an) { P.frames = an.frames; P.fps = an.fps || 8; P.fi = 0; P.loop0 = an.loop || 0; P.face = an.face || 0; P.hk = R && an.h ? an.h * (an.sc || 1) / R : 1; pet.src = DIR() + P.frames[0]; return; }   // 크기: PC 와 같은 셈(동작 그림 높이 ÷ 기준 높이)
     const sp = CH && CH.sprites && CH.sprites[n];
     if (sp) { P.frames = null; P.face = sp.face || 0; P.hk = R && sp.h ? sp.h / R : 1; pet.src = DIR() + sp.file; return; }
   }
@@ -122,7 +123,7 @@ function tick(now) {
     if (Math.abs(d) < 0.01) { P.target = null; setPose(pick(['idle', 'sit', 'joy', 'gaze', 'jump', 'laugh'])); if (petAct() >= 4) fx('hop'); P.until = now + (petAct() >= 4 ? rnd(500, 1500) : rnd(2500, 6000)); }
     else { P.dir = d > 0 ? 1 : -1; P.x += Math.sign(d) * Math.min(Math.abs(d), P.speed * dt); }
   } else if (now > P.until) decide();
-  if (P.frames && now - frameT > 1000 / P.fps) { frameT = now; P.fi = (P.fi + 1) % P.frames.length; pet.src = DIR() + P.frames[P.fi]; }
+  if (P.frames && now - frameT > 1000 / P.fps) { frameT = now; P.fi = P.fi + 1 >= P.frames.length ? Math.min(P.loop0 || 0, P.frames.length - 1) : P.fi + 1; pet.src = DIR() + P.frames[P.fi]; }
   const hh = petPx(window.prevSize || S.me.size || 100);   // 크기 단계 → 화면 크기
   const hp = Math.round(hh * (P.hk || 1)); if (pet._h !== hp) { pet._h = hp; pet.style.height = hp + 'px'; }
   const w = pet.getBoundingClientRect().width || 100, W = yard.clientWidth;

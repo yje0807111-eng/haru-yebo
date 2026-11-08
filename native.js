@@ -96,7 +96,7 @@
     const one = n => Sp[n] ? Sp[n].file : A[n] ? A[n].frames[0] : null;
     const uniq = a => [...new Set(a)].slice(0, 10);
     const idle = ['정면', '눈망울_앉기', '기쁨', '윙크', '엎드림', '앉아'].map(one).filter(Boolean).slice(0, 5);
-    const walk = sp === 'dog' ? ['걷기1.webp', '걷기2.webp'] : uniq((A.walk || A['신나걷기'] || { frames: [Sp['정면'].file] }).frames);
+    const walk = sp === 'dog' ? (A.walk && A.walk.video ? A.walk.frames : ['걷기1.webp', '걷기2.webp']) : uniq((A.walk || A['신나걷기'] || { frames: [Sp['정면'].file] }).frames);
     const rk = (C.runList || []).concat(['run', '네발뛰기', 'dash']).find(k => A[k]);
     const run = sp === 'dog' ? ['뛰기1.webp', '뛰기2.webp'] : rk ? uniq(A[rk].frames) : walk;
     const L = SOUNDS[sp] || SOUNDS.dog;
