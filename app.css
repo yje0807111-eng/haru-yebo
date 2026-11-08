@@ -406,3 +406,13 @@ body.smode .talk { background: #fff; border: 0; box-shadow: 0 2px 12px rgba(49,1
 .rrad b { min-width: 52px; text-align: right; color: #3182f6; }
 .rcat { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin: 0 0 10px; }
 .rcat button { border: 0; background: #fff; border-radius: 14px; padding: 14px 4px; font-weight: 800; font-size: 15px; box-shadow: 0 1px 6px rgba(0,0,0,.06); }
+
+/* 11-08 늘 같은 크기의 반경 원 · 보고 있는 방향(빨간 삼각형) */
+.rmap { position: relative; }
+.rring { position: absolute; left: 50%; top: 50%; width: 80%; aspect-ratio: 1; max-height: 80%; transform: translate(-50%, -50%); border: 2px solid #3182f6; border-radius: 50%; background: rgba(49,130,246,.06); pointer-events: none; z-index: 450; box-sizing: border-box; }
+@supports (aspect-ratio: 1) { .rring { width: auto; height: 80%; } }
+.rring span { position: absolute; left: 50%; top: -1px; transform: translate(-50%, -50%); background: #3182f6; color: #fff; font: 800 12px/1 sans-serif; padding: 4px 8px; border-radius: 10px; }
+.rme { position: relative; }
+.rme i { position: absolute; left: 13px; top: 13px; }
+.rme .rdir { position: absolute; inset: 0; transform-origin: 50% 50%; }
+.rme .rdir b { position: absolute; left: 50%; top: 0; transform: translateX(-50%); width: 0; height: 0; border-left: 7px solid transparent; border-right: 7px solid transparent; border-bottom: 12px solid #f03e3e; filter: drop-shadow(0 1px 1px rgba(0,0,0,.3)); }
