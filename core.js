@@ -59,6 +59,7 @@ function go(v, fromNav) {
   if (v === 'set') { safe(drawSet, '설정'); if (window.floatStatus) floatStatus(); }
   if (v === 'music' && window.drawMusic) drawMusic(false);
   if (v === 'tv' && window.drawTV) drawTV();
+  if (v === 'route' && window.rLive && typeof R !== 'undefined' && R.step === 'dest' && !R.to) rLive(true);   // 11-08: 걸으면 지도가 따라오기
 }
 document.addEventListener('click', e => { const b = e.target.closest('[data-go]'); if (b) go(b.dataset.go); });
 

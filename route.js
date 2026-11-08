@@ -23,29 +23,28 @@ window.addEventListener('deviceorientation', e => { if (e.webkitCompassHeading !
 const POI_CATS = { all: ['음식점', '카페', '숙박', '편의점', '약국'], food: ['음식점', '카페'], stay: ['숙박'] };
 const POI_ICON = { 음식점: '🍚', 카페: '☕', 숙박: '🏨', 편의점: '🏪', 약국: '💊' };
 R.cat = 'all'; R.pois = []; R.poi = null;
-const poiCache = {};
-async function rPois() {
+// 가게는 한 번 받아 두고(400m 넘게 움직이거나 반경·종류가 바뀔 때만 다시), 걸을 때는 거리만 다시 재서 반경 안만 보여 줌
+async function rPois(force) {
   if (!RK().tmap || !R.from) { R.pois = []; return; }
-  const km = Math.max(1, Math.ceil(R.radius / 1000)), cats = POI_CATS[R.cat] || POI_CATS.all, out = [];
+  const km = Math.max(1, Math.ceil(R.radius / 1000)), cats = POI_CATS[R.cat] || POI_CATS.all, key = R.cat + ',' + km;
+  if (!force && R.poiAll && R.poiKey === key && R.poiAt && rkm(R.poiAt, R.from) < 0.4) return rPoiFilter();
+  const at = { lat: R.from.lat, lon: R.from.lon }, out = [];
   await Promise.all(cats.map(async c => {
-    const key = `${R.from.lat.toFixed(4)},${R.from.lon.toFixed(4)},${c},${km}`;
-    let list = poiCache[key] && Date.now() - poiCache[key].at < 180000 ? poiCache[key].list : null;
-    if (!list) {
-      try {
-        const r = await fetch(`https://apis.openapi.sk.com/tmap/pois/search/around?version=1&centerLon=${R.from.lon}&centerLat=${R.from.lat}&categories=${encodeURIComponent(c)}&radius=${km}&count=150`, { headers: { appKey: RK().tmap } });
-        const j = r.ok ? await r.json() : {};
-        list = ((((j.searchPoiInfo || {}).pois || {}).poi) || []).map(p => {
-          const m = String(p.name).match(/^(.*?)\s*\[([^\]]+)\]\s*$/);
-          return { name: m ? m[1] : p.name, sub: m ? m[2] : '', cat: c, lat: +(p.frontLat || p.noorLat), lon: +(p.frontLon || p.noorLon), tel: p.telNo || '', addr: [p.upperAddrName, p.middleAddrName, p.lowerAddrName, p.roadName, p.firstBuildNo].filter(Boolean).join(' ') };
-        });
-        poiCache[key] = { at: Date.now(), list };
-      } catch { list = []; }
-    }
-    out.push(...list);
+    try {
+      const r = await fetch(`https://apis.openapi.sk.com/tmap/pois/search/around?version=1&centerLon=${at.lon}&centerLat=${at.lat}&categories=${encodeURIComponent(c)}&radius=${km}&count=150`, { headers: { appKey: RK().tmap } });
+      const j = r.ok ? await r.json() : {};
+      out.push(...((((j.searchPoiInfo || {}).pois || {}).poi) || []).map(p => {
+        const m = String(p.name).match(/^(.*?)\s*\[([^\]]+)\]\s*$/);
+        return { name: m ? m[1] : p.name, sub: m ? m[2] : '', cat: c, lat: +(p.frontLat || p.noorLat), lon: +(p.frontLon || p.noorLon), tel: p.telNo || '', addr: [p.upperAddrName, p.middleAddrName, p.lowerAddrName, p.roadName, p.firstBuildNo].filter(Boolean).join(' ') };
+      }));
+    } catch { }
   }));
   const seen = new Set();
-  R.pois = out.map(p => Object.assign(p, { d: rkm(R.from, p) * 1000 })).filter(p => p.d <= R.radius && !seen.has(p.name + p.lat.toFixed(4)) && seen.add(p.name + p.lat.toFixed(4))).sort((a, b) => a.d - b.d);
+  R.poiAll = out.filter(p => !seen.has(p.name + p.lat.toFixed(4)) && seen.add(p.name + p.lat.toFixed(4)));
+  R.poiAt = at; R.poiKey = key;
+  rPoiFilter();
 }
+function rPoiFilter() { R.pois = (R.poiAll || []).map(p => Object.assign(p, { d: rkm(R.from, p) * 1000 })).filter(p => p.d <= R.radius).sort((a, b) => a.d - b.d); }
 const bearing = (a, b) => { const t = Math.PI / 180, y = Math.sin((b.lon - a.lon) * t) * Math.cos(b.lat * t), x = Math.cos(a.lat * t) * Math.sin(b.lat * t) - Math.sin(a.lat * t) * Math.cos(b.lat * t) * Math.cos((b.lon - a.lon) * t); return (Math.atan2(y, x) / t + 360) % 360; };
 function rPoiDraw() {
   if (!R.map || R.to) return;
@@ -72,11 +71,26 @@ function rPoiCard() {
   const el = $('#rPoiCard'); if (!el) return;
   const p = R.poi; if (!p) { el.innerHTML = ''; return; }
   el.innerHTML = `<div class="card rpcard"><button class="rpx" data-pc="x">✕</button><p class="rptitle">${POI_ICON[p.cat] || '📍'} <b>${esc(p.name)}</b></p>
-    <p class="note small">${esc(p.cat)}${p.sub ? ' · ' + esc(p.sub) : ''} · <b>${Math.round(p.d)}m</b>${p.addr ? ' · ' + esc(p.addr) : ''}</p>
+    <p class="note small">${esc(p.cat)}${p.sub ? ' · ' + esc(p.sub) : ''} · <b>${Math.round(R.from ? rkm(R.from, p) * 1000 : p.d)}m</b>${p.addr ? ' · ' + esc(p.addr) : ''}</p>
     ${p.tel ? `<p class="note small">📞 ${esc(p.tel)}</p>` : ''}
     <div class="row bctl">${p.tel ? '<button data-pc="tel">📞 전화</button>' : ''}<button data-pc="go">🧭 길찾기</button></div>
     <div class="row bctl"><button data-pc="naver">📖 네이버에서 보기</button><button data-pc="kakao">📖 카카오맵</button></div>
     <p class="note small">메뉴·가격·영업시간·후기는 네이버·카카오에서 볼 수 있어요</p></div>`;
+}
+// 🚶 걸으면 지도가 따라오기 (길찾기 첫 화면): 내 점·원·가게가 함께 움직이고, 30초마다 지금 주소
+let rLiveW = null, rLiveAddrAt = 0;
+function rLive(on) {
+  if (!on) { if (rLiveW != null) { try { navigator.geolocation.clearWatch(rLiveW); } catch { } rLiveW = null; } return; }
+  if (rLiveW != null || !navigator.geolocation) return;
+  rLiveW = navigator.geolocation.watchPosition(async p => {
+    if (view !== 'route' || R.to || !['dest', 'finding', 'locating'].includes(R.step)) return rLive(false);
+    const me = { lat: p.coords.latitude, lon: p.coords.longitude };
+    if (R.from && rkm(R.from, me) * 1000 < 3) return;   // 제자리 흔들림은 무시
+    R.from = Object.assign(R.from || {}, me);
+    if (R.map) { if (R.mk.me) R.mk.me.setLatLng([me.lat, me.lon]); ringShow(R.map, R.from, R.radius); }
+    await rPois(); rPoiDraw(); rPoiCard();
+    if (Date.now() - rLiveAddrAt > 30000 && !R.poi) { rLiveAddrAt = Date.now(); const a = await addrOf(me); if (a && R.step === 'dest' && !R.to) { R.from.addr = a; rTalk(`지금 <b>${esc(shortAddr(a))}</b> 근처야. 어디로 갈까? 아래에 써 줘.`, false); } }
+  }, () => { }, { enableHighAccuracy: true, maximumAge: 2000, timeout: 20000 });
 }
 const rMeIcon = () => L.divIcon({ className: 'rme', html: `<div class="rdir" style="${rHead == null ? 'display:none' : `transform:rotate(${rHead}deg)`}"><b></b></div><i></i>`, iconSize: [44, 44], iconAnchor: [22, 22] });
 const shortAddr = a => String(a || '').split(' ').filter((w, i) => !(i === 0 && /(특별시|광역시|특별자치시|특별자치도|도)$/.test(w))).filter(w => !/^\d+(-\d+)?$/.test(w)).join(' ');
@@ -131,7 +145,7 @@ async function rStart(dest, at) {
   if (at && at.lat) { R.q = dest || at.name || ''; R.cands = [{ name: at.name || dest, addr: at.addr || '', lat: at.lat, lon: at.lon }]; return rPick(0); }
   if (dest) return rSearch(dest);
   R.step = 'dest'; R.poi = null; rDraw();
-  rPois().then(rPoiDraw);
+  rPois(true).then(rPoiDraw); rLiveAddrAt = Date.now(); rLive(true);
   rTalk(`${R.from && R.from.addr ? '지금 <b>' + esc(shortAddr(R.from.addr)) + '</b> 근처야. ' : ''}어디로 갈까? 아래에 써 줘.`, false);
 }
 async function rSearch(q) {
@@ -143,7 +157,7 @@ async function rSearch(q) {
   rPick(0);
 }
 function rPick(i) {
-  if (R.step === 'finding' || R.step === 'dest') navPush(() => { rStop(); R.step = 'dest'; R.to = null; R.walk = null; rDraw(); rTalk('어디로 갈까? 아래에 써 줘.', false); });
+  if (R.step === 'finding' || R.step === 'dest') navPush(() => { rStop(); R.step = 'dest'; R.to = null; R.walk = null; rDraw(); rTalk('어디로 갈까? 아래에 써 줘.', false); rLive(true); });
   R.to = R.cands[i]; R.walk = null; R.step = 'confirm'; rDraw(); rMapShow();
   const more = R.cands.length > 1 ? ' 다른 곳이면 아래에서 골라 줘.' : '';
   rTalk(`<b>${esc(R.to.name)}</b>${R.to.addr ? ' (' + esc(R.to.addr) + ')' : ''}${R.from ? ', 여기서 ' + rkm(R.from, R.to).toFixed(1) + 'km' : ''}. <b>여기 맞아?</b>${more}`);
@@ -369,7 +383,7 @@ document.addEventListener('click', e => {
   if (rt && (rt.dataset.rt === 'food' || rt.dataset.rt === 'stay') && RK().tmap) {   // 맛집·숙소 = 같은 지도에서 그 가게만 (한 번 더 누르면 전체)
     R.cat = R.cat === rt.dataset.rt ? 'all' : rt.dataset.rt; R.poi = null; rPoiCard();
     document.querySelectorAll('[data-rt]').forEach(b => b.classList.toggle('on', b.dataset.rt === R.cat));
-    rPois().then(() => { rPoiDraw(); rTalk(R.cat === 'all' ? '반경 안 가게를 모두 보여 줄게. 점을 누르면 정보가 나와.' : `반경 ${rfmt(R.radius)} 안 ${R.cat === 'food' ? '식당·카페' : '숙소'} <b>${R.pois.length}곳</b>이야. 지도에서 점을 눌러 봐.`, false); });
+    rPois(true).then(() => { rPoiDraw(); rTalk(R.cat === 'all' ? '반경 안 가게를 모두 보여 줄게. 점을 누르면 정보가 나와.' : `반경 ${rfmt(R.radius)} 안 ${R.cat === 'food' ? '식당·카페' : '숙소'} <b>${R.pois.length}곳</b>이야. 지도에서 점을 눌러 봐.`, false); });
     return;
   }
   const pf = e.target.closest('[data-pf]'); if (pf) return rPoiOpen(+pf.dataset.pf);
@@ -403,7 +417,7 @@ document.addEventListener('click', e => {
 });
 document.addEventListener('keydown', e => { if (e.target.id === 'rQ' && e.key === 'Enter') { const q = e.target.value.trim(); if (q) rSearch(q); } });
 // 반경 조절: 지도만 다시 맞춤 (100m ~ 2km)
-document.addEventListener('input', e => { if (e.target.id !== 'rRad') return; R.radius = RSTEPS[+e.target.value] || 30; const v = $('#rRadV'); if (v) v.textContent = rfmt(R.radius); R.poi = null; rPoiCard(); rMapShow(); clearTimeout(window._rpT); window._rpT = setTimeout(() => rPois().then(rPoiDraw), 400); });
+document.addEventListener('input', e => { if (e.target.id !== 'rRad') return; R.radius = RSTEPS[+e.target.value] || 30; const v = $('#rRadV'); if (v) v.textContent = rfmt(R.radius); R.poi = null; rPoiCard(); rMapShow(); clearTimeout(window._rpT); window._rpT = setTimeout(() => rPois().then(rPoiDraw), 300); });
 if (window.S) delete S.routeRecent;   // 찾은 흔적은 남기지 않음
 
 // 말 알아듣기: "길 찾아 줘", "인천공항 가는 길", "서울역까지 어떻게 가?" · 길찾기 중엔 도착지·"맞아"
