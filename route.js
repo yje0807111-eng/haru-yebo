@@ -69,23 +69,47 @@ function rAirport(t, kind) {
   if (!R.airport.t || !R.airport.kind) { rDraw(); return; }
   R.purpose = R.airport.kind === 'out' ? '출국' : '마중'; rRoutes();
 }
-async function rRoutes() {
-  R.step = 'routes'; rDraw(); rTalk('가는 방법을 찾는 중…', false);
+async function rRoutes(again) {
+  if (!again) { R.pt = null; R.ptDone = false; }
+  R.step = 'routes'; rDraw(); if (!again) rTalk('가는 방법을 찾는 중…', false);
   const d = R.from ? rkm(R.from, R.to) : 0, roadKm = d * 1.3;
   const out = [];
-  if (RK().odsay && R.from) out.push(...await odsayRoutes());
+  if (R.pt) out.push(...R.pt);   // 🚇🚌 지하철·버스 (단추로 찾은 것)
   if (d && d < 2.2) out.unshift({ icon: '🚶', title: '걸어가기', min: roadKm / 4.2 * 60, fare: 0, note: '조금만 걸으면 0원이야. 지름길로 안내해 줄게', tag: '💰 돈 안 드는 길' });
   if (d >= 0.8) { const rk = d * 1.25, tmin = 6 + rk / (rk > 20 ? 58 : 24) * 60, taxi = (4800 + Math.max(0, rk - 1.6) * 760) * 1.12; out.push({ icon: '🚕', title: '택시', min: tmin, fare: taxi, note: `대략이야. 차가 막히면 더 나와${rk > 30 ? ' · 고속도로 통행료 따로' : ''}`, tag: '' }); }
   R.routes = out; rDraw();
   const best = out.filter(r => r.tag).map(r => `${r.tag}: ${r.title} ${mins(r.min)}`).join(', ');
-  rTalk(`${esc(R.to.name)}까지 ${d.toFixed(1)}km야. ${RK().odsay ? best || '' : '지하철·버스 길은 아래 <b>카카오맵</b>이나 <b>네이버 지도</b> 단추로 바로 볼 수 있어.'}${S.me.senior ? ' 어르신은 지하철이 무료야!' : ''}`);
+  if (again && R.pt && R.pt.length) { const f = R.pt[0], c = R.pt.find(r => r.tag && r.tag.startsWith('💰')); rTalk(`${f.tag}: ${esc(f.title.replace(/[🚇🚌]/gu, ''))}, <b>${mins(f.min)} · ${won(f.fare)}</b>.${c ? ` 돈을 아끼려면 ${mins(c.min)} · <b>${won(c.fare)}</b> 길도 있어.` : ''} 어떤 걸로 갈까?`); rDraw(); return; }
+  rTalk(`${esc(R.to.name)}까지 ${d.toFixed(1)}km야. ${RK().odsay ? '아래 <b>🚇🚌 지하철·버스로 가는 길 찾기</b>를 누르면 빠른 길·싼 길·편한 길을 알려 줄게.' : '지하철·버스 길은 아래 <b>카카오맵</b>이나 <b>네이버 지도</b> 단추로 바로 볼 수 있어.'}${S.me.senior ? ' 어르신은 지하철이 무료야!' : ''}`);
   rBrief();
 }
-// ODsay (열쇠가 있을 때): 지하철·버스 경로 2~3개
-async function odsayRoutes() {
+// ODsay (열쇠가 있을 때): 지하철·버스 경로 2~3개 — 무료는 하루 30번(모두 합쳐서)이라 단추로만, 같은 길은 저장해 둔 것
+async function rTransit() {
+  if (!RK().odsay || !R.from) return rOpenMap('kakao');
+  const key = `${R.from.lat.toFixed(3)},${R.from.lon.toFixed(3)}>${R.to.lat.toFixed(3)},${R.to.lon.toFixed(3)}`;
+  const C = S.ptCache = S.ptCache || {}, day = today(), U = S.ptUse = S.ptUse && S.ptUse.d === day ? S.ptUse : { d: day, n: 0 };
+  let raw = C[key] && Date.now() - C[key].at < 7 * 864e5 ? C[key].paths : null;
+  if (!raw) {
+    if (U.n >= 8) { rTalk('오늘은 지하철·버스 찾기를 많이 써서, 카카오맵으로 보여 줄게!'); return rOpenMap('kakao'); }
+    rTalk('지하철·버스 길을 찾는 중…', false);
+    raw = await odsayRaw();
+    if (!raw) { rTalk('지금은 지하철·버스 길을 못 찾았어 🥲 카카오맵으로 보여 줄게'); return rOpenMap('kakao'); }
+    U.n++; C[key] = { at: Date.now(), paths: raw };
+    const ks = Object.keys(C); if (ks.length > 30) delete C[ks.sort((a, b) => C[a].at - C[b].at)[0]];
+    save();
+  }
+  R.pt = odsayPick(raw); R.ptDone = true;
+  await rRoutes(true);
+}
+async function odsayRaw() {
   try {
     const u = `https://api.odsay.com/v1/api/searchPubTransPathT?SX=${R.from.lon}&SY=${R.from.lat}&EX=${R.to.lon}&EY=${R.to.lat}&apiKey=${encodeURIComponent(RK().odsay)}`;
-    const j = await (await fetch(u)).json(); const paths = ((j.result || {}).path || []).slice(0, 8);
+    const j = await (await fetch(u)).json(); if (j.error) return null;
+    return ((j.result || {}).path || []).slice(0, 8).map(p => ({ info: p.info, subPath: (p.subPath || []).map(s => ({ trafficType: s.trafficType, sectionTime: s.sectionTime, distance: s.distance, stationCount: s.stationCount, startName: s.startName, endName: s.endName, lane: (s.lane || []).slice(0, 1).map(l => ({ name: l.name, busNo: l.busNo })) })) }));
+  } catch { return null; }
+}
+function odsayPick(paths) {
+  {
     const list = paths.map(p => {
       const i = p.info || {}, subs = p.subPath || [], bus = subs.some(s => s.trafficType === 2), sub = subs.some(s => s.trafficType === 1);
       const legs = subs.filter(s => s.trafficType !== 3).map(s => s.trafficType === 1 ? `🚇 ${(s.lane && s.lane[0] && s.lane[0].name) || '지하철'} ${s.startName}→${s.endName}` : `🚌 ${(s.lane && s.lane[0] && s.lane[0].busNo) || '버스'} ${s.startName}→${s.endName}`);
@@ -94,12 +118,14 @@ async function odsayRoutes() {
       return { icon: sub && bus ? '🚇🚌' : sub ? '🚇' : '🚌', title: legs.join(' → '), min: i.totalTime || 0, fare, walk: i.totalWalk || 0, transfers: Math.max(0, transfers), note: `갈아타기 ${Math.max(0, transfers)}번 · 걷기 ${Math.round((i.totalWalk || 0) / 70)}분${S.me.senior && !bus ? ' · 어르신 지하철 무료' : ''}`, tag: '' };
     });
     if (!list.length) return [];
-    const fast = list.slice().sort((a, b) => a.min - b.min)[0], cheap = list.slice().sort((a, b) => a.fare - b.fare || a.min - b.min)[0], easy = list.slice().sort((a, b) => a.transfers - b.transfers || a.walk - b.walk)[0];
-    const pick = [...new Set([fast, cheap, easy])];
-    fast.tag = '⚡ 가장 빠른 길'; if (cheap !== fast) cheap.tag = '💰 가장 싼 길'; if (easy !== fast && easy !== cheap) easy.tag = '😌 가장 편한 길';
-    if (cheap !== fast && cheap.fare < fast.fare) cheap.note += ` · ${mins(cheap.min - fast.min)} 더 걸리지만 ${won(fast.fare - cheap.fare)} 아껴`;
-    return pick;
-  } catch { return []; }
+    const fast = list.slice().sort((a, b) => a.min - b.min)[0];
+    // 💰 싼 길: 300원 넘게 아끼고 시간이 1.5배 안쪽일 때만 (몇십 원 아끼려고 한참 돌아가지 않게)
+    let cheap = list.filter(r => fast.fare - r.fare >= 300 && r.min <= fast.min * 1.5).sort((a, b) => a.fare - b.fare || a.min - b.min)[0] || fast;
+    const easy = list.slice().sort((a, b) => a.transfers - b.transfers || a.walk - b.walk || a.min - b.min)[0];
+    fast.tag = '⚡ 가장 빠른 길'; if (cheap !== fast) cheap.tag = '💰 가장 싼 길'; if (easy !== fast && easy !== cheap) easy.tag = '😌 가장 편한 길 (갈아타기 적게)';
+    if (cheap !== fast) cheap.note += ` · ${mins(cheap.min - fast.min)} 더 걸리지만 ${won(fast.fare - cheap.fare)} 아껴`;
+    return [...new Set([fast, cheap, easy])];
+  }
 }
 function rOpenMap(which) {
   const F = RF(), f = R.from || {}, t = R.to, name = encodeURIComponent(t.name);
@@ -137,7 +163,8 @@ function rDraw(force) {
       <p class="note" style="margin-top:10px">무슨 일로?</p><div class="seg">${[['out', '✈️ 출국'], ['in', '🙋 마중(입국)']].map(([k, n]) => `<button data-ak="${k}" class="${A.kind === k ? 'on' : ''}">${n}</button>`).join('')}</div></div>`; }
   if (st === 'why') body = `<div class="card"><div class="tvapps">${[['예배', '⛪ 예배'], ['약속', '🤝 약속·만남'], ['병원', '🏥 병원'], ['구경', '🌿 구경·관광'], ['볼일', '📋 볼일'], ['', '그냥 가자']].map(([k, n]) => `<button data-rp="${k}">${n}</button>`).join('')}</div></div>`;
   if (st === 'routes' || st === 'going') body = `${(R.routes || []).map(r => `<div class="card rroute">${r.tag ? `<p class="rtag">${r.tag}</p>` : ''}<p><b>${r.icon} ${esc(r.title)}</b></p><p class="rbig">${mins(r.min)} · ${won(r.fare)}</p><p class="note small">${esc(r.note || '')}</p></div>`).join('')}
-      <div class="card"><p class="note">${RK().odsay ? '실시간 안내는 지도 앱이 더 정확해요' : '지하철·버스 길은 지도 앱에서 바로 볼 수 있어요'}</p><div class="row bctl"><button data-r="kakao">🗺️ 카카오맵</button><button data-r="naver">🗺️ 네이버 지도</button></div>
+      ${RK().odsay && !R.ptDone ? '<div class="card"><button class="btn" data-r="pt" style="width:100%;font-size:17px;padding:14px">🚇🚌 지하철·버스로 가는 길 찾기</button></div>' : ''}
+      <div class="card"><p class="note">${RK().odsay ? '실시간 버스 도착·내릴 역 알림은 지도 앱이 더 정확해요' : '지하철·버스 길은 지도 앱에서 바로 볼 수 있어요'}</p><div class="row bctl"><button data-r="kakao">🗺️ 카카오맵</button><button data-r="naver">🗺️ 네이버 지도</button></div>
       <div class="row bctl"><button data-r="go" class="bplay">${R.watch ? '⏹ 안내 그만' : '🐾 같이 가자 (내 위치 따라 안내)'}</button></div></div>
       ${R.tips ? `<div class="card"><p class="note" style="line-height:1.75">${R.tips}</p>${R.purpose === '예배' ? `<button class="btn ghost small" data-r="web">⛪ 예배 시간 찾아보기</button>` : ''}</div>` : ''}
       ${R.story ? `<div class="card"><h3>📖 ${esc(R.to.name)} 이야기</h3><p class="note" style="line-height:1.75">${esc(R.story)}</p><button class="btn ghost small" data-r="story">🔊 들려줘</button></div>` : ''}`;
@@ -202,6 +229,7 @@ document.addEventListener('click', e => {
   if (a === 'yes') rConfirm();
   if (a === 'again') { R.step = 'dest'; R.to = null; rDraw(); rTalk('<b>어디로 갈까?</b> 다시 말해 줘'); }
   if (a === 'kakao' || a === 'naver') rOpenMap(a);
+  if (a === 'pt') rTransit();
   if (a === 'go') rGo();
   if (a === 'story') rSpeak(R.story);
   if (a === 'web') { const F = RF(), u = 'https://search.naver.com/search.naver?query=' + encodeURIComponent(R.to.name + ' 예배시간'); if (F && F.openApp) F.openApp({ pkg: '', url: u }); else window.open(u, '_blank'); }
@@ -216,6 +244,7 @@ function routeTalk(text) {
     if (R.step === 'confirm') { if (/^(응|어|맞아|맞아요|네|예|그래|여기|거기|좋아)/.test(t)) { rConfirm(); return true; } if (/^(아니|아냐|다른|틀려)/.test(t)) { R.step = 'dest'; rDraw(); rTalk('<b>어디로 갈까?</b> 다시 말해 줘'); return true; } }
     if (R.step === 'airport') { const tm = /(1|일|첫)\s*터미널/.test(t) ? '1' : /(2|이|두)\s*터미널/.test(t) ? '2' : null, k = /출국|떠나|여행\s*가|비행기\s*타/.test(t) ? 'out' : /마중|입국|데리러|마중나가|도착/.test(t) ? 'in' : null; if (tm || k) { rAirport(tm, k); return true; } }
     if (R.step === 'why') { const m = [['예배', /예배|교회|미사|기도/], ['병원', /병원|진료|검사|치료/], ['약속', /약속|만나|만남|모임|미팅/], ['구경', /구경|관광|여행|산책|놀러/], ['볼일', /볼일|일|업무|서류/]].find(([, re]) => re.test(t)); if (m || /그냥|몰라|말\s*안|비밀/.test(t)) { R.purpose = m ? m[0] : ''; rRoutes(); return true; } }
+    if (R.step === 'routes' && /(지하철|버스|대중교통|전철)/.test(t) && !R.ptDone) { rTransit(); return true; }
     if (/^(같이\s*가자|안내해\s*줘|출발)/.test(t)) { rGo(); return true; }
     if (/^(안내\s*(그만|멈춰|꺼)|길찾기\s*(그만|꺼))/.test(t)) { rStop(true); return true; }
   }
