@@ -237,8 +237,10 @@ async function send(text, opt = {}) {   // opt.talk = 바탕화면 팻에게 한
   if (smode && !opt.talk) {   // 팻방 말창 = 검색. 단, 알람·시간·전화·명령은 먼저 알아들음 (11-07)
     if (window.peopleTalk && await peopleTalk(text)) return;
     if (await timeTalk(text)) return;
+    if (window.mapTalk && mapTalk(text)) return;
     if (window.routeTalk && routeTalk(text)) return;
     if (window.tourTalk && tourTalk(text)) return;
+    if (window.mapTalk && mapTalk(text)) return;
     if (window.routeTalk && routeTalk(text)) return;
   if (window.tourTalk && tourTalk(text)) return;
   if (window.ballTalk && ballTalk(text)) return;

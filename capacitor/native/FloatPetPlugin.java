@@ -473,4 +473,11 @@ public class FloatPetPlugin extends Plugin {
             } catch (Exception e) { call.reject("ocr: " + e); }
         }).start();
     }
+    // 🗺️ 걷기 지도 동안 화면이 꺼지지 않게 (11-08)
+    @PluginMethod
+    public void keepScreen(PluginCall call) {
+        final boolean on = Boolean.TRUE.equals(call.getBoolean("on", false));
+        if (getActivity() != null) getActivity().runOnUiThread(() -> { if (on) getActivity().getWindow().addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON); else getActivity().getWindow().clearFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON); });
+        call.resolve();
+    }
 }

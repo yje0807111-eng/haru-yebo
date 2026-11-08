@@ -44,7 +44,7 @@ async function rPois(force) {
   R.poiAt = at; R.poiKey = key;
   rPoiFilter();
 }
-function rPoiFilter() { R.pois = (R.poiAll || []).map(p => Object.assign(p, { d: rkm(R.from, p) * 1000 })).filter(p => p.d <= R.radius).sort((a, b) => a.d - b.d); }
+function rPoiFilter() { if (R.focus) { R.pois = R.focus.map(p => Object.assign(p, { d: rkm(R.from, p) * 1000 })); return; } R.pois = (R.poiAll || []).map(p => Object.assign(p, { d: rkm(R.from, p) * 1000 })).filter(p => p.d <= R.radius).sort((a, b) => a.d - b.d); }
 const bearing = (a, b) => { const t = Math.PI / 180, y = Math.sin((b.lon - a.lon) * t) * Math.cos(b.lat * t), x = Math.cos(a.lat * t) * Math.sin(b.lat * t) - Math.sin(a.lat * t) * Math.cos(b.lat * t) * Math.cos((b.lon - a.lon) * t); return (Math.atan2(y, x) / t + 360) % 360; };
 function rPoiDraw() {
   if (typeof m3Active === 'function' && m3Active()) return m3Pois();
@@ -70,6 +70,7 @@ function rPoiOpen(i) {
 }
 function rPoiCard() {
   const el = $('#rPoiCard'); if (!el) return;
+  document.body.classList.toggle('fmcard', !!R.poi);   // 전체 화면 지도에서 가게 카드가 열리면 팻·정면 줄은 잠깐 숨김
   const p = R.poi; if (!p) { el.innerHTML = ''; el.dataset.pid = ''; return; }
   const pid = p.name + p.lat;
   if (el.dataset.pid === pid) { const d = el.querySelector('.rpdist'); if (d) d.textContent = Math.round(R.from ? rkm(R.from, p) * 1000 : p.d) + 'm'; return; }
@@ -329,7 +330,7 @@ function rDraw(force) {
       ${R.tips ? `<div class="card"><p class="note" style="line-height:1.75">${R.tips}</p>${R.purpose === '예배' ? `<button class="btn ghost small" data-r="web">⛪ 예배 시간 찾아보기</button>` : ''}</div>` : ''}
       ${R.story ? `<div class="card"><h3>📖 ${esc(R.to.name)} 이야기</h3><p class="note" style="line-height:1.75">${esc(R.story)}</p></div>` : ''}`;
   box.innerHTML = `<div class="card rpetc"><p id="rPet">${($('#rPet') || {}).innerHTML || '🐾 길 찾을 준비 중…'}</p></div>
-    <div class="rmapw"><div id="rMap" class="rmap ${S.map3d && (st === 'dest' || st === 'finding' || st === 'locating' || force === 'start') ? 'm3' : ''}"></div>${(st === 'dest' || st === 'finding' || st === 'locating' || force === 'start') ? `<div class="rcomp ${S.map3d ? 'mini' : ''}" id="rComp"><i>북</i><i>동</i><i>남</i><i>서</i></div><div class="rmode"><button data-m3="0" class="${S.map3d ? '' : 'on'}">2D</button><button data-m3="1" class="${S.map3d ? 'on' : ''}">3D</button></div>` : ''}</div>
+    <div class="rmapw"><div id="rMap" class="rmap ${S.map3d && (st === 'dest' || st === 'finding' || st === 'locating' || force === 'start') ? 'm3' : ''}"></div>${(st === 'dest' || st === 'finding' || st === 'locating' || force === 'start') ? `<div class="rcomp ${S.map3d ? 'mini' : ''}" id="rComp"><i>북</i><i>동</i><i>남</i><i>서</i></div><button class="rfull" data-fmgo="1" title="전체 화면">⛶</button><div class="rmode"><button data-m3="0" class="${S.map3d ? '' : 'on'}">2D</button><button data-m3="1" class="${S.map3d ? 'on' : ''}">3D</button></div>` : ''}</div>
     ${(st === 'dest' || st === 'finding' || st === 'locating' || force === 'start') ? `<div class="rrad"><span>반경</span><input type="range" id="rRad" min="0" max="${RSTEPS.length - 1}" step="1" value="${Math.max(0, RSTEPS.indexOf(R.radius))}"><b id="rRadV">${rfmt(R.radius)}</b><small id="rPoiN"></small></div><div id="rFront" class="rfront"></div><div id="rPoiCard"></div>` : ''}
     ${body}
     <p class="note small" style="text-align:center">지도 © OpenStreetMap · 시간·요금은 대략이에요</p>`;
@@ -396,11 +397,12 @@ document.addEventListener('click', e => {
     rPois(true).then(() => { rPoiDraw(); rTalk(R.cat === 'all' ? '반경 안 가게를 모두 보여 줄게. 점을 누르면 정보가 나와.' : `반경 ${rfmt(R.radius)} 안 ${R.cat === 'food' ? '식당·카페' : '숙소'} <b>${R.pois.length}곳</b>이야. 지도에서 점을 눌러 봐.`, false); });
     return;
   }
+  if (e.target.closest('[data-fmgo]')) return openWalkMap();
   const pf = e.target.closest('[data-pf]'); if (pf) return rPoiOpen(+pf.dataset.pf);
   const pc = e.target.closest('[data-pc]');
   if (pc && R.poi) {
     const a = pc.dataset.pc, p = R.poi, F = RF(), open = u => { if (F && F.openApp) F.openApp({ pkg: '', url: u }); else window.open(u, '_blank'); };
-    if (a === 'x') { R.poi = null; rPoiCard(); rPoiDraw(); }
+    if (a === 'x') { R.poi = null; if (R.focus) { R.focus = null; rPoiFilter(); } rPoiCard(); rPoiDraw(); }
     if (a === 'tel' && p.tel) dialNum(p.tel);
     if (a === 'go') openRoute(p.name, { lat: p.lat, lon: p.lon, name: p.name, addr: p.addr });
     const q = encodeURIComponent(p.name + ' ' + (p.addr || '').split(' ').slice(0, 3).join(' '));
