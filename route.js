@@ -38,19 +38,20 @@ async function findPlace(q) {
 }
 
 // ── 화면
-function openRoute(dest) {
+function openRoute(dest, at) {
   hideBubble(); petOnly(false); go('route');
   rStop(); R.to = null; R.cands = []; R.purpose = ''; R.airport = null; R.story = ''; R.walk = null;
   rDraw('start');
-  rStart(dest);
+  rStart(dest, at);
 }
-async function rStart(dest) {
+async function rStart(dest, at) {
   R.step = 'locating'; rDraw();
   rTalk('지금 어디에 있는지 확인하는 중이야…', false);
   const p = await myPos();
   if (p) { R.from = p; R.from.addr = await addrOf(p); rTalk(`지금 <b>${esc(R.from.addr || '이 근처')}</b>에 있구나!`, false); }
   else { R.from = S.place.lat ? { lat: S.place.lat, lon: S.place.lon, addr: S.place.label } : null; rTalk(R.from ? `위치를 못 찾아서 우리 동네(<b>${esc(R.from.addr)}</b>)에서 출발할게.` : '위치를 못 찾았어 🥲 휴대폰 위치(GPS)를 켜 줘.', false); }
   rMapInit();
+  if (at && at.lat) { R.q = dest || at.name || ''; R.cands = [{ name: at.name || dest, addr: at.addr || '', lat: at.lat, lon: at.lon }]; return rPick(0); }
   if (dest) return rSearch(dest);
   R.step = 'dest'; rDraw();
   setTimeout(() => rTalk(`${R.from && R.from.addr ? '지금 ' + esc(R.from.addr.split(' ').slice(-3).join(' ')) + ' 근처야. ' : ''}<b>어디로 갈까?</b> 나를 누르고 말하거나 아래에 써 줘.`), 400);

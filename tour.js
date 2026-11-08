@@ -114,6 +114,43 @@ function trMerge(kto, osm) {
   return out.sort((a, b) => a.dist - b.dist);
 }
 
+// ── 🥾 두루누비 공식 걷기길 (전국 175개 코스, 이레 동안 저장) · GPS 길은 휴대폰이 직접 받아서 그림
+const CITY = { 서울특별시: '서울', 부산광역시: '부산', 대구광역시: '대구', 인천광역시: '인천', 광주광역시: '광주', 대전광역시: '대전', 울산광역시: '울산', 세종특별자치시: '세종', 경기도: '경기', 강원도: '강원', 강원특별자치도: '강원', 충청북도: '충북', 충청남도: '충남', 전라북도: '전북', 전북특별자치도: '전북', 전라남도: '전남', 경상북도: '경북', 경상남도: '경남', 제주특별자치도: '제주' };
+async function durAll() {
+  const C = S.duru; if (C && Date.now() - C.at < 7 * 864e5 && C.list.length) return C.list;
+  const k = RK().tour; if (!k) return [];
+  try {
+    const j = await (await fetch(`https://apis.data.go.kr/B551011/Durunubi/courseList?serviceKey=${k}&MobileOS=AND&MobileApp=haruyebo&_type=json&numOfRows=300&pageNo=1&brdDiv=DNWW`)).json();
+    const it = (((j.response || {}).body || {}).items || {}).item || [];
+    const list = (Array.isArray(it) ? it : [it]).map(x => ({ id: x.crsIdx, name: x.crsKorNm, km: +x.crsDstnc || 0, min: +x.crsTotlRqrmHour || 0, level: +x.crsLevel || 0, cycle: x.crsCycle || '', sigun: x.sigun || '', gpx: x.gpxpath || '', sum: String(x.crsSummary || '').replace(/<br\s*\/?>/gi, '\n').replace(/<[^>]+>/g, '').slice(0, 400) }));
+    S.duru = { at: Date.now(), list }; save(); return list;
+  } catch { return []; }
+}
+async function durNear(addr) {
+  const a = String(addr || '').split(' '), city = CITY[a[0]] || (a[0] || '').slice(0, 2), gu = a[1] || '';
+  const all = await durAll();
+  return all.filter(c => c.sigun.startsWith(city)).sort((x, y) => (y.sigun.includes(gu) ? 1 : 0) - (x.sigun.includes(gu) ? 1 : 0)).slice(0, 6);
+}
+async function durGpx(c) {
+  if (c.pts) return c.pts;
+  const H = window.Capacitor && Capacitor.Plugins && Capacitor.Plugins.CapacitorHttp; let txt = '';
+  try { if (H) txt = (await H.get({ url: c.gpx, responseType: 'text' })).data; else txt = await (await fetch(c.gpx)).text(); } catch { return null; }
+  const pts = [...String(txt).matchAll(/<trkpt[^>]*lat="([\d.]+)"[^>]*lon="([\d.]+)"/g)].map(m => [+m[1], +m[2]]);
+  if (!pts.length) return null;
+  const step = Math.max(1, Math.floor(pts.length / 400)); c.pts = pts.filter((_, i) => i % step === 0).concat([pts[pts.length - 1]]);
+  return c.pts;
+}
+async function durPick(i) {
+  const c = (TO.duru || [])[i]; if (!c) return;
+  trSay(`🥾 <b>${esc(c.name)}</b> 길을 불러오는 중…`, false);
+  const pts = await durGpx(c);
+  if (!pts) return trSay(`<b>${esc(c.name)}</b> — ${c.km}km · 약 ${mins(c.min)}. ${esc(c.sum.slice(0, 120))}… (길 그림은 갤럭시 앱에서 보여 줄게)`);
+  const start = { lat: pts[0][0], lon: pts[0][1], name: c.name + ' 출발점' }, far = rkm(TO.at, start);
+  TO.course = { min: c.min, stops: [], park: null, km: c.km, time: c.min, line: pts, turns: [], trail: c, start };
+  trDraw();
+  trSay(`🥾 <b>${esc(c.name)}</b> (${esc(c.sigun)}) — ${c.km}km · 약 ${mins(c.min)} · ${['', '쉬움', '보통', '어려움'][c.level] || ''} · ${esc(c.cycle)}. 출발점까지 ${far.toFixed(1)}km야. ${esc(c.sum.split('\n')[0].replace(/^-\s*/, ''))}`);
+}
+
 // ── 화면
 async function openTour(tab, at) {
   hideBubble(); petOnly(false); go('tour');
@@ -140,7 +177,7 @@ async function trLoad() {
     TO.items = TO.items.filter(x => !(x.kind === '공원' && x.area < 8000 && !x.type));   // 아주 작은 놀이터 공원은 빼기
     osmNear(TO.at, radius).then(o => { if (TO.tab !== 'see' || !o || !o.length) return; const n0 = TO.items.length; TO.items = trMerge(TO.items, o.filter(x => x.kind !== '공원' || x.area >= 8000)); if (TO.items.length > n0 && !TO.sel) trDraw(); });   // 오픈스트리트맵은 오는 대로 더하기
   }
-  if (TO.tab === 'walk') return trCourse(60);
+  if (TO.tab === 'walk') { durNear(await addrOf(TO.at)).then(d => { TO.duru = d; if (TO.tab === 'walk' && d.length) trDraw(); }); return trCourse(60); }
   const n = TO.items.length, what = { see: '볼거리', food: '맛집', stay: '숙소' }[TO.tab];
   const big = TO.items.filter(x => x.area >= 100000).slice(0, 2).map(x => esc(x.title));
   trSay(n ? `<b>${esc(TO.at.name)}</b> 근처 ${what} <b>${n}곳</b>을 찾았어!${big.length ? ` 큰 공원 ${big.join(', ')}도 있어 🌳` : ''} 누르면 자세히 알려 줘.` : `근처에 ${what} 정보가 없어 🥲`);
@@ -230,7 +267,8 @@ function trDraw(st) {
   box.innerHTML = `<div class="seg mtabs">${tabs.map(([k, n]) => `<button data-tt="${k}" class="${TO.tab === k ? 'on' : ''}">${n}</button>`).join('')}</div>
     <div class="card rpetc"><p id="tPet">🐾 ${st === 'loading' && !TO.say ? '찾는 중…' : (TO.say || '')}</p></div>
     <div id="tMap" class="rmap"></div>
-    ${TO.tab === 'walk' ? `<div class="card"><div class="seg">${[30, 60, 90].map(m => `<button data-tm="${m}" class="${TO.courseMin === m ? 'on' : ''}">${m}분</button>`).join('')}</div>${TO.course ? `<div class="row bctl"><button data-tg="1" class="bplay">${TO.watch ? '⏹ 걷기 그만' : '🐾 같이 걷기'}</button></div>` : ''}</div>` : ''}
+    ${TO.tab === 'walk' ? `<div class="card"><div class="seg">${[30, 60, 90].map(m => `<button data-tm="${m}" class="${TO.courseMin === m ? 'on' : ''}">${m}분</button>`).join('')}</div>${TO.course ? `<div class="row bctl"><button data-tg="1" class="bplay">${TO.watch ? '⏹ 걷기 그만' : '🐾 같이 걷기'}</button>${TO.course.trail ? '<button data-ts2="start">🧭 출발점까지 길찾기</button>' : ''}</div>` : ''}</div>
+      ${(TO.duru || []).length ? `<div class="card"><h3>🥾 근처 공식 걷기길 (두루누비)</h3>${TO.duru.map((c, i) => `<button class="rcand ${TO.course && TO.course.trail === c ? 'on' : ''}" data-du="${i}"><b>${esc(c.name)}</b><span>${esc(c.sigun)} · ${c.km}km · 약 ${mins(c.min)} · ${['', '쉬움', '보통', '어려움'][c.level] || ''}</span></button>`).join('')}</div>` : ''}` : ''}
     ${S0 ? `<div class="card tsel">${S0.img ? `<img src="${esc(S0.img)}" alt="">` : ''}<h3>${esc(S0.title)}</h3><p class="note small">${esc(tlabel(S0))}${S0.dist ? ' · ' + (S0.dist / 1000).toFixed(1) + 'km' : ''}${S0.addr ? ' · ' + esc(S0.addr) : ''}</p>
       <p class="note" style="line-height:1.7">${S0.loading ? '불러오는 중…' : esc((S0.overview || '소개 글이 없어요').slice(0, 600))}${S0.overview && S0.overview.length > 600 ? '…' : ''}</p>
       <div class="row bctl"><button data-ts="say">🔊 들려줘</button><button data-ts="go">🧭 여기로 길찾기</button>${S0.type === 32 ? '<button data-ts="price">💰 가격 보기</button>' : ''}${S0.home ? '<button data-ts="home">🌐 누리집</button>' : ''}</div></div>` : ''}
@@ -248,7 +286,7 @@ function trMapDraw(list) {
   list.slice(0, 25).forEach((x, i) => { L.marker([x.lat, x.lon], { icon: L.divIcon({ className: 'tnum', html: `<i>${TO.tab === 'walk' ? i + 1 : ''}</i>`, iconSize: [24, 24] }) }).addTo(TO.map).on('click', () => trPick(i)); pts.push([x.lat, x.lon]); });
   const c = TO.course;
   if (TO.tab === 'walk' && c) {
-    if (c.line && c.line.length) { L.polyline(c.line, { color: '#3182f6', weight: 5, opacity: .85 }).addTo(TO.map); pts.push(...c.line); }
+    if (c.line && c.line.length) { L.polyline(c.line, { color: c.trail ? '#12b886' : '#3182f6', weight: 5, opacity: .85 }).addTo(TO.map); pts.push(...c.line); if (c.trail) { L.marker(c.line[0], { icon: L.divIcon({ className: 'tnum', html: '<i>출발</i>', iconSize: [34, 24] }) }).addTo(TO.map); } }
     else L.polyline(pts.concat([[TO.at.lat, TO.at.lon]]), { color: '#3182f6', weight: 4, dashArray: '8 8' }).addTo(TO.map);
   }
   if (pts.length > 1) TO.map.fitBounds(L.latLngBounds(pts).pad(0.12));
@@ -259,6 +297,18 @@ function trGo() {
   if (TO.watch) return trStop(true);
   const c = TO.course; if (!c || !navigator.geolocation) return;
   TO.next = 0; c.turns.forEach(t => t.done = false); c.inPark = false;
+  if (c.trail) {   // 🥾 공식 걷기길: 길 위 어디쯤인지 · 500m 마다 남은 거리
+    let lastK = -1;
+    TO.watch = navigator.geolocation.watchPosition(p => {
+      const me = { lat: p.coords.latitude, lon: p.coords.longitude }; if (TO.meMk) TO.meMk.setLatLng([me.lat, me.lon]);
+      let bi = 0, bd = 1e9; c.line.forEach((q, i) => { const d = rkm(me, { lat: q[0], lon: q[1] }); if (d < bd) { bd = d; bi = i; } });
+      if (bd > 0.15) return trSay(`길에서 ${Math.round(bd * 1000)}m 떨어져 있어. 초록 선 쪽으로 가 줘`);
+      const done = c.km * bi / Math.max(1, c.line.length - 1), k = Math.floor(done * 2);
+      if (bi >= c.line.length - 2) { trSay(`🎉 <b>${esc(c.trail.name)}</b> 끝까지 걸었어! 정말 대단해 💛`); return trStop(); }
+      if (k !== lastK) { lastK = k; trSay(`🥾 ${done.toFixed(1)}km 걸었어. 앞으로 <b>${(c.km - done).toFixed(1)}km</b> 남았어`); }
+    }, () => trSay('위치를 못 읽고 있어. 휴대폰 위치(GPS)를 켜 줘'), { enableHighAccuracy: true, maximumAge: 5000, timeout: 20000 });
+    trDraw(); return trSay(`좋아, <b>${esc(c.trail.name)}</b> 같이 걷자! 출발점에서 시작해 줘 🐾`);
+  }
   TO.watch = navigator.geolocation.watchPosition(async p => {
     const me = { lat: p.coords.latitude, lon: p.coords.longitude };
     if (TO.meMk) TO.meMk.setLatLng([me.lat, me.lon]);
@@ -285,6 +335,8 @@ document.addEventListener('click', e => {
   const ti = e.target.closest('[data-ti]'); if (ti) return trPick(+ti.dataset.ti);
   const tm = e.target.closest('[data-tm]'); if (tm) { TO.sel = null; trStop(); return trCourse(+tm.dataset.tm); }
   if (e.target.closest('[data-tg]')) return trGo();
+  const du = e.target.closest('[data-du]'); if (du) { trStop(); return durPick(+du.dataset.du); }
+  if (e.target.closest('[data-ts2]') && TO.course && TO.course.start) return openRoute(TO.course.start.name, TO.course.start);
   const ts = e.target.closest('[data-ts]'); if (!ts || !TO.sel) return;
   const a = ts.dataset.ts, F = RF();
   if (a === 'say') rSpeak(`${TO.sel.title}. ${TO.sel.overview || ''}`);
