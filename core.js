@@ -45,6 +45,7 @@ window.haruBack = function () {
 };
 function go(v, fromNav) {
   const prev = view;
+  document.body.dataset.view = v;   // 11-08: 팻 말창은 팻방에서만 (다른 화면에선 숨겨서 자리 쓰기)
   if (!fromNav && !navPopping) { if (v === 'home') navReset(); else if (v !== prev) navPush(() => go(prev, true)); }
   if (view === 'set' && v !== 'set' && typeof setUndo === 'function') setUndo();   // 11-06: 저장 안 하고 나가면 예전 그대로
   view = v;

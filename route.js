@@ -4,6 +4,8 @@ const RK = () => window.HARU_KEYS || {};
 const rkm = (a, b) => { const t = Math.PI / 180, dl = (b.lat - a.lat) * t, dn = (b.lon - a.lon) * t, x = Math.sin(dl / 2) ** 2 + Math.cos(a.lat * t) * Math.cos(b.lat * t) * Math.sin(dn / 2) ** 2; return 6371 * 2 * Math.atan2(Math.sqrt(x), Math.sqrt(1 - x)); };
 const won = (n, r) => { n = r ? Math.round(n / 100) * 100 : Math.round(n); return n > 0 ? n.toLocaleString() + '원' : '0원'; };   // r = 택시처럼 대략
 const mins = m => m >= 60 ? `${Math.floor(m / 60)}시간 ${Math.round(m % 60)}분` : `${Math.round(m)}분`;
+const BROWSE_MAX = 2;   // 지도를 끌어 볼 수 있는 거리 (km, 내 자리에서)
+const rCenter = () => R.browse || R.from;
 const RSTEPS = [30, 50, 100, 200, 300, 500, 700, 1000, 1500, 2000];
 const rfmt = m => m >= 1000 ? m / 1000 + 'km' : m + 'm';
 // 🔵 원은 늘 같은 크기 — 반경에 맞게 지도만 확대·축소 (지도 너비의 80% = 지름)
@@ -27,8 +29,8 @@ R.cat = 'all'; R.pois = []; R.poi = null;
 async function rPois(force) {
   if (!RK().tmap || !R.from) { R.pois = []; return; }
   const km = Math.max(1, Math.ceil(R.radius / 1000)), cats = POI_CATS[R.cat] || POI_CATS.all, key = R.cat + ',' + km;
-  if (!force && R.poiAll && R.poiKey === key && R.poiAt && rkm(R.poiAt, R.from) < 0.4) return rPoiFilter();
-  const at = { lat: R.from.lat, lon: R.from.lon }, out = [];
+  if (!force && R.poiAll && R.poiKey === key && R.poiAt && rkm(R.poiAt, rCenter()) < 0.4) return rPoiFilter();
+  const c0 = rCenter(), at = { lat: c0.lat, lon: c0.lon }, out = [];
   await Promise.all(cats.map(async c => {
     try {
       const r = await fetch(`https://apis.openapi.sk.com/tmap/pois/search/around?version=1&centerLon=${at.lon}&centerLat=${at.lat}&categories=${encodeURIComponent(c)}&radius=${km}&count=150`, { headers: { appKey: RK().tmap } });
@@ -44,7 +46,7 @@ async function rPois(force) {
   R.poiAt = at; R.poiKey = key;
   rPoiFilter();
 }
-function rPoiFilter() { if (R.focus) { R.pois = R.focus.map(p => Object.assign(p, { d: rkm(R.from, p) * 1000 })); return; } R.pois = (R.poiAll || []).map(p => Object.assign(p, { d: rkm(R.from, p) * 1000 })).filter(p => p.d <= R.radius).sort((a, b) => a.d - b.d); }
+function rPoiFilter() { if (R.focus) { R.pois = R.focus.map(p => Object.assign(p, { d: rkm(R.from, p) * 1000 })); return; } const c = rCenter(); R.pois = (R.poiAll || []).map(p => Object.assign(p, { d: rkm(R.from, p) * 1000, dc: rkm(c, p) * 1000 })).filter(p => p.dc <= R.radius).sort((a, b) => a.dc - b.dc); }
 const bearing = (a, b) => { const t = Math.PI / 180, y = Math.sin((b.lon - a.lon) * t) * Math.cos(b.lat * t), x = Math.cos(a.lat * t) * Math.sin(b.lat * t) - Math.sin(a.lat * t) * Math.cos(b.lat * t) * Math.cos((b.lon - a.lon) * t); return (Math.atan2(y, x) / t + 360) % 360; };
 function rPoiDraw() {
   if (typeof m3Active === 'function' && m3Active()) return m3Pois();
@@ -94,17 +96,31 @@ function rLive(on) {
     const me = { lat: p.coords.latitude, lon: p.coords.longitude };
     if (R.from && rkm(R.from, me) * 1000 < 3) return;   // 제자리 흔들림은 무시
     R.from = Object.assign(R.from || {}, me);
-    if (typeof m3Active === 'function' && m3Active()) m3Show(); else if (R.map) { if (R.mk.me) R.mk.me.setLatLng([me.lat, me.lon]); ringShow(R.map, R.from, R.radius); }
+    if (typeof m3Active === 'function' && m3Active()) { if (R.browse) { if (m3Me) m3Me.setLngLat([me.lon, me.lat]); } else m3Show(); } else if (R.map) { if (R.mk.me) R.mk.me.setLatLng([me.lat, me.lon]); if (!R.browse) ringShow(R.map, R.from, R.radius); }
     await rPois(); rPoiDraw(); rPoiCard();
-    if (Date.now() - rLiveAddrAt > 30000 && !R.poi) { rLiveAddrAt = Date.now(); const a = await addrOf(me); if (a && R.step === 'dest' && !R.to) { R.from.addr = a; rTalk(`지금 <b>${esc(shortAddr(a))}</b> 근처야. 어디로 갈까? 아래에 써 줘.`, false); } }
+    if (Date.now() - rLiveAddrAt > 30000 && !R.poi) { rLiveAddrAt = Date.now(); const a = await addrOf(me); if (a && R.step === 'dest' && !R.to) { R.from.addr = a; rTalk(`📍 <b>${esc(shortAddr(a))}</b>`, false); } }
   }, () => { }, { enableHighAccuracy: true, maximumAge: 2000, timeout: 20000 });
 }
+function rBrowseTo(c) {
+  if (!R.from || R.to) return;
+  const far = rkm(R.from, c);
+  if (far > BROWSE_MAX) { rTalk(`내 자리에서 ${BROWSE_MAX}km 안까지만 볼 수 있어`, false); R.browse = null; rMapShow(); rPois().then(rPoiDraw); return; }
+  R.browse = far < 0.01 ? null : c; R.poi = null; rPoiCard();
+  rPois().then(rPoiDraw); rBrowseBtn();
+}
+function rBrowseBtn() {
+  const w = document.querySelector('.rmapw'); if (!w) return;
+  let b = w.querySelector('.rmyloc');
+  if (!R.browse) { if (b) b.remove(); return; }
+  if (!b) { b = document.createElement('button'); b.className = 'rmyloc'; b.dataset.myloc = '1'; b.textContent = '📍 내 위치로'; w.appendChild(b); }
+}
+document.addEventListener('click', e => { if (e.target.closest && e.target.closest('[data-myloc]')) { R.browse = null; R.poi = null; rPoiCard(); rMapShow(); rPois().then(rPoiDraw); } });
 const rMeIcon = () => L.divIcon({ className: 'rme', html: `<div class="rdir" style="${rHead == null ? 'display:none' : `transform:rotate(${rHead}deg)`}"><b></b></div><i></i>`, iconSize: [44, 44], iconAnchor: [22, 22] });
 const shortAddr = a => String(a || '').split(' ').filter((w, i) => !(i === 0 && /(특별시|광역시|특별자치시|특별자치도|도)$/.test(w))).filter(w => !/^\d+(-\d+)?$/.test(w)).join(' ');
 const RF = () => window.Capacitor && Capacitor.Plugins && Capacitor.Plugins.FloatPet;
 function rSpeak(text) { return;   // 11-08: 소리 내어 읽지 않기 (글로만) — 사람 많은 곳에서 시끄러워서
   const F = RF(); const t = String(text).replace(/<[^>]+>/g, ' ').replace(/[🐾🧭📍✈️⛪🚇🚌🚕🚶💰⚡😌👴🎉💛]/gu, ''); if (F && F.ttsSpeak) F.ttsSpeak({ text: t, id: 'route' + Date.now() }).catch(() => {}); else if (window.speechSynthesis) { speechSynthesis.cancel(); const u = new SpeechSynthesisUtterance(t); u.lang = 'ko-KR'; speechSynthesis.speak(u); } }
-function rTalk(html, speak) { const b = $('#rPet'); if (b) b.innerHTML = '🐾 ' + html; if (speak !== false) rSpeak(html); }
+function rTalk(html, speak) { const b = $('#rPet'); if (b) b.innerHTML = (/^📍/.test(html) ? '' : '🐾 ') + html; if (speak !== false) rSpeak(html); }
 
 // ── 위치·장소 (열쇠 없이: 오픈스트리트맵)
 function myPos() {
@@ -146,14 +162,14 @@ async function rStart(dest, at) {
   R.step = 'locating'; rDraw();
   rTalk('지금 어디에 있는지 확인하는 중이야…', false);
   const p = await myPos();
-  if (p) { R.from = p; R.from.addr = await addrOf(p); rTalk(`지금 <b>${esc(shortAddr(R.from.addr) || '이 근처')}</b> 근처야.`, false); }
+  if (p) { R.from = p; R.from.addr = await addrOf(p); rTalk(`📍 <b>${esc(shortAddr(R.from.addr) || '이 근처')}</b>`, false); }
   else { R.from = S.place.lat ? { lat: S.place.lat, lon: S.place.lon, addr: S.place.label } : null; rTalk(R.from ? `위치를 못 찾아서 우리 동네(<b>${esc(R.from.addr)}</b>)에서 출발할게.` : '위치를 못 찾았어 🥲 휴대폰 위치(GPS)를 켜 줘.', false); }
   rMapInit();
   if (at && at.lat) { R.q = dest || at.name || ''; R.cands = [{ name: at.name || dest, addr: at.addr || '', lat: at.lat, lon: at.lon }]; return rPick(0); }
   if (dest) return rSearch(dest);
   R.step = 'dest'; R.poi = null; rDraw();
   rPois(true).then(rPoiDraw); rLiveAddrAt = Date.now(); rLive(true);
-  rTalk(`${R.from && R.from.addr ? '지금 <b>' + esc(shortAddr(R.from.addr)) + '</b> 근처야. ' : ''}어디로 갈까? 아래에 써 줘.`, false);
+  rTalk(R.from && R.from.addr ? `📍 <b>${esc(shortAddr(R.from.addr))}</b>` : '📍 위치 확인 중', false);
 }
 async function rSearch(q) {
   q = String(q || '').trim(); if (!q) return;
@@ -164,7 +180,7 @@ async function rSearch(q) {
   rPick(0);
 }
 function rPick(i) {
-  if (R.step === 'finding' || R.step === 'dest') navPush(() => { rStop(); R.step = 'dest'; R.to = null; R.walk = null; rDraw(); rTalk('어디로 갈까? 아래에 써 줘.', false); rLive(true); });
+  if (R.step === 'finding' || R.step === 'dest') navPush(() => { rStop(); R.step = 'dest'; R.to = null; R.walk = null; rDraw(); rTalk(R.from && R.from.addr ? `📍 <b>${esc(shortAddr(R.from.addr))}</b>` : '', false); rLive(true); });
   R.to = R.cands[i]; R.walk = null; R.step = 'confirm'; rDraw(); rMapShow();
   const more = R.cands.length > 1 ? ' 다른 곳이면 아래에서 골라 줘.' : '';
   rTalk(`<b>${esc(R.to.name)}</b>${R.to.addr ? ' (' + esc(R.to.addr) + ')' : ''}${R.from ? ', 여기서 ' + rkm(R.from, R.to).toFixed(1) + 'km' : ''}. <b>여기 맞아?</b>${more}`);
@@ -313,7 +329,7 @@ function rDraw(force) {
   const st = R.step;
   let body = '';
   if (st === 'dest' || st === 'finding' || st === 'locating' || force === 'start')
-    body = `<div class="card"><div class="row"><input id="rQ" placeholder="어디로 갈까? (예: 인천공항, 대전 ○○교회)" enterkeyhint="search"><button class="btn" data-r="find">찾기</button></div></div>
+    body = `<div class="card"><div class="row"><input id="rQ" placeholder="어디로 갈까?" enterkeyhint="search"><button class="btn" data-r="find">찾기</button></div></div>
       <div class="rcat">${[['see', '🌿 볼거리'], ['walk', '🚶 산책'], ['food', '🍚 맛집'], ['stay', '🏨 숙소']].map(([k, n]) => `<button data-rt="${k}" class="${R.cat === k ? 'on' : ''}">${n}</button>`).join('')}</div>`;
   if (st === 'confirm') body = `<div class="card"><div class="row bctl"><button data-r="yes" class="bplay">✅ 맞아</button><button data-r="again">✏️ 다시 찾기</button></div>
       ${R.cands.length > 1 ? `<p class="note small" style="margin:10px 0 4px">혹시 이곳?</p>${R.cands.map((c, i) => `<button class="rcand ${c === R.to ? 'on' : ''}" data-rc="${i}"><b>${esc(c.name)}</b><span>${esc(c.addr)}${R.from ? ' · ' + rkm(R.from, c).toFixed(1) + 'km' : ''}</span></button>`).join('')}` : ''}</div>`;
@@ -347,6 +363,8 @@ function rMapInit() {
   R.map = L.map(el, { zoomControl: false, attributionControl: false, zoomAnimation: false, fadeAnimation: false, markerZoomAnimation: false, inertia: false, zoomSnap: 0, maxZoom: 21 }).setView(R.from ? [R.from.lat, R.from.lon] : [37.5665, 126.978], 14);
   L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 21, maxNativeZoom: 19 }).addTo(R.map);
   R.mk = {};
+  R.map.touchZoom.disable(); R.map.doubleClickZoom.disable(); R.map.scrollWheelZoom.disable(); R.map.boxZoom.disable();
+  R.map.on('dragend', () => { const c = R.map.getCenter(); rBrowseTo({ lat: c.lat, lon: c.lng }); });
   const m0 = R.map; setTimeout(() => { if (m0 && R.map === m0 && document.body.contains(m0.getContainer())) m0.invalidateSize(false); }, 200);
 }
 function rMapShow() {
@@ -356,7 +374,7 @@ function rMapShow() {
   if (R.from) { if (!R.mk.me) R.mk.me = L.marker([R.from.lat, R.from.lon], { icon: me }).addTo(R.map); else R.mk.me.setLatLng([R.from.lat, R.from.lon]); }
   if (R.to) { if (!R.mk.to) R.mk.to = L.marker([R.to.lat, R.to.lon]).addTo(R.map); else R.mk.to.setLatLng([R.to.lat, R.to.lon]); R.mk.to.bindTooltip(R.to.name, { permanent: true, direction: 'top', offset: [0, -36] }); }
   const ring = R.map.getContainer().querySelector('.rring');
-  if (R.from && !R.to) { ringShow(R.map, R.from, R.radius); rPoiDraw(); } else if (ring) ring.remove();
+  if (R.from && !R.to) { ringShow(R.map, rCenter(), R.radius); rPoiDraw(); rBrowseBtn(); } else if (ring) ring.remove();
   if (R.from && R.to) {
     if (R.mk.line) R.map.removeLayer(R.mk.line);
     const pts = R.walk && R.walk.line.length ? R.walk.line : [[R.from.lat, R.from.lon], [R.to.lat, R.to.lon]];
@@ -419,7 +437,7 @@ document.addEventListener('click', e => {
   const a = b.dataset.r;
   if (a === 'find') { const q = $('#rQ').value.trim(); if (q) rSearch(q); }
   if (a === 'yes') rConfirm();
-  if (a === 'again') { R.step = 'dest'; R.to = null; rDraw(); rTalk('<b>어디로 갈까?</b> 다시 말해 줘'); }
+  if (a === 'again') { R.step = 'dest'; R.to = null; rDraw(); rTalk(R.from && R.from.addr ? `📍 <b>${esc(shortAddr(R.from.addr))}</b>` : '', false); }
   if (a === 'kakao' || a === 'naver') rOpenMap(a);
   if (a === 'pt') rTransit();
   if (a === 'fl') rFlight($('#rFl').value);
@@ -437,7 +455,7 @@ function routeTalk(text) {
   const t = stripName(text).replace(/[?!.~]+$/g, '').trim();
   if (view === 'route') {
     if (R.step === 'dest') { const q = t.replace(/\s*(으로|로|에|까지)?\s*(가자|갈래|가고\s*싶어|가 줘|가줘|가야\s*해)$/, '').trim(); if (q) { rSearch(q); return true; } }
-    if (R.step === 'confirm') { if (/^(응|어|맞아|맞아요|네|예|그래|여기|거기|좋아)/.test(t)) { rConfirm(); return true; } if (/^(아니|아냐|다른|틀려)/.test(t)) { R.step = 'dest'; rDraw(); rTalk('<b>어디로 갈까?</b> 다시 말해 줘'); return true; } }
+    if (R.step === 'confirm') { if (/^(응|어|맞아|맞아요|네|예|그래|여기|거기|좋아)/.test(t)) { rConfirm(); return true; } if (/^(아니|아냐|다른|틀려)/.test(t)) { R.step = 'dest'; rDraw(); rTalk(R.from && R.from.addr ? `📍 <b>${esc(shortAddr(R.from.addr))}</b>` : '', false); return true; } }
     if (R.step === 'airport' && /^[A-Za-z0-9]{2}\s*\d{1,4}\s*(편)?/.test(t) && RK().tour) { rFlight(t.match(/^[A-Za-z0-9]{2}\s*\d{1,4}/)[0]); return true; }
     if (R.step === 'airport') { const tm = /(1|일|첫)\s*터미널/.test(t) ? '1' : /(2|이|두)\s*터미널/.test(t) ? '2' : null, k = /출국|떠나|여행\s*가|비행기\s*타/.test(t) ? 'out' : /마중|입국|데리러|마중나가|도착/.test(t) ? 'in' : null; if (tm || k) { rAirport(tm, k); return true; } }
     if (R.step === 'why') { const m = [['예배', /예배|교회|미사|기도/], ['병원', /병원|진료|검사|치료/], ['약속', /약속|만나|만남|모임|미팅/], ['구경', /구경|관광|여행|산책|놀러/], ['볼일', /볼일|일|업무|서류/]].find(([, re]) => re.test(t)); if (m || /그냥|몰라|말\s*안|비밀/.test(t)) { R.purpose = m ? m[0] : ''; rRoutes(); return true; } }

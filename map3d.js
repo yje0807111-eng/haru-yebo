@@ -29,20 +29,24 @@ async function m3Init(el) {
       for (const l of m3.getStyle().layers) if (l.type === 'symbol' && m3.getLayoutProperty(l.id, 'text-field')) m3.setLayoutProperty(l.id, 'text-field', ['coalesce', ['get', 'name:ko'], ['get', 'name']]);
       if (m3.getLayer('building-3d')) m3.setPaintProperty('building-3d', 'fill-extrusion-opacity', 0.85);
     } catch { }
-    m3.addSource('ring', { type: 'geojson', data: m3Circle(R.from, R.radius) });
+    m3.addSource('ring', { type: 'geojson', data: m3Circle(rCenter(), R.radius) });
     m3.addLayer({ id: 'ring-fill', type: 'fill', source: 'ring', paint: { 'fill-color': '#3182f6', 'fill-opacity': 0.08 } });
     m3.addLayer({ id: 'ring-line', type: 'line', source: 'ring', paint: { 'line-color': '#3182f6', 'line-width': 2.5 } });
     m3Show(); m3Pois();
   });
   m3.on('rotate', m3Arrow);
+  m3.on('dragend', () => { const c = m3.getCenter(); rBrowseTo({ lat: c.lat, lon: c.lng }); });
 }
 function m3Show() {
   if (!m3 || !R.from) return;
   const el = m3.getContainer();
-  m3.jumpTo({ center: [R.from.lon, R.from.lat], zoom: m3Zoom(el, R.from.lat, R.radius) });
-  const src = m3.getSource && m3.getSource('ring'); if (src) src.setData(m3Circle(R.from, R.radius));
+  const c = rCenter(), z = m3Zoom(el, c.lat, R.radius);
+  m3.setMinZoom(0); m3.setMaxZoom(22); m3.jumpTo({ center: [c.lon, c.lat], zoom: z }); m3.setMinZoom(z); m3.setMaxZoom(z);   // 손가락 확대 대신 거리 단추
+  const src = m3.getSource && m3.getSource('ring'); if (src) src.setData(m3Circle(c, R.radius));
+  if (typeof rBrowseBtn === 'function') rBrowseBtn();
   if (!m3Me) { const d = document.createElement('div'); d.className = 'rme'; d.style.width = d.style.height = '44px'; d.innerHTML = `<div class="rdir" style="display:none"><b></b></div><i></i>`; m3Me = new maplibregl.Marker({ element: d, rotationAlignment: 'viewport' }).setLngLat([R.from.lon, R.from.lat]).addTo(m3); }
   else m3Me.setLngLat([R.from.lon, R.from.lat]);
+  if (R.browse) { /* 끌어 보는 중: 지도는 그대로 */ }
   let lab = el.querySelector('.m3lab'); if (!lab) { lab = document.createElement('div'); lab.className = 'm3lab'; el.appendChild(lab); }
   lab.textContent = '반경 ' + rfmt(R.radius);
   m3Arrow();

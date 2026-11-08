@@ -489,3 +489,8 @@ body.fullmap .rcomp.mini { bottom: 92px; }
 body.fullmap .rcomp:not(.mini) i:nth-child(1) { top: 62px; }
 body.fullmap .rcomp:not(.mini) i:nth-child(3) { bottom: 92px; }
 body.fullmap.fmcard #fmUI .fmpet, body.fullmap.fmcard #fmUI .fmsay, body.fullmap.fmcard #rFront { display: none !important; }
+
+/* 11-08 팻 말창은 팻방에서만 · 지도 끌어 보기 */
+body[data-view]:not([data-view="home"]) #talk { display: none !important; }
+.rmyloc { position: absolute; left: 50%; bottom: 12px; transform: translateX(-50%); z-index: 650; border: 0; background: #3182f6; color: #fff; font-weight: 800; font-size: 14px; padding: 9px 14px; border-radius: 20px; box-shadow: 0 2px 10px rgba(0,0,0,.25); }
+body.fullmap .rmyloc { position: fixed; bottom: 96px; z-index: 970; }
