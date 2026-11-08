@@ -1,6 +1,7 @@
 package kr.haruyebo.app;
 
 import android.os.Bundle;
+import androidx.activity.OnBackPressedCallback;
 import com.getcapacitor.BridgeActivity;
 
 public class MainActivity extends BridgeActivity {
@@ -8,16 +9,22 @@ public class MainActivity extends BridgeActivity {
     public void onCreate(Bundle savedInstanceState) {
         registerPlugin(FloatPetPlugin.class);   // 화면 위 팻
         super.onCreate(savedInstanceState);
+        // 11-08: 휴대폰 뒤로 가기 = 앱 안에서 바로 전 화면으로 (첫 화면이면 앱을 뒤로 보내기)
+        //  새 안드로이드(뒤로 가기 몸짓)에서도 꼭 여기로 오도록 등록
+        getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
+            @Override
+            public void handleOnBackPressed() { goBack(); }
+        });
     }
 
-    // 뒤로 가기 = 앱을 끄지 않고 뒤로 보내기 (바탕화면에서 팻이 계속 대답하려고)
-    @Override
-    public void onBackPressed() {
-        // 11-08: 앱 안에서 다른 화면을 보고 있으면 → 바로 전 화면으로 (팻방 첫 화면이면 뒤로 보내기)
+    void goBack() {
         try {
             android.webkit.WebView w = getBridge().getWebView();
             if (w != null) {
-                w.evaluateJavascript("(window.haruBack && window.haruBack()) ? '1' : '0'", v -> { if (v == null || !v.contains("1")) moveTaskToBack(true); });
+                w.evaluateJavascript("(function(){try{return (window.haruBack && window.haruBack()) ? '1' : '0'}catch(e){return 'e'}})()", v -> {
+                    if (v != null && v.contains("1")) return;
+                    moveTaskToBack(true);
+                });
                 return;
             }
         } catch (Exception ignored) { }

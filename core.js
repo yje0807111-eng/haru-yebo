@@ -37,12 +37,16 @@ function navPush(restore) { NAV.push(restore); if (NAV.length > 30) NAV.shift();
 function navReset() { NAV.length = 0; }
 // 휴대폰 뒤로 가기 단추가 누르면 여기로 옴 (MainActivity) → 처리했으면 true, 아니면 앱을 뒤로 보냄
 window.haruBack = function () {
-  if (typeof bubble !== 'undefined' && !bubble.hidden && bubble.querySelector('.petmenu')) { hideBubble(); return true; }
-  const f = NAV.pop();
-  if (f) { navPopping = true; try { f(); } catch { } navPopping = false; return true; }
-  if (view !== 'home') { go('home', true); return true; }
+  try {
+    if (typeof bubble !== 'undefined' && !bubble.hidden && bubble.querySelector('.petmenu')) { hideBubble(); return true; }
+    const f = NAV.pop();
+    if (f) { navPopping = true; try { f(); } catch { } navPopping = false; if (view === 'home') backHome(); return true; }
+    if (view !== 'home') { go('home', true); backHome(); return true; }
+    if (!document.body.classList.contains('petonly')) { backHome(); return true; }   // 팻방 말창 화면 → 메뉴 있는 팻방으로
+  } catch { }
   return false;
 };
+function backHome() { petOnly(true); setTimeout(() => { if (view === 'home' && bubble.hidden) petMenu(); }, 60); }   // 11-08: 뒤로 가서 팻방에 오면 메뉴 다시
 function go(v, fromNav) {
   const prev = view;
   document.body.dataset.view = v;   // 11-08: 팻 말창은 팻방에서만 (다른 화면에선 숨겨서 자리 쓰기)
