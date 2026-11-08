@@ -206,6 +206,7 @@ async function rBrief() {
 }
 
 function rDraw(force) {
+  if (R.map) { try { R.map.remove(); } catch { } R.map = null; }   // 11-08: 화면을 바꾸기 전에 지도 치우기 (_leaflet_pos 오류)
   const box = $('#routeBox'); if (!box) return;
   const st = R.step;
   let body = '';
@@ -237,12 +238,12 @@ function rDraw(force) {
 // ── 지도 (Leaflet)
 function rMapInit() {
   const el = $('#rMap'); if (!el || !window.L) return;
-  if (R.map && R.map.getContainer() === el) return;
+  if (R.map && R.map.getContainer() === el && document.body.contains(el)) return;
   try { if (R.map) R.map.remove(); } catch { }
-  R.map = L.map(el, { zoomControl: false, attributionControl: false }).setView(R.from ? [R.from.lat, R.from.lon] : [37.5665, 126.978], 14);
+  R.map = L.map(el, { zoomControl: false, attributionControl: false, zoomAnimation: false, fadeAnimation: false, markerZoomAnimation: false, inertia: false }).setView(R.from ? [R.from.lat, R.from.lon] : [37.5665, 126.978], 14);
   L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(R.map);
   R.mk = {};
-  setTimeout(() => R.map && R.map.invalidateSize(), 200);
+  const m0 = R.map; setTimeout(() => { if (m0 && R.map === m0 && document.body.contains(m0.getContainer())) m0.invalidateSize(false); }, 200);
 }
 function rMapShow() {
   if (!R.map) return;
@@ -253,9 +254,9 @@ function rMapShow() {
     if (R.mk.line) R.map.removeLayer(R.mk.line);
     const pts = R.walk && R.walk.line.length ? R.walk.line : [[R.from.lat, R.from.lon], [R.to.lat, R.to.lon]];
     R.mk.line = L.polyline(pts, R.walk ? { color: '#3182f6', weight: 5, opacity: .85 } : { color: '#3182f6', weight: 3, dashArray: '6 8' }).addTo(R.map);
-    if (!R.watch) R.map.fitBounds(L.latLngBounds(pts.concat([[R.from.lat, R.from.lon]])).pad(0.25)); else R.map.panTo([R.from.lat, R.from.lon]);
+    if (!R.watch) R.map.fitBounds(L.latLngBounds(pts.concat([[R.from.lat, R.from.lon]])).pad(0.25), { animate: false }); else R.map.panTo([R.from.lat, R.from.lon], { animate: false });
   }
-  else if (R.to) R.map.setView([R.to.lat, R.to.lon], 15);
+  else if (R.to) R.map.setView([R.to.lat, R.to.lon], 15, { animate: false });
 }
 
 // ── 같이 가기: 내 위치를 따라가며 남은 거리·도착 알려 주기 (앱을 켜 둔 동안)

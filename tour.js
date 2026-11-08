@@ -260,6 +260,7 @@ async function trPick(i) {
 }
 function trSay(html, speak) { const b = $('#tPet'); if (b) b.innerHTML = '🐾 ' + html; TO.say = html; if (speak !== false && typeof rSpeak === 'function') rSpeak(html); }
 function trDraw(st) {
+  if (TO.map) { try { TO.map.remove(); } catch { } TO.map = null; }   // 화면을 바꾸기 전에 지도 치우기
   const box = $('#tourBox'); if (!box) return;
   const tabs = [['see', '🌿 볼거리'], ['walk', '🚶 산책 코스'], ['food', '🍚 맛집'], ['stay', '🏨 숙소']];
   const list = TO.view = TO.tab === 'walk' ? (TO.course ? TO.course.stops : []) : TO.items;
@@ -279,7 +280,7 @@ function trDraw(st) {
 function trMapDraw(list) {
   const el = $('#tMap'); if (!el || !window.L || !TO.at) return;
   try { if (TO.map) TO.map.remove(); } catch { }
-  TO.map = L.map(el, { zoomControl: false, attributionControl: false }).setView([TO.at.lat, TO.at.lon], 15);
+  TO.map = L.map(el, { zoomControl: false, attributionControl: false, zoomAnimation: false, fadeAnimation: false, markerZoomAnimation: false, inertia: false }).setView([TO.at.lat, TO.at.lon], 15);
   L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(TO.map);
   TO.meMk = L.marker([TO.at.lat, TO.at.lon], { icon: L.divIcon({ className: 'rme', html: '<i></i>', iconSize: [18, 18] }) }).addTo(TO.map);
   const pts = [[TO.at.lat, TO.at.lon]];
@@ -289,8 +290,8 @@ function trMapDraw(list) {
     if (c.line && c.line.length) { L.polyline(c.line, { color: c.trail ? '#12b886' : '#3182f6', weight: 5, opacity: .85 }).addTo(TO.map); pts.push(...c.line); if (c.trail) { L.marker(c.line[0], { icon: L.divIcon({ className: 'tnum', html: '<i>출발</i>', iconSize: [34, 24] }) }).addTo(TO.map); } }
     else L.polyline(pts.concat([[TO.at.lat, TO.at.lon]]), { color: '#3182f6', weight: 4, dashArray: '8 8' }).addTo(TO.map);
   }
-  if (pts.length > 1) TO.map.fitBounds(L.latLngBounds(pts).pad(0.12));
-  setTimeout(() => TO.map && TO.map.invalidateSize(), 200);
+  if (pts.length > 1) TO.map.fitBounds(L.latLngBounds(pts).pad(0.12), { animate: false });
+  const m0 = TO.map; setTimeout(() => { if (m0 && TO.map === m0 && document.body.contains(m0.getContainer())) m0.invalidateSize(false); }, 200);
 }
 // 🐾 같이 걷기: 돌 곳(30m)·볼거리(60m)에 오면 말해 주고, 큰 공원에 들어서면 공원 소개
 function trGo() {
@@ -300,7 +301,7 @@ function trGo() {
   if (c.trail) {   // 🥾 공식 걷기길: 길 위 어디쯤인지 · 500m 마다 남은 거리
     let lastK = -1;
     TO.watch = navigator.geolocation.watchPosition(p => {
-      const me = { lat: p.coords.latitude, lon: p.coords.longitude }; if (TO.meMk) TO.meMk.setLatLng([me.lat, me.lon]);
+      const me = { lat: p.coords.latitude, lon: p.coords.longitude }; if (TO.meMk && TO.meMk._map) TO.meMk.setLatLng([me.lat, me.lon]);
       let bi = 0, bd = 1e9; c.line.forEach((q, i) => { const d = rkm(me, { lat: q[0], lon: q[1] }); if (d < bd) { bd = d; bi = i; } });
       if (bd > 0.15) return trSay(`길에서 ${Math.round(bd * 1000)}m 떨어져 있어. 초록 선 쪽으로 가 줘`);
       const done = c.km * bi / Math.max(1, c.line.length - 1), k = Math.floor(done * 2);
@@ -311,7 +312,7 @@ function trGo() {
   }
   TO.watch = navigator.geolocation.watchPosition(async p => {
     const me = { lat: p.coords.latitude, lon: p.coords.longitude };
-    if (TO.meMk) TO.meMk.setLatLng([me.lat, me.lon]);
+    if (TO.meMk && TO.meMk._map) TO.meMk.setLatLng([me.lat, me.lon]);
     if (c.park && !c.inPark && rkm(me, c.park) * 1000 < Math.sqrt(c.park.area || 0) / 2) {
       c.inPark = true; const d = await trDetailAny(c.park);
       return trSay(`🌳 <b>${esc(c.park.title)}</b>에 들어왔어! ${d && d.overview ? esc(d.overview.slice(0, 180)) + '…' : ''}`);

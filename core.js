@@ -435,4 +435,4 @@ function boot() {
 window.addEventListener('load', boot);
 
 // 11-07: 예상 못 한 오류는 말풍선으로 알려 줌 (화면을 찍어 보내 주면 고치기 쉬움)
-window.addEventListener('error', e => { try { if (/ResizeObserver|Script error/.test(e.message || '')) return; say('⚠️ 문제가 생겼어: ' + esc(String(e.message || '')).slice(0, 140) + '<br><span class="small">' + esc(String(e.filename || '').split('/').pop()) + ':' + e.lineno + '</span>', { ms: 12000, important: true }); } catch { } });
+window.addEventListener('error', e => { try { if (/ResizeObserver|Script error|_leaflet_pos/.test(e.message || '') || /leaflet\.js/.test(e.filename || '')) return; say('⚠️ 문제가 생겼어: ' + esc(String(e.message || '')).slice(0, 140) + '<br><span class="small">' + esc(String(e.filename || '').split('/').pop()) + ':' + e.lineno + '</span>', { ms: 12000, important: true }); } catch { } });
