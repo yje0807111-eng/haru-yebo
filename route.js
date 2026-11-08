@@ -70,13 +70,18 @@ function rPoiOpen(i) {
 }
 function rPoiCard() {
   const el = $('#rPoiCard'); if (!el) return;
-  const p = R.poi; if (!p) { el.innerHTML = ''; return; }
+  const p = R.poi; if (!p) { el.innerHTML = ''; el.dataset.pid = ''; return; }
+  const pid = p.name + p.lat;
+  if (el.dataset.pid === pid) { const d = el.querySelector('.rpdist'); if (d) d.textContent = Math.round(R.from ? rkm(R.from, p) * 1000 : p.d) + 'm'; return; }
+  el.dataset.pid = pid;
   el.innerHTML = `<div class="card rpcard"><button class="rpx" data-pc="x">✕</button><p class="rptitle">${POI_ICON[p.cat] || '📍'} <b>${esc(p.name)}</b></p>
-    <p class="note small">${esc(p.cat)}${p.sub ? ' · ' + esc(p.sub) : ''} · <b>${Math.round(R.from ? rkm(R.from, p) * 1000 : p.d)}m</b>${p.addr ? ' · ' + esc(p.addr) : ''}</p>
+    <p class="note small">${esc(p.cat)}${p.sub ? ' · ' + esc(p.sub) : ''} · <b class="rpdist">${Math.round(R.from ? rkm(R.from, p) * 1000 : p.d)}m</b>${p.addr ? ' · ' + esc(p.addr) : ''}</p>
     ${p.tel ? `<p class="note small">📞 ${esc(p.tel)}</p>` : ''}
     <div class="row bctl">${p.tel ? '<button data-pc="tel">📞 전화</button>' : ''}<button data-pc="go">🧭 길찾기</button></div>
     <div class="row bctl"><button data-pc="naver">📖 네이버에서 보기</button><button data-pc="kakao">📖 카카오맵</button></div>
-    <p class="note small">메뉴·가격·영업시간·후기는 네이버·카카오에서 볼 수 있어요</p></div>`;
+    <p class="note small">메뉴·가격·영업시간은 네이버·카카오에서 볼 수 있어요</p>
+    <div id="rvBox"></div></div>`;
+  if (typeof rvLoad === 'function') rvLoad(p);
 }
 // 🚶 걸으면 지도가 따라오기 (길찾기 첫 화면): 내 점·원·가게가 함께 움직이고, 30초마다 지금 주소
 let rLiveW = null, rLiveAddrAt = 0;

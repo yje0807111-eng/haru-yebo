@@ -454,3 +454,13 @@ body.smode .talk { background: #fff; border: 0; box-shadow: 0 2px 12px rgba(49,1
 .rcomp.mini i:nth-child(3) { bottom: 4px; }
 .rcomp.mini i:nth-child(4) { left: 5px; }
 .rcomp.mini::after { content: ''; position: absolute; left: 50%; top: 50%; width: 6px; height: 6px; margin: -3px 0 0 -3px; border-radius: 50%; background: #8b95a1; }
+
+/* 11-08 ✍️ 가게 후기 */
+.rvbox { margin-top: 10px; border-top: 1px solid #f2f4f6; padding-top: 10px; }
+.rvhead { margin: 0 0 6px; font-weight: 800; }
+.rvi { background: #f9fafb; border-radius: 12px; padding: 8px 10px; margin: 6px 0; font-size: 14.5px; line-height: 1.5; word-break: keep-all; }
+.rvi small { display: block; color: #8b95a1; font-size: 12px; margin-top: 2px; }
+.rvi small button { border: 0; background: none; color: #8b95a1; font-size: 12px; padding: 0; }
+.rvb { display: inline-block; background: #e6fcf5; color: #0ca678; border-radius: 8px; padding: 1px 6px; font-size: 11.5px; font-weight: 800; }
+.rvform input { width: 100%; margin-top: 6px; box-sizing: border-box; }
+.rvform .bctl button.on { background: #e8f3ff; color: #3182f6; outline: 2px solid #3182f6; }

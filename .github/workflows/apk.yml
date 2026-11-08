@@ -63,6 +63,7 @@ jobs:
           npx cap sync android
           # 늘 같은 서명 열쇠로 (덮어 깔기가 되게)
           printf '\nandroid { signingConfigs { debug { storeFile file(System.getenv("HOME") + "/haru-key/debug.keystore"); storePassword "android"; keyAlias "androiddebugkey"; keyPassword "android" } } }\n' >> android/app/build.gradle
+          printf '\ndependencies { implementation "com.google.mlkit:text-recognition-korean:16.0.0" }\n' >> android/app/build.gradle   # 🧾 영수증 글자 읽기
           cd android
           chmod +x gradlew
           ./gradlew assembleDebug --no-daemon -q

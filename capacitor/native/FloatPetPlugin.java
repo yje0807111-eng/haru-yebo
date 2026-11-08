@@ -455,4 +455,22 @@ public class FloatPetPlugin extends Plugin {
         new android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(() -> FloatPetService.ballStatic(start), start ? 900 : 0);
         r.put("ok", true); call.resolve(r);
     }
+    // 🧾 영수증 글자 읽기 (11-08): 휴대폰 안에서 ML Kit 한국어 글자 인식 — 사진은 저장하지 않음
+    @PluginMethod
+    public void ocr(PluginCall call) {
+        final String b64 = call.getString("data", "");
+        new Thread(() -> {
+            try {
+                String d = b64; int c = d.indexOf(','); if (c >= 0) d = d.substring(c + 1);
+                byte[] bytes = android.util.Base64.decode(d, android.util.Base64.DEFAULT);
+                android.graphics.Bitmap bmp = android.graphics.BitmapFactory.decodeByteArray(bytes, 0, bytes.length);
+                if (bmp == null) { call.reject("ocr: no image"); return; }
+                com.google.mlkit.vision.common.InputImage img = com.google.mlkit.vision.common.InputImage.fromBitmap(bmp, 0);
+                com.google.mlkit.vision.text.TextRecognizer rec = com.google.mlkit.vision.text.TextRecognition.getClient(new com.google.mlkit.vision.text.korean.KoreanTextRecognizerOptions.Builder().build());
+                com.google.mlkit.vision.text.Text t = com.google.android.gms.tasks.Tasks.await(rec.process(img));
+                rec.close(); bmp.recycle();
+                JSObject r = new JSObject(); r.put("text", t.getText()); call.resolve(r);
+            } catch (Exception e) { call.reject("ocr: " + e); }
+        }).start();
+    }
 }
