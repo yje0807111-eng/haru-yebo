@@ -108,7 +108,7 @@ function pongScore() {
   if (q) q.textContent = PONG.mode === 'net' && PONG.state !== 'menu' ? `내 점수 ${r.rating} · 상대 ${NET.rating || '-'}` : `${r.stage}단계 · ${r.win}승 ${r.lose}패 · 최고 랠리 ${r.best}`;
 }
 // ── 손가락: 내 쪽(아래)으로 온 공을 누르면 받아 치고, 밀어 올리면 더 빠르게
-function pongCanHit() { const b = PONG.ball; return PONG.state === 'serveMe' || (PONG.state === 'play' && b.vy > 0 && b.y > PONG.botY - PONG.band && b.y < PONG.H + PONG.r); }   // 아래 점선부터 화면 끝까지 (완전히 빠지기 전엔 칠 수 있음)
+function pongCanHit() { const b = PONG.ball; return PONG.state === 'serveMe' || (PONG.state === 'play' && b.vy > 0 && b.y > PONG.botY - PONG.band && b.y + PONG.r < PONG.H - 6); }   // 아래 점선부터 맨 아래 흰 선 전까지
 function pongDown(e) {
   if (!PONG.on || PONG.state === 'menu') return; e.preventDefault();
   if (PONG.over) { if (PONG.mode === 'pet') pongStart('pet'); else pongMenu(); return; }
@@ -134,7 +134,7 @@ function pongHitMe(fvx, fvy, boost) {
   b.vx = Math.max(-base * 0.9, Math.min(base * 0.9, (fvx || 0) * 0.3 + (b.vx || 0) * (boost ? 1 : 0.35) + (Math.random() - 0.5) * base * 0.15));
   if (!boost) { pongPlay('hit'); PONG.rally++; if (T) T.hit = true; if (navigator.vibrate) navigator.vibrate(15); }
   if (PONG.state !== 'play') { PONG.state = 'play'; pongMsg(''); }
-  b.y = Math.min(b.y, PONG.H - PONG.r);
+  b.y = Math.min(b.y, PONG.H - 7 - PONG.r);
   if (PONG.mode === 'net') netSend({ t: 'hit', x: b.x / PONG.W, y: b.y / PONG.H, by: PONG.botY / PONG.H, vx: b.vx / PONG.W, vy: b.vy / PONG.H, rally: PONG.rally });
 }
 // ── 팻 실력: 단계가 오를수록 잘함 · 점수 차에 따라 막상막하
@@ -177,15 +177,15 @@ function pongStep(dt, now) {
   if (b.x > W - r) { b.x = W - r; b.vx = -Math.abs(b.vx) * 0.97; pongPlay('wall', 0.7); }
   if (!net) {   // 팻이 받아 치기
     const top = PONG.topY;
-    if (b.vy < 0 && b.y <= top + PONG.band * 0.4 && b.y > -PONG.r && Math.abs(b.x - PONG.petX) < PONG.reach * 0.55) {
+    if (b.vy < 0 && b.y <= top + PONG.band * 0.4 && b.y - PONG.r > 6 && Math.abs(b.x - PONG.petX) < PONG.reach * 0.55) {
       const sp = Math.min(PONG.base * 2.3, Math.abs(b.vy) * (1.02 + Math.random() * 0.05));
       b.vy = sp; b.vx += ((b.x - PONG.petX) / PONG.reach) * PONG.base * 0.9 + (Math.random() - 0.5) * PONG.base * 0.2;
       b.vx = Math.max(-PONG.base * 1.1, Math.min(PONG.base * 1.1, b.vx));
-      b.y = Math.max(b.y, PONG.r); PONG.rally++; pongPlay('hit');
+      b.y = Math.max(b.y, PONG.r + 7); PONG.rally++; pongPlay('hit');
     }
-    if (b.y < -r * 2) pongPoint('me');   // 위로 완전히 빠짐
-  } else if (b.y < -r * 2 && b.vy < 0) { PONG.state = 'waitOpp'; }   // 상대 쪽으로 넘어감 → 상대가 쳤는지(hit)·놓쳤는지(miss) 기다림
-  if (b.y > H + r * 2) { if (net) netSend({ t: 'miss' }); pongPoint('pet'); }   // 아래로 완전히 빠져 안 보일 때만 실점
+    if (b.y - r <= 6) pongPoint('me');   // 맨 위 흰 선에 닿으면 팻이 잃음
+  } else if (b.y - r <= 6 && b.vy < 0) { PONG.state = 'waitOpp'; b.y = -99; }   // 상대 쪽으로 넘어감 → 상대가 쳤는지(hit)·놓쳤는지(miss) 기다림
+  if (b.y + r >= H - 6) { if (net) netSend({ t: 'miss' }); pongPoint('pet'); }   // 맨 아래 흰 선에 닿기만 해도 실점
 }
 function pongPoint(who) {
   PONG.state = 'point'; PONG.played++;
@@ -225,7 +225,7 @@ function pongDraw(now) {
   g.setLineDash([14, 10]); g.strokeStyle = 'rgba(255,255,255,.8)'; g.lineWidth = 2;
   for (const y of [PONG.topY, PONG.botY]) { g.beginPath(); g.moveTo(12, y); g.lineTo(W - 12, y); g.stroke(); }
   g.setLineDash([]);
-  g.fillStyle = 'rgba(255,255,255,.07)'; g.fillRect(6, PONG.botY - PONG.band, W - 12, H - PONG.botY + PONG.band - 6);   // 내가 칠 수 있는 곳 (점선부터 아래 끝까지)
+  g.fillStyle = 'rgba(255,255,255,.07)'; g.fillRect(6, PONG.botY - PONG.band, W - 12, H - PONG.botY + PONG.band - 9);   // 내가 칠 수 있는 곳 (점선부터 아래 끝까지)
   g.fillStyle = 'rgba(255,255,255,.9)'; g.fillRect(6, H / 2 - 2, W - 12, 4);   // 네트
   // 점수: 탁구대 오른쪽, 상대 빨강(네트 위) · 나 파랑(네트 아래)
   if (!/^menu/.test(PONG.state)) {
@@ -245,7 +245,7 @@ function pongDraw(now) {
     g.save(); g.translate(PONG.petX, PONG.topY - h / 2 + 4); if (flip) g.scale(-1, 1); g.drawImage(im, -w / 2, -h / 2, w, h); g.restore();
   }
   if (PONG.mode === 'net') { g.fillStyle = 'rgba(255,255,255,.85)'; g.font = 'bold 12px sans-serif'; g.textAlign = 'center'; g.fillText(NET.name || '상대', PONG.petX, PONG.topY + 20); }
-  if (PONG.state === 'waitOpp' && b.y < -PONG.r * 2) return;
+  if (PONG.state === 'waitOpp' && b.y < 0) return;
   g.beginPath(); g.ellipse(b.x + 3, b.y + 5, PONG.r, PONG.r * 0.6, 0, 0, Math.PI * 2); g.fillStyle = 'rgba(0,0,0,.25)'; g.fill();
   const bg = g.createRadialGradient(b.x - PONG.r * 0.4, b.y - PONG.r * 0.4, 1, b.x, b.y, PONG.r); bg.addColorStop(0, '#fff'); bg.addColorStop(1, '#dfe6ee');
   g.beginPath(); g.arc(b.x, b.y, PONG.r, 0, Math.PI * 2); g.fillStyle = bg; g.fill();
