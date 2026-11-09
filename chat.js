@@ -97,18 +97,71 @@ async function chatClear(cid) {
 async function chatIncoming(c, text, at) {
   await chatAdd(c.id, { who: 'them', text, at: at || Date.now() });
   const inRoom = view === 'chat' && CROOM && CROOM.cid === c.id && !document.hidden;
-  if (inRoom) { if (navigator.vibrate) navigator.vibrate(60); return; }
-  c.unread = (c.unread || 0) + 1; save();
-  const talking = c.lastSent && Date.now() - c.lastSent < 10 * 60000;   // 내가 10분 안에 말을 걸었던 사람 = 이야기 중 → 바로 대화방
+  if (!inRoom) { c.unread = (c.unread || 0) + 1; save(); }
+  const F = FPc();
   if (document.hidden) {
-    if (talking) { openChat(c.id); return; }
-    const F = FPc(); if (F && F.say) F.say({ text: `💌 ${c.name}한테서 연락 왔어!\n"${text.slice(0, 60)}"\n👉 누르면 대화방을 열어 줄게`, open: 'chat:' + c.id, ms: 30000 }).catch(() => { });
-    if (F && F.bark) F.bark({ happy: true, vol: 0.5 }).catch(() => { });
-    return;
+    if (F && F.say) F.say({ text: `💌 ${c.name}: "${text.slice(0, 60)}"` + (arCfg().on ? '\n🎤 바로 말하면 답장돼요' : '\n👉 누르면 대화방을 열어 줄게'), open: 'chat:' + c.id, ms: 20000 }).catch(() => { });
+  } else if (!inRoom) {
+    if (['home', 'people', 'match', 'chat'].includes(view)) openChat(c.id);
+    else say(`💌 ${esc(c.name)}: "${esc(text)}"`, { pose: 'letter', ms: 20000, important: true, buttons: [{ label: '💬 대화방 열기', act: () => openChat(c.id) }, { label: '나중에', ghost: true }] });
   }
-  if (['home', 'people', 'match', 'chat'].includes(view)) { openChat(c.id); cry(true); return; }
-  say(`💌 ${esc(c.name)}한테서 연락 왔어!<br>"${esc(text)}"`, { pose: 'letter', ms: 30000, important: true, buttons: [{ label: '💬 대화방 열기', act: () => openChat(c.id) }, { label: '나중에', ghost: true }] });
-  cry(true);
+  if (!autoReplyStart(c, true, 'reply')) { if (navigator.vibrate) navigator.vibrate(60); if (!document.hidden) cry(true); }
+}
+// ══ 💬 말로 바로 답장 (11-09): '띠링' → 시작 시간(기본 6초) 안에 말하면 받아 적고, 조용한 시간(기본 3초)이 지나면
+//  말이 되면 바로 보냄 · 이상하면 "이게 맞아?" 묻고 "맞아" 할 때만 보냄 · 말이 없으면 안 보내고 숫자 1 만 남김 (터치 없음)
+function arCfg() { const a = (S.talk && S.talk.ar) || {}; return { on: a.on !== false, start: a.start || 6, end: a.end || 3 }; }
+let AR = null;   // { id, cid, mode: 'reply' | 'confirm', text }
+function autoReplyStart(c, ding, mode, text) {
+  const F = FPc(), cfg = arCfg();
+  if (!cfg.on || !F || !F.autoReply) return false;
+  AR = { id: Math.random().toString(36).slice(2), cid: c.id, mode, text: text || '' };
+  F.autoReply({ id: AR.id, startMs: cfg.start * 1000, endMs: cfg.end * 1000, ding: !!ding }).catch(() => { AR = null; });
+  return true;
+}
+function arShow(t, ms) {
+  const F = FPc();
+  if (document.hidden) { if (F && F.say) F.say({ text: t.replace(/<[^>]+>/g, ''), ms: ms || 6000 }).catch(() => { }); return; }
+  if (view === 'chat' && CROOM && AR && CROOM.cid === AR.cid) chatPetLine(t.replace(/<[^>]+>/g, ''));
+  else say(t, { ms: ms || 5000 });
+}
+const AR_OK = /^(응|어|네|예|웅|엉|왜|왜\?|뭐|알았어|알겠어|알겠습니다|고마워|감사해|좋아|그래|싫어|안 ?돼|돼|지금 ?가|곧 ?가|금방 ?가|오케이|ok|ㅇㅋ|사랑해|잘 ?자|잘 ?가|밥 ?먹었어|먹었어|아직|몰라|그래 ?그래|ㅇㅇ)[!~.?\s]*$/i;
+function arSensible(t, conf, rms) {
+  t = String(t || '').trim(); if (!t) return false;
+  if (AR_OK.test(t)) return true;                                   // 흔한 짧은 대답은 바로
+  if (typeof rms === 'number' && rms > -2 && rms < 3) return false;  // 멀리서 들린 작은 소리 (TV 등)
+  if (typeof conf === 'number' && conf >= 0 && conf < 0.45) return false;   // 받아쓰기가 자신 없음
+  const core = t.replace(/[\s.,!?~]/g, '');
+  if (core.length <= 3) return false;                                // 세 글자 이하인데 흔한 말이 아님
+  if (!/[가-힣a-zA-Z]/.test(core)) return false;
+  return true;
+}
+async function arSendTo(cid, text) {
+  const c = S.contacts.find(x => x.id === cid); if (!c || !c.pk) return;
+  const msg = { who: 'me', text: text.slice(0, 500), at: Date.now(), voice: true };
+  await chatAdd(c.id, msg);
+  const r = await nsend(c.pk, 'pmsg', msg.text, { name: nameOf() });
+  if (!r.ok) { msg.fail = true; chatSave(c.id, chatMem[c.id]); }
+  c.lastSent = Date.now(); c.unread = 0; save();
+  arShow(r.ok ? `✓ ${c.name}에게 보냈어: "${text}"` : '앗, 못 보냈어. 인터넷을 확인해 줘 🥲', 4000);
+  if (view === 'people') drawPeople();
+}
+{ const F0 = window.Capacitor && Capacitor.Plugins && Capacitor.Plugins.FloatPet;
+  if (F0 && F0.addListener) F0.addListener('autoReply', d => {
+    if (!AR || !d || d.id !== AR.id) return;
+    const c = S.contacts.find(x => x.id === AR.cid); if (!c) { AR = null; return; }
+    if (d.kind === 'partial') { arShow(`🎤 ${d.text}`, 8000); return; }
+    const mode = AR.mode, prev = AR.text; AR = null;
+    if (d.kind === 'skip' || d.kind === 'none') { if (mode === 'confirm') arShow('알겠어, 안 보낼게', 2500); return; }   // 말이 없음 → 안 보냄 (숫자 1 그대로)
+    const t = String(d.text || '').trim();
+    if (mode === 'reply') {
+      if (arSensible(t, d.conf, d.rms)) { arSendTo(c.id, t); return; }
+      arShow(`"${t}" 이게 맞아? (맞아 / 아니)`, 9000);
+      autoReplyStart(c, false, 'confirm', t);
+      return;
+    }
+    if (/^(맞아|맞어|응|어|네|예|그래|보내|보내 ?줘|ㅇㅇ|웅|엉)/.test(t)) arSendTo(c.id, prev);
+    else arShow('알겠어, 안 보낼게', 2500);
+  });
 }
 window.chatIncoming = chatIncoming;
 // 말: "엄마한테 연락해 줘" · "엄마랑 대화하자" · "엄마랑 나눈 대화 보여 줘" · "엄마한테 하루 통화 걸어 줘"

@@ -132,6 +132,19 @@ public class FloatPetPlugin extends Plugin {
     }
 
     static volatile String pending = null;
+    // 💬 말로 바로 답장 (11-09)
+    @PluginMethod
+    public void autoReply(PluginCall call) {
+        JSObject r = new JSObject();
+        r.put("ok", FloatPetService.autoReplyStatic(call.getString("id", ""), call.getInt("startMs", 6000), call.getInt("endMs", 3000), Boolean.TRUE.equals(call.getBoolean("ding", true))));
+        call.resolve(r);
+    }
+    @PluginMethod
+    public void autoReplyStop(PluginCall call) { FloatPetService.autoReplyStopStatic(); call.resolve(); }
+    static void arEvent(String id, String kind, String text, float conf, float rms) {
+        JSObject d = new JSObject(); d.put("id", id); d.put("kind", kind); d.put("text", text); d.put("conf", conf); d.put("rms", rms);
+        if (inst != null) inst.notifyListeners("autoReply", d, true);
+    }
     static void kakaoEvent(String who, String msg, String room) {
         JSObject d = new JSObject(); d.put("who", who); d.put("text", msg); d.put("room", room);
         if (inst != null) inst.notifyListeners("kakao", d, true);

@@ -615,8 +615,91 @@ public class FloatPetService extends Service {
         } catch (Exception e) { bubble("못 보냈어 🥲", 3000); }
     }
     // ── 바탕화면 🎤: 그 자리에서 듣기
+    // 💬 11-09 말로 바로 답장: 하루 대화방에 말이 오면 '띠링' → startMs 안에 말을 시작하면 받아 적고, endMs 동안 조용하면 끝
+    //  화면이 켜져 있고 잠금이 풀려 있을 때만 · 결과는 앱(JS)으로 보내서 보낼지·물어볼지 정함
+    String arId = ""; boolean arOn = false, arSpoke = false; long arT0 = 0, arLast = 0; int arStart = 6000, arEnd = 3000;
+    StringBuilder arText = new StringBuilder(); float arRms = -2; float arConf = -1; SpeechRecognizer arSr = null;
+    static boolean autoReplyStatic(String id, int startMs, int endMs, boolean ding) { if (me == null) return false; me.h.post(() -> me.arBegin(id, startMs, endMs, ding)); return true; }
+    void arEmit(String kind, String text) { FloatPetPlugin.arEvent(arId, kind, text, arConf, arRms); }
+    void arBegin(String id, int startMs, int endMs, boolean ding) {
+        if (arOn) arStop();
+        arId = id; arStart = Math.max(2000, startMs); arEnd = Math.max(1000, endMs);
+        boolean screenOk = false;
+        try { android.os.PowerManager pm = (android.os.PowerManager) getSystemService(POWER_SERVICE); android.app.KeyguardManager km = (android.app.KeyguardManager) getSystemService(KEYGUARD_SERVICE); screenOk = pm.isInteractive() && !km.isKeyguardLocked(); } catch (Exception ignored) { }
+        boolean micOk = Build.VERSION.SDK_INT < 23 || checkSelfPermission(android.Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED;
+        if (ding) arDing();
+        if (!screenOk || !micOk || !SpeechRecognizer.isRecognitionAvailable(this) || listening) { arEmit("skip", ""); return; }
+        arOn = true; arSpoke = false; arText.setLength(0); arRms = -2; arConf = -1; arT0 = System.currentTimeMillis() + (ding ? 450 : 0); arLast = arT0;
+        h.postDelayed(this::arListen, ding ? 450 : 0);
+        h.postDelayed(arTick, 300);
+    }
+    void arDing() {   // 하루 대화방 알림 소리 (띠-링)
+        try { android.media.ToneGenerator tg = new android.media.ToneGenerator(android.media.AudioManager.STREAM_NOTIFICATION, 70); tg.startTone(android.media.ToneGenerator.TONE_PROP_BEEP2, 300); h.postDelayed(tg::release, 600); } catch (Exception ignored) { }
+    }
+    final Runnable arTick = new Runnable() { @Override public void run() {
+        if (!arOn) return;
+        long now = System.currentTimeMillis();
+        if (!arSpoke && now - arT0 > arStart) { arFinish(); return; }      // 시작 시간 안에 말이 없음 → 1 만 남김
+        if (arSpoke && now - arLast > arEnd) { try { if (arSr != null) arSr.stopListening(); } catch (Exception ignored) { } h.postDelayed(() -> { if (arOn) arFinish(); }, 1500); return; }
+        h.postDelayed(this, 250);
+    } };
+    void arListen() {
+        if (!arOn) return;
+        try { if (arSr != null) arSr.destroy(); } catch (Exception ignored) { }
+        micRed(true);
+        arSr = SpeechRecognizer.createSpeechRecognizer(this);
+        final int base = arText.length();
+        arSr.setRecognitionListener(new RecognitionListener() {
+            public void onReadyForSpeech(Bundle p) { }
+            public void onBeginningOfSpeech() { arSpoke = true; arLast = System.currentTimeMillis(); }
+            public void onRmsChanged(float v) { if (v > arRms) arRms = v; if (v > 4f && arSpoke) arLast = System.currentTimeMillis(); }
+            public void onBufferReceived(byte[] b) { }
+            public void onEndOfSpeech() { }
+            public void onPartialResults(Bundle b) {
+                ArrayList<String> m = b.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
+                if (m != null && !m.isEmpty() && !m.get(0).isEmpty()) { arSpoke = true; arLast = System.currentTimeMillis(); arEmit("partial", (arText.toString() + " " + m.get(0)).trim()); }
+            }
+            public void onResults(Bundle b) {
+                ArrayList<String> m = b.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
+                float[] cf = b.getFloatArray(SpeechRecognizer.CONFIDENCE_SCORES);
+                if (m != null && !m.isEmpty() && !m.get(0).trim().isEmpty()) { if (arText.length() > 0) arText.append(' '); arText.append(m.get(0).trim()); arSpoke = true; if (cf != null && cf.length > 0) arConf = arConf < 0 ? cf[0] : Math.min(arConf, cf[0]); }
+                if (arOn && arSpoke && System.currentTimeMillis() - arLast < arEnd) h.post(() -> arListen());   // 아직 말이 이어질 수 있음 → 계속 듣기
+                else if (arOn) arFinish();
+            }
+            public void onError(int err) {
+                if (!arOn) return;
+                long now = System.currentTimeMillis();
+                if (!arSpoke && now - arT0 < arStart - 500) { h.postDelayed(() -> arListen(), 150); return; }   // 아직 시작 시간 안 → 다시 듣기
+                if (arSpoke && now - arLast < arEnd) { h.postDelayed(() -> arListen(), 150); return; }
+                arFinish();
+            }
+        });
+        Intent i = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
+        i.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
+        i.putExtra(RecognizerIntent.EXTRA_LANGUAGE, "ko-KR");
+        i.putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 1);
+        i.putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true);
+        i.putExtra(RecognizerIntent.EXTRA_CALLING_PACKAGE, getPackageName());
+        i.putExtra("android.speech.extra.SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS", (long) arEnd);
+        i.putExtra("android.speech.extra.SPEECH_INPUT_POSSIBLY_COMPLETE_SILENCE_LENGTH_MILLIS", (long) arEnd);
+        beepQuiet(this, 0);
+        try { arSr.startListening(i); } catch (Exception e) { arFinish(); }
+    }
+    void arFinish() {
+        if (!arOn) return;
+        String t = arText.toString().trim();
+        arStop();
+        arEmit(t.isEmpty() ? "none" : "final", t);
+    }
+    void arStop() {
+        arOn = false; h.removeCallbacks(arTick);
+        try { if (arSr != null) { arSr.cancel(); arSr.destroy(); } } catch (Exception ignored) { }
+        arSr = null; micRed(false); h.postDelayed(() -> beepRestore(FloatPetService.this), 900);
+    }
+    static void autoReplyStopStatic() { if (me != null) me.h.post(me::arStop); }
     void listen() {
         if (alarmOn) { stopAlarmByTap(); return; }   // 알람 울리는 중이면 누르면 그만
+        if (arOn) arStop();
         if (Build.VERSION.SDK_INT >= 23 && checkSelfPermission(android.Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) { open("mic"); return; }
         if (!SpeechRecognizer.isRecognitionAvailable(this)) { open("mic"); return; }
         bubble(composing() ? cIcon() + cWho + "에게 보낼 말을 해 줘! 🎤" : inKakaoChat() ? "🎤 " + HaruNotiListener.kakaoWho + "에게 보낼 말을 해 줘!" : "👂 듣고 있어… 말해 줘!", 9000);

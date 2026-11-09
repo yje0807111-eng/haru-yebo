@@ -55,6 +55,10 @@ ${window.Native ? `<div class="card"><h3>🐶 화면 위 팻</h3><label class="c
     <label class="note" style="display:block;margin-top:10px">🔊 짖는 소리 크기 <input type="range" id="s_vol" min="0" max="100" step="5" value="${Math.round(S.talk.volume * 100)}" style="padding:0;border:0"></label></div>
 ${window.Native ? `<div class="card"><h3>💬 카톡 알림</h3><label class="chk"><input type="checkbox" id="s_kakao" ${S.kakaoOff ? '' : 'checked'}> 카톡이 오면 팻이 알려 주기</label><p class="note small" id="s_kakaoSt">확인 중…</p><p class="note small">카톡 대화방을 연 뒤 1분 동안 나를 누르고 말하면 답장이 돼요</p></div>` : ''}
   <div class="card"><h3>🔔 알림</h3><button class="btn ghost" id="s_notif">알림 허락하기</button><p class="note small">알람이 울릴 때 휴대폰 알림도 같이 띄워요.</p></div>
+${window.Native ? `<div class="card" id="s_arCard"><h3>💬 말로 바로 답장</h3><label class="chk"><input type="checkbox" id="s_arOn" ${arCfg().on ? 'checked' : ''}> 하루 대화방에 말이 오면 '띠링' 소리 뒤에 바로 들어요</label>
+    <p class="sub">말을 시작할 때까지 기다리는 시간</p><div class="seg" id="s_arS">${[4, 6, 8, 10, 15].map(n => `<button data-ars="${n}" class="${arCfg().start === n ? 'on' : ''}">${n}초</button>`).join('')}</div>
+    <p class="sub">말이 끝났다고 볼 조용한 시간</p><div class="seg" id="s_arE">${[1.5, 2, 3, 4, 5].map(n => `<button data-are="${n}" class="${arCfg().end === n ? 'on' : ''}">${n}초</button>`).join('')}</div>
+    <p class="note small">빠르게 하고 싶으면 짧게, 여유 있게 하고 싶으면 길게. 누르면 바로 바뀌어요. 화면이 켜져 있을 때만 듣고, 이상한 말이면 "이게 맞아?" 하고 물어봐요. 말이 없으면 보내지 않고 숫자 1만 남아요.</p></div>` : ''}
 ${window.musicCard ? musicCard() : ''}
   <div class="card"><h3>📤 친구·가족에게 알려 주기</h3><p class="note small">카카오톡 등으로 '하루 예보 받기' 주소를 보내요. 받은 사람이 누르면 바로 받을 수 있어요.</p><button class="btn" id="s_share">📤 하루 예보 보내기</button></div>
   <div class="card"><h3>🤖 AI 연결 (선택)</h3>
@@ -120,3 +124,11 @@ async function floatStatus() {
   el.innerHTML = p.granted ? '✅ "다른 앱 위에 표시"가 켜져 있어요' : '⚠️ "다른 앱 위에 표시"가 꺼져 있어서 화면 위에 팻이 안 보여요 <button class="btn small" id="s_floatAsk">켜러 가기</button>';
 }
 document.addEventListener('click', e => { if (e.target.id === 's_floatAsk') { const F = Capacitor.Plugins.FloatPet; F.requestPermission(); } });
+
+// 💬 말로 바로 답장 설정 (11-09) — 누르면 바로 저장
+document.addEventListener('click', e => {
+  const s = e.target.closest && e.target.closest('[data-ars],[data-are]'); if (!s) return;
+  S.talk.ar = Object.assign({}, S.talk.ar || {}, s.dataset.ars ? { start: +s.dataset.ars } : { end: +s.dataset.are }); save();
+  const box = s.parentElement; box.querySelectorAll('button').forEach(b => b.classList.toggle('on', b === s));
+});
+document.addEventListener('change', e => { if (e.target && e.target.id === 's_arOn') { S.talk.ar = Object.assign({}, S.talk.ar || {}, { on: e.target.checked }); save(); } });
