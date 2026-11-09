@@ -55,6 +55,7 @@ function onPeople(ev) {
     if (view === 'people') drawPeople();
     return;
   }
+  if (String(ev.t).startsWith('pong') && window.pongSignal) return pongSignal(ev);   // 🏓 탁구 대전 (아무나와 하기는 연락처 밖 사람도)
   const c = list.find(x => x.pk === ev.from); if (!c) return;   // 연결된 사람 것만 받음
   const tel = (c.phones[0] || {}).num;
   if (String(ev.t).startsWith('call') && window.callSignal) return callSignal(c, ev);   // 📞 하루 통화

@@ -624,3 +624,16 @@ body[data-view="chat"] #tabs { display: none; }
 #pongUI .pgScore b { font-size: 28px; } #pongUI .pgScore i { font-style: normal; opacity: .7; } #pongUI .pgScore span { font-size: 13px; opacity: .85; }
 #pongUI .pgRec { color: rgba(255,255,255,.75); font-size: 11.5px; white-space: nowrap; }
 #pongUI .pgMsg { position: absolute; left: 16px; right: 16px; top: 55%; text-align: center; color: #fff; font-size: 17px; font-weight: 700; text-shadow: 0 1px 4px rgba(0,0,0,.4); transition: opacity .3s; pointer-events: none; }
+
+#pongUI .pgMenu { position: absolute; left: 16px; right: 16px; top: 18%; display: flex; flex-direction: column; gap: 10px; }
+#pongUI .pgMenu[hidden] { display: none; }
+#pongUI .pgMenu h2 { color: #fff; text-align: center; margin: 0 0 6px; font-size: 24px; }
+#pongUI .pgMenu button { display: grid; grid-template-columns: 44px 1fr; grid-template-rows: auto auto; align-items: center; text-align: left; border: 0; border-radius: 18px; background: rgba(255,255,255,.95); padding: 12px 14px; font: inherit; color: #191f28; }
+#pongUI .pgMenu button i { grid-row: 1 / 3; font-style: normal; font-size: 28px; }
+#pongUI .pgMenu button b { font-size: 17px; } #pongUI .pgMenu button small { color: #6b7684; font-size: 12.5px; }
+#pongUI .pgMenu button.ghost { display: block; text-align: center; background: rgba(255,255,255,.2); color: #fff; }
+#pongUI .pgNote { color: rgba(255,255,255,.85); text-align: center; font-size: 13.5px; line-height: 1.6; }
+#pongUI .pgRank { background: rgba(255,255,255,.95); border-radius: 16px; padding: 6px 8px; max-height: 52vh; overflow-y: auto; }
+#pongUI .pgRank div { display: grid; grid-template-columns: 38px 1fr 54px 46px 40px; padding: 7px 4px; font-size: 14px; border-bottom: 1px solid #f2f4f6; }
+#pongUI .pgRank div.rh { color: #8b95a1; font-size: 12px; font-weight: 700; }
+#pongUI .pgRank div.me { background: #fff7cc; border-radius: 8px; font-weight: 800; }
