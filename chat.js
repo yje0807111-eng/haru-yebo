@@ -26,6 +26,7 @@ async function chatAdd(cid, msg) {
   chatSave(cid, a);
   const c = S.contacts.find(x => x.id === cid); if (c) { c.lastChat = { text: msg.text, at: msg.at, who: msg.who }; save(); }
   if (view === 'chat' && CROOM && CROOM.cid === cid) chatDraw();
+  if (view === 'talk') drawTalk();
 }
 // ── 대화방 화면
 let CROOM = null;   // { cid }
@@ -102,7 +103,7 @@ async function chatIncoming(c, text, at) {
   if (document.hidden) {
     if (F && F.say) F.say({ text: `💌 ${c.name}: "${text.slice(0, 60)}"` + (arCfg().on ? '\n🎤 바로 말하면 답장돼요' : '\n👉 누르면 대화방을 열어 줄게'), open: 'chat:' + c.id, ms: 20000 }).catch(() => { });
   } else if (!inRoom) {
-    if (['home', 'people', 'match', 'chat'].includes(view)) openChat(c.id);
+    if (['home', 'people', 'match', 'chat', 'talk'].includes(view)) openChat(c.id);
     else say(`💌 ${esc(c.name)}: "${esc(text)}"`, { pose: 'letter', ms: 20000, important: true, buttons: [{ label: '💬 대화방 열기', act: () => openChat(c.id) }, { label: '나중에', ghost: true }] });
   }
   if (!autoReplyStart(c, true, 'reply')) { if (navigator.vibrate) navigator.vibrate(60); if (!document.hidden) cry(true); }
@@ -111,10 +112,10 @@ async function chatIncoming(c, text, at) {
 //  말이 되면 바로 보냄 · 이상하면 "이게 맞아?" 묻고 "맞아" 할 때만 보냄 · 말이 없으면 안 보내고 숫자 1 만 남김 (터치 없음)
 function arCfg() { const a = (S.talk && S.talk.ar) || {}; return { on: a.on !== false, start: a.start || 6, end: a.end || 3 }; }
 let AR = null;   // { id, cid, mode: 'reply' | 'confirm', text }
-function autoReplyStart(c, ding, mode, text) {
+function autoReplyStart(c, ding, mode, text, extra) {
   const F = FPc(), cfg = arCfg();
-  if (!cfg.on || !F || !F.autoReply) return false;
-  AR = { id: Math.random().toString(36).slice(2), cid: c.id, mode, text: text || '' };
+  if ((!cfg.on && !(extra && extra.force)) || !F || !F.autoReply) return false;
+  AR = Object.assign({ id: Math.random().toString(36).slice(2), cid: c.id, mode, text: text || '' }, extra || {});
   F.autoReply({ id: AR.id, startMs: cfg.start * 1000, endMs: cfg.end * 1000, ding: !!ding }).catch(() => { AR = null; });
   return true;
 }
@@ -135,7 +136,33 @@ function arSensible(t, conf, rms) {
   if (!/[가-힣a-zA-Z]/.test(core)) return false;
   return true;
 }
-async function arSendTo(cid, text) {
+// 💬 "아들 톡(문자) 보내 줘" → "아들에게 뭐라고 전해?" + 띠링 → 6초 안에 말하면 받아 적고 → 3초 조용하면 하루 톡으로 자동 전송 → 대화창
+function talkAsk(c, text) {
+  if (text) { arSendTo(c.id, text).then(() => openChat(c.id)); return; }
+  const F = FPc();
+  if (F && F.autoReply) {
+    arShow(`💬 ${c.name}에게 뭐라고 전해? 🎤`, 9000);
+    autoReplyStart(c, true, 'reply', '', { force: true, open: true });
+    return;
+  }
+  openChat(c.id, { ask: true, listen: true });   // 웹: 대화방에서 🎤
+}
+window.talkAsk = talkAsk;
+// ✉️ 하루 톡 연결 전인 사람 = 휴대폰 문자로, 같은 방식(묻고 → 6초 → 3초 → 자동 전송)
+function smsAsk(c, num, text) {
+  const F = FPc(); if (!F || !F.autoReply || !F.msgSend) return false;
+  if (text) { smsSendNow(c, num, text); return true; }
+  arShow(`✉️ ${c.name}에게 문자로 뭐라고 보낼까? 🎤`, 9000);
+  autoReplyStart(c, true, 'reply', '', { force: true, sms: { who: c.name, num } });
+  return true;
+}
+window.smsAsk = smsAsk;
+async function smsSendNow(c, num, text) {
+  const F = FPc(); const r = await F.msgSend({ kind: 'sms', who: c.name, num, text }).catch(() => ({ how: 'fail' }));
+  arShow(r.how === 'sent' ? `✉️ ${c.name}에게 문자 보냈어: "${text}"` : r.how === 'open' ? '✉️ 문자 화면에 글을 채워 뒀어. 보내기만 눌러 줘 (⚙️ 문자 허락을 켜면 바로 보내져)' : '문자를 못 보냈어 🥲', 5000);
+  if (r.how === 'sent' && !c.pk && !c.invAsked && window.invite) { c.invAsked = Date.now(); save(); setTimeout(() => arShow(`💡 ${c.name}도 하루 예보를 깔면 하루 톡에 대화가 남고 무료 통화도 돼요`, 6000), 5500); }
+}
+async function arSendTo(cid, text, open) {
   const c = S.contacts.find(x => x.id === cid); if (!c || !c.pk) return;
   const msg = { who: 'me', text: text.slice(0, 500), at: Date.now(), voice: true };
   await chatAdd(c.id, msg);
@@ -144,22 +171,24 @@ async function arSendTo(cid, text) {
   c.lastSent = Date.now(); c.unread = 0; save();
   arShow(r.ok ? `✓ ${c.name}에게 보냈어: "${text}"` : '앗, 못 보냈어. 인터넷을 확인해 줘 🥲', 4000);
   if (view === 'people') drawPeople();
+  if (open) openChat(c.id);   // 💬 보낸 뒤 대화창
 }
 { const F0 = window.Capacitor && Capacitor.Plugins && Capacitor.Plugins.FloatPet;
   if (F0 && F0.addListener) F0.addListener('autoReply', d => {
     if (!AR || !d || d.id !== AR.id) return;
     const c = S.contacts.find(x => x.id === AR.cid); if (!c) { AR = null; return; }
     if (d.kind === 'partial') { arShow(`🎤 ${d.text}`, 8000); return; }
-    const mode = AR.mode, prev = AR.text; AR = null;
-    if (d.kind === 'skip' || d.kind === 'none') { if (mode === 'confirm') arShow('알겠어, 안 보낼게', 2500); return; }   // 말이 없음 → 안 보냄 (숫자 1 그대로)
+    const mode = AR.mode, prev = AR.text, X = { open: AR.open, sms: AR.sms, force: AR.force }; AR = null;
+    const sendIt = t2 => X.sms ? smsSendNow(c, X.sms.num, t2) : arSendTo(c.id, t2, X.open);
+    if (d.kind === 'skip' || d.kind === 'none') { if (mode === 'confirm') arShow('알겠어, 안 보낼게', 2500); else if (X.force) arShow(d.kind === 'skip' ? '🎤 지금은 들을 수 없어 (화면을 켜고 다시 말해 줘)' : `🎤 못 들었어. 다시 "${c.name} 톡 보내 줘" 해 줘`, 4000); return; }   // 말이 없음 → 안 보냄
     const t = String(d.text || '').trim();
     if (mode === 'reply') {
-      if (arSensible(t, d.conf, d.rms)) { arSendTo(c.id, t); return; }
+      if (arSensible(t, d.conf, d.rms)) { sendIt(t); return; }
       arShow(`"${t}" 이게 맞아? (맞아 / 아니)`, 9000);
-      autoReplyStart(c, false, 'confirm', t);
+      autoReplyStart(c, false, 'confirm', t, Object.assign({ force: true }, X));
       return;
     }
-    if (/^(맞아|맞어|응|어|네|예|그래|보내|보내 ?줘|ㅇㅇ|웅|엉)/.test(t)) arSendTo(c.id, prev);
+    if (/^(맞아|맞어|응|어|네|예|그래|보내|보내 ?줘|ㅇㅇ|웅|엉)/.test(t)) sendIt(prev);
     else arShow('알겠어, 안 보낼게', 2500);
   });
 }
@@ -307,3 +336,18 @@ function ringStart(incoming) {
   } catch { }
 }
 function ringStop() { clearInterval(ringT); ringT = 0; if (ringCtx) { try { ringCtx.close(); } catch { } ringCtx = null; } if (navigator.vibrate) navigator.vibrate(0); }
+
+// ══ 💬 톡 (카카오톡처럼 대화방 목록) — 하루 예보로 연결된 사람(🔗)과의 대화, 최근 순 · 안 읽은 숫자
+function drawTalk() {
+  const box = $('#talkBox'); if (!box) return;
+  const list = S.contacts.filter(c => c.pk).sort((a, b) => ((b.lastChat && b.lastChat.at) || 0) - ((a.lastChat && a.lastChat.at) || 0));
+  const ago = at => { if (!at) return ''; const d = new Date(at), n = new Date(); return d.toDateString() === n.toDateString() ? hm(at) : `${d.getMonth() + 1}월 ${d.getDate()}일`; };
+  box.innerHTML = (list.length ? list.map(c => `<button class="tkrow" data-tk="${c.id}"><span class="tkav">${esc(c.name.slice(0, 1))}</span><span class="tkmid"><b>${esc(c.name)}</b><small>${c.lastChat ? esc((c.lastChat.who === 'me' ? '' : '') + c.lastChat.text) : '아직 나눈 이야기가 없어요'}</small></span><span class="tkend"><small>${ago(c.lastChat && c.lastChat.at)}</small>${c.unread ? `<i>${c.unread}</i>` : ''}</span></button>`).join('')
+    : '<div class="card"><p class="note">아직 하루 톡으로 연결된 사람이 없어요.<br>📞 연락처에서 이름을 누르고 <b>🔗 하루 예보로 초대</b>를 보내 주세요. 상대가 받으면 여기서 카톡처럼 이야기하고 무료로 통화할 수 있어요.</p></div>')
+    + `<div class="card tkhelp"><p class="note small">💡 말로도 돼요: <b>"아들 톡 보내 줘"</b> → "아들에게 뭐라고 전해?" → 6초 안에 말하면 받아 적고, 3초 조용하면 바로 보내요. 하루 톡에 연결 안 된 사람은 휴대폰 문자로 보내요.</p></div>`;
+}
+window.drawTalk = drawTalk;
+document.addEventListener('click', e => {
+  const r = e.target.closest && e.target.closest('[data-tk]'); if (r) { openChat(r.dataset.tk); return; }
+  if (e.target.id === 'tkPeople') go('people');
+});

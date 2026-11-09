@@ -162,17 +162,18 @@ function msgTalk(clean) {
       kw = m[1]; name = m[3];
     }
   }
-  const kind = /카|톡/.test(kw) ? 'kakao' : 'sms';
+  const kind = /카톡|카카오/.test(kw) ? 'kakao' : 'sms';   // 11-09: "톡"·"문자" = 하루 톡(연결된 사람) · "카톡" = 카카오톡
   const c = findPerson(name);
   // 💬 11-09: 하루 예보로 연결된 사람(🔗)한테 "문자" = 하루 대화방으로 (저장됨) · "일반 문자"라고 하면 휴대폰 문자
   if (kind === 'sms' && c && c.pk && !/일반|보통|그냥|휴대폰/.test(kw) && window.openChat) {
-    if (text) openChat(c.id).then(() => chatSend(text)); else openChat(c.id, { ask: true, listen: true });
+    if (window.talkAsk) talkAsk(c, text); else if (text) openChat(c.id).then(() => chatSend(text)); else openChat(c.id, { ask: true, listen: true });
     return true;
   }
   if (kind === 'sms') {
     if (!c) { say(`📞 연락처에서 <b>${esc(name)}</b>을(를) 못 찾았어. 이름을 다시 말해 줄래?`, { ms: 5000 }); return true; }
     const p = c.phones && c.phones[0];
     if (!p) { say(`${esc(c.name)} 번호가 없어 🥲`, { ms: 4000 }); return true; }
+    if (window.smsAsk && smsAsk(c, p.num, text)) return true;
     msgCompose('sms', c.name, p.num, text); return true;
   }
   msgCompose('kakao', c ? c.name : name.trim(), '', text); return true;

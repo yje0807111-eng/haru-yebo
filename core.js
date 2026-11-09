@@ -59,6 +59,7 @@ function go(v, fromNav) {
   if (v === 'people') safe(drawPeople, '연락처');
   if (v === 'match' && window.drawMatch) safe(drawMatch, '소개팅');
   if (v === 'chat' && window.chatDraw) safe(chatDraw, '대화방');
+  if (v === 'talk' && window.drawTalk) safe(drawTalk, '톡');
   if (v === 'safe') safe(drawSafe, '지킴이');
   if (v === 'time') safe(drawTime, '시간');
   if (v === 'set') { safe(drawSet, '설정'); if (window.floatStatus) floatStatus(); }
@@ -156,7 +157,7 @@ function dialNum(num) {
 document.addEventListener('click', e => { const a = e.target.closest && e.target.closest('a[href^="tel:"]'); if (a) { e.preventDefault(); dialNum(a.getAttribute('href').slice(4)); } }, true);
 function petMenu() {
   setPose(pick(['joy', 'love', 'wave', 'laugh'])); fx('hop'); cry(true); P.until = performance.now() + 3000; P.target = null; markSign();
-  const b = [['💞 소개팅', () => openView('match')], ['📞 연락처', () => openView('people')], ['🧭 길찾기', () => openRoute('')], ['🎵 뮤직', () => openMusic()], ['📺 TV', () => openTV()], ['⏰ 시간·알람', () => openView('time')], ['🛡️ 지킴이', () => openView('safe')], ['📖 안내소식', () => openGuide()], ['⚙️ 설정', () => openView('set'), 'setb'], ['🌙 끝내기', quitApp, 'quitb']];
+  const b = [['💞 소개팅', () => openView('match')], ['💬 톡', () => openView('talk')], ['🧭 길찾기', () => openRoute('')], ['🎵 뮤직', () => openMusic()], ['📺 TV', () => openTV()], ['⏰ 시간·알람', () => openView('time')], ['🛡️ 지킴이', () => openView('safe')], ['📖 안내소식', () => openGuide()], ['⚙️ 설정', () => openView('set'), 'setb'], ['🌙 끝내기', quitApp, 'quitb']];
   clearTimeout(bubbleT);
   bubble.querySelector('.text').innerHTML = animalize(pick([`멍! 뭐 할까? 🐾`, `불렀어? 헤헤 🐶`, `${S.me.name ? esc(S.me.name) + '! ' : ''}뭐 도와줄까?`]));
   const box = bubble.querySelector('.btns'); box.innerHTML = '<div class="petmenu"></div>';

@@ -495,7 +495,7 @@ public class FloatPetService extends Service {
         ack = false;
         FloatPetPlugin.overlayText(t);
         // 하루 예보가 대답을 못 하면(꺼져 있으면) 열어서 이어서 하기
-        h.postDelayed(() -> { if (!ack) { FloatPetPlugin.pending = t; open("talk"); } }, 3500);
+        h.postDelayed(() -> { if (!ack) { FloatPetPlugin.pending = t; open("run"); } }, 6000);   // 11-09: 앱이 늦게 답하면 앱을 열어 그 말을 그대로 처리 (검색창에 넣지 않음)
     }
 
 
