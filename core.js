@@ -235,7 +235,7 @@ function isSearch(text) {
 }
 // 11-08: 기능 말 알아듣기를 한 곳에 — 팻방 말창과 화면 위 팻이 똑같이 알아듣게
 async function featureTalk(text) {
-  for (const f of [window.matchTalk, window.mapTalk, window.routeTalk, window.tourTalk, window.ballTalk, window.dgTalk, window.worshipTalk, window.tvTalk]) if (f && f(text)) return true;
+  for (const f of [window.pongTalk, window.matchTalk, window.mapTalk, window.routeTalk, window.tourTalk, window.ballTalk, window.dgTalk, window.worshipTalk, window.tvTalk]) if (f && f(text)) return true;
   if (window.musicTalk && await musicTalk(text)) return true;
   return false;
 }
