@@ -178,10 +178,27 @@ function msgTalk(clean) {
   }
   msgCompose('kakao', c ? c.name : name.trim(), '', text); return true;
 }
-const findPerson = nm => { nm = String(nm || '').trim(); return S.contacts.find(c => c.name === nm) || (nm.length >= 2 ? S.contacts.find(c => c.name.includes(nm) || nm.includes(c.name)) : null); };
+// 11-09: 이름(또는 부르는 이름)으로 찾되, 하루 톡에 연결된 사람(🔗)을 먼저 · 같은 전화번호의 연결된 사람이 있으면 그 사람으로
+const phoneKey = n => String(n || '').replace(/\D/g, '').replace(/^82/, '0');
+const findPerson = nm => {
+  nm = String(nm || '').trim(); if (!nm) return null;
+  const all = S.contacts;
+  const exact = all.filter(c => c.name === nm || (c.alias || []).includes(nm));
+  const loose = nm.length >= 2 ? all.filter(c => c.name.includes(nm) || nm.includes(c.name) || (c.alias || []).some(a => a.includes(nm))) : [];
+  const cand = exact.length ? exact : loose;
+  let c = cand.find(x => x.pk) || cand[0] || null;
+  if (c && !c.pk) {
+    const ph = (c.phones || []).map(p => phoneKey(p.num)).filter(Boolean);
+    const twin = ph.length && all.find(x => x.pk && (x.phones || []).some(p => ph.includes(phoneKey(p.num))));
+    if (twin) c = twin;
+  }
+  return c;
+};
 async function peopleTalk(text) {
   const clean = stripName(text);
   if (/HARU-npub1[0-9a-z]+-[0-9a-z]{6}/.test(clean)) { const r = await join(clean); say(r === 'ok' ? '🔗 연결 신청을 보냈어! 상대가 받으면 알려 줄게 🐶' : r === 'self' ? '이건 내가 만든 초대 코드야~' : r === 'net' ? '인터넷 문제로 못 보냈어. 다시 붙여 넣어 줘' : '초대 코드가 이상해. 받은 글을 통째로 붙여 넣어 줘!', { pose: 'joy', ms: 6000 }); return true; }
+  const al = clean.match(/^(.{1,12}?)\s*(을|를)\s*(.{1,8}?)(이)?라고\s*(불러|부를게|할게|해)\s*(줘|줄래)?[!~.\s]*$/);
+  if (al) { const c = findPerson(al[1]); if (c) { c.alias = [...new Set([...(c.alias || []), al[3].trim()])]; save(); say(`알겠어! 이제 "<b>${esc(al[3].trim())}</b>"라고 하면 <b>${esc(c.name)}</b>${c.pk ? ' (하루 톡 🔗)' : ''}을 찾을게`, { pose: 'joy', ms: 6000 }); return true; } }
   if (msgTalk(clean)) return true;   // ✉️💬 문자·카톡 보내기
   if (window.chatTalk && chatTalk(clean)) return true;   // 💬 대화방 · 📞 하루 통화
   const call = clean.match(/^(.{1,12}?)\s*(한테|에게|께|에)?\s*(전화|통화)\s*(좀\s*)?(걸어\s*(줘|줄래)?|해\s*(줘|줄래)|연결해?\s*(줘)?|하자|할래)?[!~.?\s]*$/);

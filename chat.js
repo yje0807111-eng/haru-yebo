@@ -152,7 +152,7 @@ window.talkAsk = talkAsk;
 function smsAsk(c, num, text) {
   const F = FPc(); if (!F || !F.autoReply || !F.msgSend) return false;
   if (text) { smsSendNow(c, num, text); return true; }
-  arShow(`✉️ ${c.name}에게 문자로 뭐라고 보낼까? 🎤`, 9000);
+  arShow(`✉️ ${c.name}는 아직 하루 톡 연결(🔗) 전이라 휴대폰 문자로 보낼게. 뭐라고 보낼까? 🎤`, 9000);
   autoReplyStart(c, true, 'reply', '', { force: true, sms: { who: c.name, num } });
   return true;
 }
