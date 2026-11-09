@@ -585,9 +585,11 @@ public class FloatPetService extends Service {
         if (text.isEmpty()) return;
         if ("sms".equals(cKind)) {
             String r = HaruSend.sms(this, cNum, text);
+            try { if ("sent".equals(r)) HaruTts.speak(this, cWho + "에게 일반 문자로 보냈어", "sent"); } catch (Exception ignored) { }
             bubble("sent".equals(r) ? "✉️ " + cWho + "에게 문자 보냈어! ✓" : "open".equals(r) ? "✉️ 문자 화면에 글을 채워 뒀어.\n보내기 단추만 눌러 줘" : "문자를 못 보냈어 🥲", 5000);
         } else {
             String r = HaruSend.kakao(this, cWho, text);
+            try { if ("reply".equals(r)) HaruTts.speak(this, cWho + "에게 카톡 보냈어", "sent"); } catch (Exception ignored) { }
             bubble("reply".equals(r) ? "💬 " + cWho + "에게 카톡 보냈어! ✓" : "share".equals(r) ? "💬 글은 채워 뒀어!\n" + cWho + " 님을 찾아 누르고 [확인]만 눌러 줘" : "카톡을 못 열었어 🥲 글은 복사해 뒀어", 9000);
         }
     }
