@@ -655,6 +655,7 @@ public class FloatPetService extends Service {
             public void onRmsChanged(float v) { if (v > arRms) arRms = v; if (v > 4f && arSpoke) arLast = System.currentTimeMillis(); }
             public void onBufferReceived(byte[] b) { }
             public void onEndOfSpeech() { }
+            public void onEvent(int t, Bundle b) { }
             public void onPartialResults(Bundle b) {
                 ArrayList<String> m = b.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
                 if (m != null && !m.isEmpty() && !m.get(0).isEmpty()) { arSpoke = true; arLast = System.currentTimeMillis(); arEmit("partial", (arText.toString() + " " + m.get(0)).trim()); }
