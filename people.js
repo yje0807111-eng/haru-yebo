@@ -140,6 +140,7 @@ async function msgGo() {
       const c = S.contacts.find(x => x.name === who);
       if (c && !c.pk && !c.invAsked) { c.invAsked = Date.now(); save(); setTimeout(() => say(`💡 ${esc(who)}도 하루 예보를 깔면 문자가 <b>하루 대화방</b>에 남고, <b>무료 통화</b>도 돼. 초대해 볼까?`, { pose: 'joy', ms: 20000, buttons: [{ label: '🔗 초대 보내기', act: () => { hideBubble(); invite(c); } }, { label: '괜찮아', ghost: true }] }), 5200); }
     }
+    if (window.sentSay) sentSay(kind === 'sms' ? (h === 'sent' ? `${who}에게 일반 문자로 보냈어` : '') : h === 'reply' ? `${who}에게 카톡 보냈어` : '');
     else say(h === 'reply' ? `💬 ${esc(who)}에게 카톡 보냈어! ✓` : h === 'share' ? `💬 글은 채워 뒀어! <b>${esc(who)}</b> 님을 찾아 누르고 [확인]만 눌러 줘` : '카톡을 못 열었어 🥲', { pose: 'joy', ms: 9000 });
     return;
   }

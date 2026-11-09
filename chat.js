@@ -136,6 +136,8 @@ function arSensible(t, conf, rms) {
   if (!/[가-힣a-zA-Z]/.test(core)) return false;
   return true;
 }
+// 🔊 보낸 뒤 팻이 소리 내어 알려 줌 (휴대폰 목소리)
+function sentSay(t) { if (!t) return; const F = FPc(); if (F && F.ttsSpeak && !(S.talk && S.talk.mute)) F.ttsSpeak({ text: t, id: 'sent' }).catch(() => { }); }
 // 💬 "아들 톡(문자) 보내 줘" → "아들에게 뭐라고 전해?" + 띠링 → 6초 안에 말하면 받아 적고 → 3초 조용하면 하루 톡으로 자동 전송 → 대화창
 function talkAsk(c, text) {
   if (text) { arSendTo(c.id, text).then(() => openChat(c.id)); return; }
@@ -159,7 +161,8 @@ function smsAsk(c, num, text) {
 window.smsAsk = smsAsk;
 async function smsSendNow(c, num, text) {
   const F = FPc(); const r = await F.msgSend({ kind: 'sms', who: c.name, num, text }).catch(() => ({ how: 'fail' }));
-  arShow(r.how === 'sent' ? `✉️ ${c.name}에게 문자 보냈어: "${text}"` : r.how === 'open' ? '✉️ 문자 화면에 글을 채워 뒀어. 보내기만 눌러 줘 (⚙️ 문자 허락을 켜면 바로 보내져)' : '문자를 못 보냈어 🥲', 5000);
+  sentSay(r.how === 'sent' ? `${c.name}에게 일반 문자로 보냈어` : r.how === 'open' ? '문자 화면을 열었어. 보내기를 눌러 줘' : '문자를 못 보냈어');
+  arShow(r.how === 'sent' ? `✉️ ${c.name}에게 일반 문자로 보냈어: "${text}"` : r.how === 'open' ? '✉️ 문자 화면에 글을 채워 뒀어. 보내기만 눌러 줘 (⚙️ 문자 허락을 켜면 바로 보내져)' : '문자를 못 보냈어 🥲', 5000);
   if (r.how === 'sent' && !c.pk && !c.invAsked && window.invite) { c.invAsked = Date.now(); save(); setTimeout(() => arShow(`💡 ${c.name}도 하루 예보를 깔면 하루 톡에 대화가 남고 무료 통화도 돼요`, 6000), 5500); }
 }
 async function arSendTo(cid, text, open) {
@@ -169,7 +172,8 @@ async function arSendTo(cid, text, open) {
   const r = await nsend(c.pk, 'pmsg', msg.text, { name: nameOf() });
   if (!r.ok) { msg.fail = true; chatSave(c.id, chatMem[c.id]); }
   c.lastSent = Date.now(); c.unread = 0; save();
-  arShow(r.ok ? `✓ ${c.name}에게 보냈어: "${text}"` : '앗, 못 보냈어. 인터넷을 확인해 줘 🥲', 4000);
+  arShow(r.ok ? `✓ ${c.name}에게 하루 톡 보냈어: "${text}"` : '앗, 못 보냈어. 인터넷을 확인해 줘 🥲', 4000);
+  sentSay(r.ok ? `${c.name}에게 톡 보냈어` : '못 보냈어. 인터넷을 확인해 줘');
   if (view === 'people') drawPeople();
   if (open) openChat(c.id);   // 💬 보낸 뒤 대화창
 }
@@ -351,3 +355,5 @@ document.addEventListener('click', e => {
   const r = e.target.closest && e.target.closest('[data-tk]'); if (r) { openChat(r.dataset.tk); return; }
   if (e.target.id === 'tkPeople') go('people');
 });
+
+window.sentSay = sentSay;
