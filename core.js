@@ -9,7 +9,7 @@ const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 
 // ── 저장소 (이 휴대폰 안에만)
 const DEF = {
   me: { name: '푸른', buddyName: '하루', size: 40, temper: 'active', species: 'cat' },   // 11-07: 처음 까는 사람 기본값   // temper: active 활발 · normal 평범 · shy 소심   // size: 팻 크기 10~100 (100 = 처음 크기)
-  talk: { freq: 'often', volume: 0.33, cries: true, micBeep: 1 },
+  talk: { freq: 'often', volume: 0, cries: false, micBeep: 1, facts: true },   // 11-10: 처음엔 팻 소리 0 · 상식 정보 켬
   chat: [], alarms: [], chimeLast: {}, birthdays: [], bdayLast: {},
   chimes: [
     { id: 'lunch', hm: '11:50', days: [0, 1, 2, 3, 4, 5, 6], text: '곧 점심시간이야! 밥 먹을 시간이 오고 있어 🍚', on: true },
@@ -147,6 +147,7 @@ function tick(now) {
 const SOUNDS = { dog: [['dog_bark1', 'dog_bark2', 'dog_bark3', 'dog_bark4'], ['dog_happy1', 'dog_happy2', 'dog_happy3']], cat: [['cat_meow1', 'cat_meow2', 'cat_meow3', 'cat_meow4'], ['cat_meow1', 'cat_meow3']], pig: [['pig_oink1', 'pig_oink2', 'pig_oink3', 'pig_oink4', 'pig_oink5'], ['pig_oink1', 'pig_oink3', 'pig_oink4']] };
 let quietUntil = 0;
 function cry(happy, loud, force) {
+  if (!loud && !force && !(S.talk.volume > 0)) return;   // 11-10: 소리 크기 0이면 조용히
   if ((window.STU && STU.on) || (window.PONG && PONG.on)) return;   // 11-10: 게임·공부 중엔 조용히
   if (S.talk.mute && !force) return;   // ⏰ 알람(force)은 음소거여도 울림   // 11-06: 🔇 음소거면 어떤 소리도 안 냄
   if (!loud && (S.talk.cries === false || Date.now() < quietUntil)) return;
@@ -168,7 +169,8 @@ function dialNum(num) {
 document.addEventListener('click', e => { const a = e.target.closest && e.target.closest('a[href^="tel:"]'); if (a) { e.preventDefault(); dialNum(a.getAttribute('href').slice(4)); } }, true);
 function petMenu() {
   setPose(pick(['joy', 'love', 'wave', 'laugh'])); fx('hop'); cry(true); P.until = performance.now() + 3000; P.target = null; markSign();
-  const b = [['💞 소개팅', () => openView('match')], ['💬 톡', () => openView('talk')], ['📚 공부', () => openStudy()], ['🧭 길찾기', () => openRoute('')], ['🎵 뮤직', () => openMusic()], ['📺 TV', () => openTV()], ['⏰ 시간·알람', () => openView('time')], ['🛡️ 지킴이', () => openView('safe')], ['📖 안내소식', () => openGuide()], ['⚙️ 설정', () => openView('set'), 'setb'], ['🌙 끝내기', quitApp, 'quitb']];
+  const b = [['💬 톡', () => openView('talk')], ['📞 연락처', () => openView('people')], ['🧭 길찾기', () => openRoute('')], ['🎵 뮤직', () => openMusic()], ['📺 TV', () => openTV()], ['⏰ 시간·알람', () => openView('time')], ['📖 안내소식', () => openGuide()],   // 11-10: 소개팅·지킴이·공부는 숨김(가입자 많아지면 다시)
+    ['⚙️ 설정', () => openView('set'), 'setb'], ['🌙 끝내기', quitApp, 'quitb']];
   clearTimeout(bubbleT);
   bubble.querySelector('.text').innerHTML = animalize(pick([`멍! 뭐 할까? 🐾`, `불렀어? 헤헤 🐶`, `${S.me.name ? esc(S.me.name) + '! ' : ''}뭐 도와줄까?`]));
   const box = bubble.querySelector('.btns'); box.innerHTML = '<div class="petmenu"></div>';
@@ -213,7 +215,6 @@ bubble.addEventListener('click', e => { if (e.target.closest('button')) return; 
 function doCommand(id) {
   if (['home', 'free', 'run'].includes(id) && window.Native && Native.petAction) Native.petAction(id);   // 바탕화면 팻: 홈 = 말창 위로, 놀아·자유·뛰어 = 내려오기
   const now = performance.now(); P.target = null; P.until = now + 5000;
-  if ((id === 'meal' || id === 'snack') && window.feedPet) { feedPet(id === 'snack' ? 'snack' : 'kibble'); return; }   // 11-10: 밥·간식은 창고에서 꺼내 주기
   if (window.foodPlay) foodPlay();   // 놀아 주면 다섯 번마다 사료 1
   const c = COMMANDS.find(x => x.id === id), line = c ? pick(c.say) : '';
   const map = { sleep: 'sleep', sit: 'sit', lie: 'lie', playdead: 'bang', stand: 'stand', wait: 'wait', no: 'sorry', quiet: 'quiet', jump: 'jump', down: 'joy', climb: 'jump', paw: 'paw', spin: 'spin',

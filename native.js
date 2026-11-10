@@ -110,7 +110,7 @@
     const hg = anOf('hungry');
     return { sp, hungryF: hg ? full(hg.frames).join('|') : '', sports: sports.join(';'), teach: teach.join('\n'), up: up.join('|'), down: down.join('|'), dance: dance.join('|'), hello: hello.join('|'), idle: idle.join('|'), walk: walk.join('|'), run: run.join('|'), home: one('기쁨') || idle[0], sndC: L[0].join('|'), sndH: L[1].join('|') };
   };
-  N.floatConfig = () => { if (FP) FP.config({ size: S.me.size || 100, name: bn(), on: !S.floatOff, act: petAct(), cries: !S.talk.mute && S.talk.cries !== false && Date.now() >= (quietUntil || 0), micBeep: S.talk.micBeep ?? 1, temper: S.me.temper || 'normal', kakao: !S.kakaoOff, talkMin: ({ often: 5, normal: 20, rare: 30, quiet: 0 })[S.talk.freq || 'normal'] ?? 20, uname: S.me.name || '', vol: Math.max(0.2, S.talk.volume || 0.4), teachMin: 1, ...petLists() }).catch(() => {}); };
+  N.floatConfig = () => { if (FP) FP.config({ size: S.me.size || 100, name: bn(), on: !S.floatOff, act: petAct(), cries: !S.talk.mute && S.talk.cries !== false && Date.now() >= (quietUntil || 0), micBeep: S.talk.micBeep ?? 1, temper: S.me.temper || 'normal', kakao: !S.kakaoOff, talkMin: ({ often: 5, normal: 20, rare: 30, quiet: 0 })[S.talk.freq || 'normal'] ?? 20, uname: S.me.name || '', vol: S.talk.volume > 0 ? Math.max(0.1, S.talk.volume) : 0, teachMin: 1, factsOn: S.talk.facts !== false, age: S.me.age || 0, eng: window.engList ? engList() : '', ...petLists() }).catch(() => {}); };
   N.quit = () => { if (FP && FP.quit) FP.quit().catch(() => {}); };
   N.petAction = id => { if (FP && document.hidden) FP.pose({ action: id === 'home' ? 'home' : 'free' }).catch(() => {}); };
   N.petSize = s => { if (FP) { FP.setSize({ size: s }).catch(() => {}); N.floatConfig(); } };

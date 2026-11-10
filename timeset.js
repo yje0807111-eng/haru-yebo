@@ -43,6 +43,7 @@ function drawSet() {
   $('#setBox').innerHTML = `
   <div class="card"><h3>나와 팻 <button class="mutebtn ${S.talk.mute ? 'on' : ''}" id="s_mute">${S.talk.mute ? '🔇 소리 꺼짐' : '🔊 소리 켜짐'}</button></h3>
     <label class="note">내 이름 <input id="s_name" value="${esc(S.me.name)}" placeholder="예: 푸른이"></label>
+    <p class="note" style="margin:8px 0 4px">연령대 <span class="small">(나이에 맞는 상식을 알려 줘요)</span></p><div class="seg" id="s_age" style="flex-wrap:wrap">${[[10, '10대'], [20, '20대'], [30, '30대'], [40, '40대'], [50, '50대'], [60, '60대'], [70, '70대 이상']].map(([k, n]) => `<button data-age="${k}" class="${(S.me.age || 0) === k ? 'on' : ''}">${n}</button>`).join('')}</div>
     <label class="chk"><input type="checkbox" id="s_senior" ${S.me.senior ? 'checked' : ''}> 👴 만 65세 이상 (길찾기에서 지하철을 무료로 계산)</label>
     <label class="note">팻 이름 <input id="s_bname" value="${esc(S.me.buddyName)}" placeholder="예: 사랑이"></label></div>
 ${window.Native ? `<div class="card"><h3>🐶 화면 위 팻</h3><label class="chk"><input type="checkbox" id="s_float" ${S.floatOff ? '' : 'checked'}> 하루 예보를 닫아도 다른 앱 위에 팻 띄우기</label><p class="note small" id="s_floatSt"></p><p class="note small">팻을 끌어서 옮기고, 누르면 하루 예보가 열려요.</p><button class="btn ghost small" id="s_diag">🩺 팻 상태 보기</button><pre id="s_diagOut" style="white-space:pre-wrap;font-size:11px;max-height:300px;overflow:auto"></pre></div>` : ''}
@@ -51,6 +52,7 @@ ${window.Native ? `<div class="card"><h3>🐶 화면 위 팻</h3><label class="c
   <p class="sub">기분 (움직임)</p><div class="seg" id="s_temper">${[['active', '😆 활발'], ['normal', '🙂 평범'], ['shy', '🥺 소심']].map(([k, n]) => `<button data-tm="${k}" class="${(S.me.temper || 'normal') === k ? 'on' : ''}">${n}</button>`).join('')}</div><p class="note small">활발 = 화면을 아주 신나게 뛰어다녀요 · 소심 = 거의 가만히</p></div>
   <div class="card"><h3>🗣️ 말 거는 정도 · 소리</h3>
     <div class="seg" id="s_freq">${[['often', '자주'], ['normal', '보통'], ['rare', '가끔'], ['quiet', '조용히']].map(([k, n]) => `<button data-f="${k}" class="${S.talk.freq === k ? 'on' : ''}">${n}</button>`).join('')}</div><p class="note small">말 걸기: 자주 = 5분마다 · 보통 = 20분 · 가끔 = 30분 · 조용히 = 말 안 함</p>
+    <label class="chk" style="margin-top:10px"><input type="checkbox" id="s_facts" ${S.talk.facts === false ? '' : 'checked'}> 💡 상식 정보 (화면이 켜져 있을 때 팻이 상식을 알려 줘요)</label>
     <p class="note" style="margin:12px 0 4px">🎤 마이크 켜질 때 '띵' 소리</p><div class="seg" id="s_mb">${[[2, '보통'], [1, '작게'], [0, '끄기']].map(([k, n]) => `<button data-mb="${k}" class="${(S.talk.micBeep ?? 1) === k ? 'on' : ''}">${n}</button>`).join('')}</div>
     <label class="note" style="display:block;margin-top:10px">🔊 짖는 소리 크기 <input type="range" id="s_vol" min="0" max="100" step="5" value="${Math.round(S.talk.volume * 100)}" style="padding:0;border:0"></label></div>
 ${window.Native ? `<div class="card"><h3>💬 카톡 알림</h3><label class="chk"><input type="checkbox" id="s_kakao" ${S.kakaoOff ? '' : 'checked'}> 카톡이 오면 팻이 알려 주기</label><p class="note small" id="s_kakaoSt">확인 중…</p><p class="note small">카톡 대화방을 연 뒤 1분 동안 나를 누르고 말하면 답장이 돼요</p></div>` : ''}
@@ -74,6 +76,7 @@ $('#setBox').addEventListener('input', e => {
   if (e.target.id === 's_senior') dset({ me: { senior: e.target.checked } });
   if (e.target.id === 's_mapp') dset({ music: { app: e.target.value } });
   if (e.target.id === 's_bname') dset({ me: { buddyName: e.target.value.trim() } });
+  if (e.target.id === 's_facts') dset({ talk: { facts: e.target.checked } });
   if (e.target.id === 's_vol') dset({ talk: { volume: +e.target.value / 100, cries: +e.target.value > 0 } });
   if (e.target.id === 's_key' && !/^•+$/.test(e.target.value)) dset({ ai: { key: e.target.value.trim() } });
 });
@@ -85,6 +88,7 @@ $('#setBox').addEventListener('click', async e => {
   const mb = e.target.closest('[data-mb]'); if (mb) { $$('#s_mb button').forEach(b => b.classList.toggle('on', b === mb)); dset({ talk: { micBeep: +mb.dataset.mb } }); }
   const mp = e.target.closest('[data-mp]'); if (mp) { $$('#s_mplain button').forEach(b => b.classList.toggle('on', b === mp)); dset({ music: { plain: mp.dataset.mp } }); }
   const tm = e.target.closest('[data-tm]'); if (tm) { $$('#s_temper button').forEach(b => b.classList.toggle('on', b === tm)); dset({ me: { temper: tm.dataset.tm } }); }
+  const ag = e.target.closest('[data-age]'); if (ag) { $$('#s_age button').forEach(b => b.classList.toggle('on', b === ag)); dset({ me: { age: +ag.dataset.age } }); return; }
   const f = e.target.closest('[data-f]'); if (f) { $$('#s_freq button').forEach(b => b.classList.toggle('on', b === f)); dset({ talk: { freq: f.dataset.f } }); }
   const p = e.target.closest('[data-p]'); if (p) { $$('#s_ai button').forEach(b => b.classList.toggle('on', b === p)); dset({ ai: { provider: p.dataset.p } }); }
   if (e.target.id === 's_share') return shareApp();

@@ -5,6 +5,7 @@
 const FOOD = () => { if (!S.food) S.food = { kibble: 2, snack: 0, hunger: 0, t: Date.now(), cryAt: 0, plays: 0 }; return S.food; };
 function hungerNow() { const f = FOOD(), now = Date.now(); f.hunger = Math.min(100, (f.hunger || 0) + Math.max(0, now - (f.t || now)) / 3.6e6 * 25); f.t = now; return f.hunger; }   // 4시간이면 100
 function foodGain(k, s, why) {
+  if (!FOOD_ON) return;
   const f = FOOD(); f.kibble += k || 0; f.snack += s || 0; save();
   const t = `${why ? why + ' ' : ''}${k ? `🍚 사료 +${k}` : ''}${k && s ? ' · ' : ''}${s ? `🍪 간식 +${s}` : ''}`;
   if (STU.on) stuTop(t); else if (typeof say === 'function') setTimeout(() => say(t, { ms: 3000 }), 1600);
@@ -27,7 +28,9 @@ function feedPet(kind) {
 }
 window.feedPet = feedPet;
 // 배고픔 확인 (1분마다): 1시간마다 꼬르륵
+const FOOD_ON = false;   // 11-10 사용자: 배고픈 소리·밥 주기 없앰 (나중에 다시 쓸 수 있게 코드만 남김)
 function hungerTick() {
+  if (!FOOD_ON) return;
   if (document.hidden || STU.on) return;
   const f = FOOD(), h = hungerNow(), now = Date.now(); save();
   if (h >= 25 && now - (f.cryAt || 0) >= 3.6e6) {
@@ -38,9 +41,9 @@ function hungerTick() {
 }
 setInterval(hungerTick, 60000); setTimeout(hungerTick, 8000);
 // 오래 굶으면 기분이 나빠짐 → 혼자 있을 때 잠·삐짐·돌아서기·배고픔
-window.moodPose = () => { if (STU.on) return null; const h = hungerNow(); if (h < 75 || Math.random() > 0.75) return null; return pick(['sleep', 'gloomy', 'back', 'hungry', 'angry', 'sorry']); };
+window.moodPose = () => { if (!FOOD_ON || STU.on) return null; const h = hungerNow(); if (h < 75 || Math.random() > 0.75) return null; return pick(['sleep', 'gloomy', 'back', 'hungry', 'angry', 'sorry']); };
 // 명령으로 놀아 주면 열 번마다 사료 1
-window.foodPlay = () => { const f = FOOD(); f.plays = (f.plays || 0) + 1; save(); if (f.plays % 10 === 0) foodGain(1, 0, '놀아 줘서 고마워!'); };
+window.foodPlay = () => { if (!FOOD_ON) return; const f = FOOD(); f.plays = (f.plays || 0) + 1; save(); if (f.plays % 10 === 0) foodGain(1, 0, '놀아 줘서 고마워!'); };
 
 // ── 영어 단어
 // 11-10: 단계별 단어 (1 쉬움 → 10 어려움). 한 판 8개 이상 = ⭐, ⭐ 2개면 다음 단계, 10단계 끝 = 🗣️ 회화

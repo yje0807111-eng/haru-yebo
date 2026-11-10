@@ -381,7 +381,7 @@ public class FloatPetService extends Service {
                     } else if (poseFrames != null && now < poseUntil) {
                         if (now - poseLast > 1000 / poseFps) { poseLast = now; poseFi = poseOnce && poseFi + 1 >= poseFrames.length ? poseFrames.length - 1 : (poseFi + 1) % poseFrames.length; if (poseFrames[poseFi] != null) pet.setImageBitmap(poseFrames[poseFi]); }
                     } else if (now > nextDecide) { poseFrames = null; decide(now); }
-                    maybeChat(now); maybeTeach(now); maybeHungry(now);
+                    maybeChat(now); if (!maybeFacts(now)) maybeTeach(now); maybeHungry(now);   // 상식을 켜 두면 상식+동작, 끄면 명령 말+동작
                     musicDance(now);
                 }
             } catch (Exception e) { Log.e("HaruPet", "tick", e); }
@@ -409,6 +409,68 @@ public class FloatPetService extends Service {
     long nextChat = 0;
     String[] CHAT = { "뭐 하고 있어? 나 심심해 🐾", "물 한 잔 마셨어? 💧", "잠깐 기지개 켜 볼까? 🙆", "오늘 하루 어때? 나를 누르고 말해 줘!", "궁금한 거 있으면 물어봐! 내가 찾아 줄게 🔎",
         "눈이 피곤하면 잠깐 먼 곳을 봐 줘 👀", "나 여기 있어~ 같이 놀자!", "어깨 한 번 쭉 펴 볼까? 💪", "오늘도 잘하고 있어 💛", "심심하면 나를 눌러서 \"만세\" 해 봐!" };
+    // 11-10: 💡 상식 정보 — 화면이 켜져 있을 때 1분마다 상식 한 줄 + 팻 동작 하나씩 (차례로 전부)
+    //  상식 창고: github.io/haru-yebo/facts (매일 채움) · 20대 이상은 위키백과도 가끔 · 영어 단어도 가끔
+    static final String FACTS = "https://yje0807111-eng.github.io/haru-yebo/facts/";
+    final java.util.ArrayList<String> factQ = new java.util.ArrayList<>(); volatile boolean factLoading = false; int factTick = 0;
+    String httpGet(String u) throws Exception {
+        java.net.HttpURLConnection c = (java.net.HttpURLConnection) new java.net.URL(u).openConnection();
+        c.setConnectTimeout(8000); c.setReadTimeout(8000); c.setRequestProperty("User-Agent", "HaruYebo/1.0 (pet app)");
+        try (java.io.InputStream in = c.getInputStream()) { java.io.ByteArrayOutputStream o = new java.io.ByteArrayOutputStream(); byte[] b = new byte[8192]; int n; while ((n = in.read(b)) > 0) o.write(b, 0, n); return o.toString("UTF-8"); }
+    }
+    void loadFacts() {
+        if (factLoading) return; factLoading = true;
+        new Thread(() -> {
+            try {
+                SharedPreferences sp = getSharedPreferences("pet", 0); int age = sp.getInt("age", 0);
+                int files = new org.json.JSONObject(httpGet(FACTS + "index.json")).optInt("files", 1);
+                int f = sp.getInt("factFile", 0) % Math.max(1, files);
+                org.json.JSONArray a = new org.json.JSONArray(httpGet(FACTS + String.format(java.util.Locale.US, "%04d.json", f + 1)));
+                java.util.ArrayList<String> got = new java.util.ArrayList<>();
+                for (int i = 0; i < a.length(); i++) { org.json.JSONArray e = a.getJSONArray(i); int lo = e.optInt(1, 10), hi = e.optInt(2, 99); if (age == 0 || (age >= lo && age <= hi)) got.add(e.getString(0)); }
+                java.util.Collections.shuffle(got);
+                sp.edit().putInt("factFile", f + 1).apply();
+                h.post(() -> factQ.addAll(got));
+            } catch (Exception e) { Log.e("HaruPet", "facts", e); }
+            factLoading = false;
+        }).start();
+    }
+    void wikiFact() {   // 위키백과 아무 글 요약 한 토막 (사람·동네 이름 같은 건 거름)
+        new Thread(() -> {
+            try {
+                for (int k = 0; k < 4; k++) {
+                    org.json.JSONObject j = new org.json.JSONObject(httpGet("https://ko.wikipedia.org/api/rest_v1/page/random/summary"));
+                    String t = j.optString("title", ""), d = j.optString("description", ""), x = j.optString("extract", "");
+                    if (x.length() < 30 || t.matches(".*[0-9].*") || (d + x).matches("(?s).*(정치인|배우|가수|선수|기업인|아나운서|읍|면|리 |동 |마을|군 |시 |구 |역|고등학교|중학교|초등학교|대학교|방송|프로그램|드라마|앨범|노래|싱글).*")) continue;
+                    int dot = x.indexOf("다."); String one = dot > 0 ? x.substring(0, dot + 2) : x;
+                    if (one.length() > 110) one = one.substring(0, 108) + "…";
+                    final String msg = "📖 " + one + " (위키백과)";
+                    h.post(() -> showFact(msg)); return;
+                }
+            } catch (Exception e) { Log.e("HaruPet", "wiki", e); }
+            h.post(() -> { if (!factQ.isEmpty()) showFact(factQ.remove(0)); });
+        }).start();
+    }
+    void showFact(String text) {
+        bubble(text, 9000);
+        String all = getSharedPreferences("pet", 0).getString("teach", "");   // 팻 동작은 차례로 하나씩 전부
+        if (all != null && !all.isEmpty()) { String[] L = all.split("\n"); String[] e = L[teachI++ % L.length].split("\t"); if (e.length >= 3) { poseOnce = "1".equals(e[1]); showFrames(e[2].split("\\|"), 8, 8000); } }
+    }
+    long nextFact = 0;
+    boolean maybeFacts(long now) {
+        SharedPreferences sp = getSharedPreferences("pet", 0);
+        if (!sp.getBoolean("factsOn", true)) return false;
+        if (listening || moving || HaruBall.on || !screenOn()) return true;
+        if (factQ.size() < 10) loadFacts();
+        if (nextFact == 0) { nextFact = now + 20000; return true; }
+        if (now < nextFact) return true;
+        nextFact = now + 60000;
+        int k = factTick++ % 6, age = sp.getInt("age", 0);
+        if (k == 2) { String eng = sp.getString("eng", ""); if (eng != null && !eng.isEmpty()) { String[] L = eng.split("\n"); showFact("🇺🇸 오늘의 영어: " + L[(int) (Math.random() * L.length)]); return true; } }
+        if (k == 4 && age >= 20) { wikiFact(); return true; }
+        if (!factQ.isEmpty()) showFact(factQ.remove(0));
+        return true;
+    }
     // 11-10: 혼자 운동하기 (축구·농구·야구·테니스·줄넘기·태권도·훌라후프·자전거 중 하나)
     boolean playSport() {
         String s = getSharedPreferences("pet", 0).getString("sports", "");
@@ -436,6 +498,7 @@ public class FloatPetService extends Service {
     // 11-10: 1시간마다 배고프다고 꼬르륵 → 누르면 앱에서 밥 주기
     long nextHungry = 0;
     void maybeHungry(long now) {
+        if (true) return;   // 11-10 사용자: 배고픈 소리 없앰
         if (listening || moving || HaruBall.on || !screenOn()) return;
         if (nextHungry == 0) { nextHungry = now + 60 * 60000L; return; }
         if (now < nextHungry) return;
@@ -833,7 +896,7 @@ public class FloatPetService extends Service {
     // 11-07: 화면이 꺼져 있으면(어두우면) 짖지 않기 — 알람만 예외. 다시 켜면 greet() 가 인사
     boolean screenOn() { try { return ((android.os.PowerManager) getSystemService(POWER_SERVICE)).isInteractive(); } catch (Exception e) { return true; } }
     void bark(boolean happy, float vol) {
-        if (listening || HaruBall.on) return;   // 듣는 중·게임 중엔 짖지 않기 (게임 중에도 말을 잘 알아듣게)
+        if (listening || HaruBall.on || (vol <= 0.01f && !alarmOn)) return;   // 11-10: 소리 0이면 조용히   // 듣는 중·게임 중엔 짖지 않기 (게임 중에도 말을 잘 알아듣게)
         if (!alarmOn && !screenOn()) return;
         try {
             String cv = getSharedPreferences("pet", 0).getString(happy ? "sndH" : "sndC", ""); String[] list = cv != null && !cv.isEmpty() ? cv.split("\\|") : happy ? new String[] { "dog_happy1", "dog_happy2", "dog_happy3" } : new String[] { "dog_bark1", "dog_bark2", "dog_bark3", "dog_bark4" };
