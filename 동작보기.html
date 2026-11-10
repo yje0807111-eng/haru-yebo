@@ -5,19 +5,19 @@
 .c{background:#fff;border-radius:12px;padding:6px;text-align:center;box-shadow:0 1px 3px #0002}
 .c img{height:150px;max-width:100%;object-fit:contain}.c b{display:block;font-size:15px}.c small{color:#888}
 .v{border:2px solid #7c6}</style>
-<h1>🐶 강아지 동작 전부 (초록 테두리 = 새 영상 동작) · 누르면 크게</h1><div id="g"></div>
-<script src="chars/dog/manifest.js"></script>
+<h1><a href="?sp=dog">🐶 강아지</a> · <a href="?sp=cat">🐱 고양이</a> · <a href="?sp=pig">🐷 돼지</a> 동작 전부 (초록 테두리 = 새 영상 동작) · 누르면 크게</h1><div id="g"></div>
+<script>const SPC=new URLSearchParams(location.search).get("sp")||"dog";document.write('<script src="chars/'+SPC+'/manifest.js"><\/script>')</script>
 <script>
-const M=CHARS.dog, g=document.getElementById('g'), cards=[];
+const M=CHARS[SPC], g=document.getElementById('g'), cards=[];
 for(const [k,a] of Object.entries(M.anims)){ if(!a.frames||!a.frames.length) continue;
   const d=document.createElement('div'); d.className='c'+(a.video?' v':'');
-  const im=new Image(); im.src='chars/dog/'+a.frames[0];
+  const im=new Image(); im.src='chars/'+SPC+'/'+a.frames[0];
   d.append(im); d.insertAdjacentHTML('beforeend',`<b>${k}</b><small>${a.frames.length}장 · ${a.fps||12}fps</small>`);
   d.onclick=()=>{im.style.height=im.style.height?'':'300px'};
   g.append(d); cards.push({im,a,i:0,t:0});
-  a.frames.forEach(f=>{new Image().src='chars/dog/'+f});
+  a.frames.forEach(f=>{new Image().src='chars/'+SPC+'/'+f});
 }
 let last=performance.now();
 setInterval(()=>{const n=performance.now();for(const c of cards){c.t+=n-last;const step=1000/(c.a.fps||12);
-  while(c.t>=step){c.t-=step;c.i=(c.i+1)%c.a.frames.length;c.im.src='chars/dog/'+c.a.frames[c.i]}}last=n},30);
+  while(c.t>=step){c.t-=step;c.i=(c.i+1)%c.a.frames.length;c.im.src='chars/'+SPC+'/'+c.a.frames[c.i]}}last=n},30);
 </script>
