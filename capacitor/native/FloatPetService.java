@@ -381,7 +381,7 @@ public class FloatPetService extends Service {
                     } else if (poseFrames != null && now < poseUntil) {
                         if (now - poseLast > 1000 / poseFps) { poseLast = now; poseFi = poseOnce && poseFi + 1 >= poseFrames.length ? poseFrames.length - 1 : (poseFi + 1) % poseFrames.length; if (poseFrames[poseFi] != null) pet.setImageBitmap(poseFrames[poseFi]); }
                     } else if (now > nextDecide) { poseFrames = null; decide(now); }
-                    maybeChat(now);
+                    maybeChat(now); maybeTeach(now);
                     musicDance(now);
                 }
             } catch (Exception e) { Log.e("HaruPet", "tick", e); }
@@ -409,6 +409,30 @@ public class FloatPetService extends Service {
     long nextChat = 0;
     String[] CHAT = { "뭐 하고 있어? 나 심심해 🐾", "물 한 잔 마셨어? 💧", "잠깐 기지개 켜 볼까? 🙆", "오늘 하루 어때? 나를 누르고 말해 줘!", "궁금한 거 있으면 물어봐! 내가 찾아 줄게 🔎",
         "눈이 피곤하면 잠깐 먼 곳을 봐 줘 👀", "나 여기 있어~ 같이 놀자!", "어깨 한 번 쭉 펴 볼까? 💪", "오늘도 잘하고 있어 💛", "심심하면 나를 눌러서 \"만세\" 해 봐!" };
+    // 11-10: 혼자 운동하기 (축구·농구·야구·테니스·줄넘기·태권도·훌라후프·자전거 중 하나)
+    boolean playSport() {
+        String s = getSharedPreferences("pet", 0).getString("sports", "");
+        if (s == null || s.isEmpty()) return false;
+        String[] g = s.split(";"); String one = g[(int) (Math.random() * g.length)];
+        if (one.isEmpty()) return false;
+        poseOnce = false; showFrames(one.split("\\|"), 8, 6000); return true;
+    }
+    // 11-10: 명령 알려 주기 — 정해 둔 간격(기본 1분)마다 명령 하나를 말하고 그 동작을 보여 줌 (차례대로 전부)
+    long nextTeach = 0; int teachI = 0;
+    void maybeTeach(long now) {
+        SharedPreferences sp = getSharedPreferences("pet", 0);
+        int min = sp.getInt("teachMin", 1);
+        if (min <= 0 || listening || moving || HaruBall.on || !screenOn()) return;
+        if (nextTeach == 0) { nextTeach = now + min * 60000L; return; }
+        if (now < nextTeach) return;
+        nextTeach = now + min * 60000L;
+        String all = sp.getString("teach", "");
+        if (all == null || all.isEmpty()) return;
+        String[] L = all.split("\n"); String[] e = L[teachI++ % L.length].split("\t");
+        if (e.length < 3) return;
+        bubble("🎓 \"" + e[0] + "\" 라고 하면 이렇게 해!", 6000);
+        poseOnce = "1".equals(e[1]); showFrames(e[2].split("\\|"), 8, 6000);
+    }
     void maybeChat(long now) {
         SharedPreferences sp = getSharedPreferences("pet", 0);
         int min = sp.getInt("talkMin", 20);
@@ -454,7 +478,8 @@ public class FloatPetService extends Service {
             if ("normal".equals(tm) && !homeMode) ty = py;   // 평범: 옆으로만
             running = "active".equals(tm) ? Math.random() < 0.75 : act >= 3 ? Math.random() < (act >= 4 ? 0.7 : 0.45) : Math.random() < 0.15;
             moving = true;
-        } else { pet.setImageBitmap(pick(idle, now)); nextDecide = now + ("active".equals(tm) ? 500 + (long) (Math.random() * 1200) : restMs()); }
+        } else if (Math.random() < ("active".equals(tm) ? 0.35 : 0.2) && playSport()) { nextDecide = now + 6000; }   // 11-10: 가끔 혼자 운동
+        else { pet.setImageBitmap(pick(idle, now)); nextDecide = now + ("active".equals(tm) ? 500 + (long) (Math.random() * 1200) : restMs()); }
     }
 
     // ── 바탕화면 말창에서 바로 쓰기
