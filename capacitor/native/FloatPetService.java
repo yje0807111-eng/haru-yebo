@@ -453,7 +453,10 @@ public class FloatPetService extends Service {
     }
     void showFact(String text) {
         int ms = Math.max(7000, Math.min(14000, 5000 + text.length() * 110));   // 11-10: 읽을 시간만큼 보여 주고 바로 다음 (끊임없이)
-        bubFree = true; bubble(text, ms); bubFree = false; bubFollow = true; nextFact = System.currentTimeMillis() + ms + 4000;   // 팻은 자유롭게, 말풍선은 따라다님, 다음 상식까지 4초 쉼
+        bubFree = true; bubble(text, ms); bubFree = false; bubFollow = true;
+        try { int cp = text.codePointAt(0); if (cp >= 0x1F1E6 && cp <= 0x1F1FF && text.length() >= 4) {   // 🇬🇭 국기는 크게
+            android.text.SpannableString sp = new android.text.SpannableString(text); sp.setSpan(new android.text.style.RelativeSizeSpan(3f), 0, 4, 0); bub.setText(sp);
+            bub.measure(View.MeasureSpec.makeMeasureSpec(sw() - dp(40), View.MeasureSpec.AT_MOST), View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED)); placeBub(); } } catch (Exception ignored) { } nextFact = System.currentTimeMillis() + ms + 4000;   // 팻은 자유롭게, 말풍선은 따라다님, 다음 상식까지 4초 쉼
         long nowP = System.currentTimeMillis(); if (nowP - factPoseAt < 60000) return; factPoseAt = nowP;   // 11-10: 팻 동작은 1분에 하나씩 (상식은 끊임없이)
         String all = getSharedPreferences("pet", 0).getString("teach", "");   // 팻 동작은 차례로 하나씩 전부
         if (all != null && !all.isEmpty()) { String[] L = all.split("\n"); String[] e = L[teachI++ % L.length].split("\t"); if (e.length >= 3) { poseOnce = "1".equals(e[1]); if (!moving) showFrames(e[2].split("\\|"), 8, 6000); } }
