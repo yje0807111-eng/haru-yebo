@@ -452,9 +452,10 @@ public class FloatPetService extends Service {
         }).start();
     }
     void showFact(String text) {
-        bubble(text, 9000);
+        int ms = Math.max(7000, Math.min(14000, 5000 + text.length() * 110));   // 11-10: 읽을 시간만큼 보여 주고 바로 다음 (끊임없이)
+        bubble(text, ms); nextFact = System.currentTimeMillis() + ms + 700;
         String all = getSharedPreferences("pet", 0).getString("teach", "");   // 팻 동작은 차례로 하나씩 전부
-        if (all != null && !all.isEmpty()) { String[] L = all.split("\n"); String[] e = L[teachI++ % L.length].split("\t"); if (e.length >= 3) { poseOnce = "1".equals(e[1]); showFrames(e[2].split("\\|"), 8, 8000); } }
+        if (all != null && !all.isEmpty()) { String[] L = all.split("\n"); String[] e = L[teachI++ % L.length].split("\t"); if (e.length >= 3) { poseOnce = "1".equals(e[1]); showFrames(e[2].split("\\|"), 8, ms); } }
     }
     long nextFact = 0;
     boolean maybeFacts(long now) {
@@ -462,9 +463,9 @@ public class FloatPetService extends Service {
         if (!sp.getBoolean("factsOn", true)) return false;
         if (listening || moving || HaruBall.on || !screenOn()) return true;
         if (factQ.size() < 10) loadFacts();
-        if (nextFact == 0) { nextFact = now + 20000; return true; }
+        if (nextFact == 0) { nextFact = now + 4000; return true; }
         if (now < nextFact) return true;
-        nextFact = now + 60000;
+        nextFact = now + 15000;   // 위키백과 받는 동안 잠깐 (showFact 가 다시 맞춤)
         int k = factTick++ % 6, age = sp.getInt("age", 0);
         if (k == 2) { String eng = sp.getString("eng", ""); if (eng != null && !eng.isEmpty()) { String[] L = eng.split("\n"); showFact("🇺🇸 오늘의 영어: " + L[(int) (Math.random() * L.length)]); return true; } }
         if (k == 4 && age >= 20) { wikiFact(); return true; }
