@@ -135,15 +135,26 @@ public class FloatPetService extends Service {
         }
     }
 
+    // 11-10: 영상 동작이 늘어 그림이 많아짐 → 작게(높이 320) 줄여 한 번만 읽고 같이 씀 (메모리 아끼기, 듣기 끊김 방지)
+    final java.util.HashMap<String, Bitmap> bcache = new java.util.HashMap<>(); String bcacheSp = "";
     Bitmap load(String n) {
-        try (InputStream in = getAssets().open("public/chars/" + getSharedPreferences("pet", 0).getString("sp", "dog") + "/" + n)) { return BitmapFactory.decodeStream(in); }
-        catch (Exception e) { return null; }
+        String sp = getSharedPreferences("pet", 0).getString("sp", "dog");
+        if (!sp.equals(bcacheSp)) { bcache.clear(); bcacheSp = sp; }
+        Bitmap c = bcache.get(n); if (c != null) return c;
+        try (InputStream in = getAssets().open("public/chars/" + sp + "/" + n)) {
+            Bitmap b = BitmapFactory.decodeStream(in); if (b == null) return null;
+            int H = 320; if (b.getHeight() > H) b = Bitmap.createScaledBitmap(b, Math.max(1, b.getWidth() * H / b.getHeight()), H, true);
+            if (bcache.size() > 220) bcache.clear();
+            bcache.put(n, b); return b;
+        }
+        catch (Throwable e) { return null; }
     }
 
     // 11-06: 고른 동물의 그림 목록(앱이 config 로 넘겨줌). 없으면 예전 강아지 그림
     Bitmap[] list(String key, String[] def) {
         String v = getSharedPreferences("pet", 0).getString(key, "");
         String[] names = v == null || v.isEmpty() ? def : v.split("\\|");
+        if (names.length > 24) { String[] nn = new String[24]; for (int j = 0; j < 24; j++) nn[j] = names[j * names.length / 24]; names = nn; }   // 11-10: 너무 많으면 고르게 24장만
         java.util.ArrayList<Bitmap> out = new java.util.ArrayList<>();
         for (String n : names) { Bitmap b = load(n); if (b != null) out.add(b); }
         if (out.isEmpty()) { Bitmap b = load("정면.webp"); if (b != null) out.add(b); }
