@@ -83,6 +83,8 @@ const POSES = {
   jump: ['점프', '점프2'], splash: ['물장난'], flipover: ['발라당'], hooray: ['만세', '기쁨'], gaze: ['눈망울_앉기', '정면'],
   // 11-10: 명령마다 자기 동작 (빌려 쓰던 것 → 새로 만든 영상 동작), 명령 없던 동작에도 명령 연결
   stand: ['일어나기', '기쁨'], wait: ['기다리기', '앉아'], sorry: ['미안해', '슬픔'], quiet: ['쉿', '부끄러움'], spin: ['빙글', '즐거움', '춤'], speak: ['대답', '말하기', '정면'], praise: ['칭찬', '사랑', '사랑해'],
+  soccer: ['축구', '점프'], basketball: ['농구', '점프'], baseball: ['야구', '점프'], tennis: ['테니스', '점프'], jumprope: ['줄넘기', '점프'], taekwondo: ['태권도', '점프'], hulahoop: ['훌라후프', '점프'], bike: ['자전거', '점프'],
+  snack: ['간식', '먹기'],
   plop: ['주저앉기', '도착'], skip: ['신나걷기', 'walk'], emptybowl: ['빈그릇', '그릇없음', '배고픔'], gallop: ['gallop', 'gallop2', 'run'],
 };
 // 11-10: 반복하면 어색한 동작(한 번만 하고 마지막 모습으로 멈춤). 나머지는 반복해서 6초쯤 유지
@@ -210,7 +212,7 @@ function doCommand(id) {
   const now = performance.now(); P.target = null; P.until = now + 5000;
   const c = COMMANDS.find(x => x.id === id), line = c ? pick(c.say) : '';
   const map = { sleep: 'sleep', sit: 'sit', lie: 'lie', playdead: 'bang', stand: 'stand', wait: 'wait', no: 'sorry', quiet: 'quiet', jump: 'jump', down: 'joy', climb: 'jump', paw: 'paw', spin: 'spin',
-    stretch: 'stretch', drink: 'drink', meal: 'meal', snack: 'eat', dance: 'fun', cute: 'cute', heart: 'heart', loveyou: 'loveyou', magnify: 'magnify', walk: 'walk', hello: 'hello', hungry: 'hungry', peekaboo: 'peekaboo', curious: 'curious', dizzy: 'dizzy', sick: 'sick', gloomy: 'gloomy', hang: 'hang', brush: 'brush', wash: 'wash', laugh: 'laugh', wink: 'wink', good: 'praise', bark: 'bark', speak: 'speak', call: 'speak', hide: 'shy', back: 'walk', slow: 'walk', home: 'joy', free: 'run', hooray: 'hooray', flipover: 'flipover', splash: 'splash', turnback: 'back', angry: 'angry', surprise: 'surprise', warn: 'warn', letter: 'letter', joy: 'joy', sad: 'sad', solo: 'solo', gallop: 'gallop', plop: 'plop', skip: 'skip', emptybowl: 'emptybowl' };
+    stretch: 'stretch', drink: 'drink', meal: 'meal', snack: 'snack', dance: 'fun', cute: 'cute', heart: 'heart', loveyou: 'loveyou', magnify: 'magnify', walk: 'walk', hello: 'hello', hungry: 'hungry', peekaboo: 'peekaboo', curious: 'curious', dizzy: 'dizzy', sick: 'sick', gloomy: 'gloomy', hang: 'hang', brush: 'brush', wash: 'wash', laugh: 'laugh', wink: 'wink', good: 'praise', bark: 'bark', speak: 'speak', call: 'speak', hide: 'shy', back: 'walk', slow: 'walk', home: 'joy', free: 'run', hooray: 'hooray', flipover: 'flipover', splash: 'splash', turnback: 'back', angry: 'angry', surprise: 'surprise', warn: 'warn', letter: 'letter', joy: 'joy', sad: 'sad', solo: 'solo', gallop: 'gallop', plop: 'plop', skip: 'skip', emptybowl: 'emptybowl', soccer: 'soccer', basketball: 'basketball', baseball: 'baseball', tennis: 'tennis', jumprope: 'jumprope', taekwondo: 'taekwondo', hulahoop: 'hulahoop', bike: 'bike' };
   if (id === 'run' || id === 'gallop' || id === 'skip' || id === 'free' || id === 'follow' || id === 'come' || id === 'roll' || id === 'crawl') {
     P.target = id === 'come' || id === 'follow' ? 0.5 : (P.x > 0.5 ? 0.12 : 0.88); P.speed = id === 'crawl' ? 0.05 : id === 'roll' ? 0.12 : id === 'skip' ? 0.14 : 0.3;
     setPose(id === 'roll' ? 'roll' : id === 'crawl' ? 'crawl' : id === 'gallop' ? 'gallop' : id === 'skip' ? 'skip' : 'run'); P.until = now + 15000;
