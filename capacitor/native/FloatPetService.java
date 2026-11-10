@@ -430,7 +430,7 @@ public class FloatPetService extends Service {
         if (all == null || all.isEmpty()) return;
         String[] L = all.split("\n"); String[] e = L[teachI++ % L.length].split("\t");
         if (e.length < 3) return;
-        bubble("🎓 \"" + e[0] + "\" 라고 하면 이렇게 해!", 6000);
+        bubble(e[0] + "!", 5000);   // 명령 말만 딱
         poseOnce = "1".equals(e[1]); showFrames(e[2].split("\\|"), 8, 6000);
     }
     void maybeChat(long now) {
