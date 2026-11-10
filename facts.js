@@ -38,6 +38,7 @@ function factPose(ms) {   // 팻 동작은 1분에 하나씩 차례로 전부 (�
   setPose(keys[FX.poseI++ % keys.length]); P.target = null; P.until = now + 6000;   // 동작 하나 보여 주고 다시 자유롭게
 }
 async function factTick() {
+  return 60000;   // 11-10 사용자: 앱 안(팻방)에서는 상식 안 띄움 — 메뉴 말창이 계속 떠 있어야 함. 상식은 화면 위 팻(앱 닫았을 때)만
   if (S.talk.facts === false || document.hidden || view !== 'home' || (!bubble.hidden && !FX.mine) || (window.PONG && PONG.on) || (window.STU && STU.on)) return 4000;
   if (FX.q.length < 10) factsLoad();
   const k = FX.tick++ % 6, age = S.me.age || 0;
