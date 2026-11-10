@@ -66,6 +66,7 @@ public class FloatPetPlugin extends Plugin {
             .putString("uname", call.getString("uname", ""))
             .putString("idle", call.getString("idle", ""))
             .putString("walk", call.getString("walk", ""))
+            .putString("up", call.getString("up", "")).putString("down", call.getString("down", ""))
             .putString("hello", call.getString("hello", ""))
             .putString("dance", call.getString("dance", ""))
             .putString("run", call.getString("run", ""))
