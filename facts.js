@@ -32,9 +32,10 @@ async function wikiOne() {
   }
   return null;
 }
-function factPose(ms) {   // 팻 동작은 차례로 하나씩 전부
+function factPose(ms) {   // 팻 동작은 1분에 하나씩 차례로 전부 (상식은 끊임없이)
+  const now = performance.now(); if (FX.poseAt && now - FX.poseAt < 60000) return; FX.poseAt = now;
   const keys = Object.keys(POSES).filter(k => !['idle', 'walk', 'run', 'talk', 'up', 'side', 'gaze'].includes(k));
-  setPose(keys[FX.poseI++ % keys.length]); P.target = null; P.until = performance.now() + (ms || 8000);
+  setPose(keys[FX.poseI++ % keys.length]); P.target = null; P.until = now + 60000;
 }
 async function factTick() {
   if (S.talk.facts === false || document.hidden || view !== 'home' || !bubble.hidden || (window.PONG && PONG.on) || (window.STU && STU.on)) return 4000;

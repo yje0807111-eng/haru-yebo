@@ -454,10 +454,11 @@ public class FloatPetService extends Service {
     void showFact(String text) {
         int ms = Math.max(7000, Math.min(14000, 5000 + text.length() * 110));   // 11-10: 읽을 시간만큼 보여 주고 바로 다음 (끊임없이)
         bubble(text, ms); nextFact = System.currentTimeMillis() + ms + 700;
+        long nowP = System.currentTimeMillis(); if (nowP - factPoseAt < 60000) return; factPoseAt = nowP;   // 11-10: 팻 동작은 1분에 하나씩 (상식은 끊임없이)
         String all = getSharedPreferences("pet", 0).getString("teach", "");   // 팻 동작은 차례로 하나씩 전부
-        if (all != null && !all.isEmpty()) { String[] L = all.split("\n"); String[] e = L[teachI++ % L.length].split("\t"); if (e.length >= 3) { poseOnce = "1".equals(e[1]); showFrames(e[2].split("\\|"), 8, ms); } }
+        if (all != null && !all.isEmpty()) { String[] L = all.split("\n"); String[] e = L[teachI++ % L.length].split("\t"); if (e.length >= 3) { poseOnce = "1".equals(e[1]); showFrames(e[2].split("\\|"), 8, 60000); } }
     }
-    long nextFact = 0;
+    long nextFact = 0, factPoseAt = 0;
     boolean maybeFacts(long now) {
         SharedPreferences sp = getSharedPreferences("pet", 0);
         if (!sp.getBoolean("factsOn", true)) return false;
