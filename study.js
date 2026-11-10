@@ -122,8 +122,8 @@ function stuPick(i, btn) {
   document.querySelectorAll('#sQ .sOpt').forEach((b, k) => { if (opts[k] === w) b.classList.add('ok'); });
   if (ok) {
     STU.ok++; STU.streak++; S.study.wrong = S.study.wrong.filter(x => x !== key);
-    const p = pick(PRAISE); stuTop(p); stuSpeak(p, 'ko'); stuPet(pick(['praise', 'hooray', 'joy']));
-    foodGain(1, STU.streak % 3 === 0 ? 1 : 0, '');
+    const p = pick(PRAISE); stuSpeak(p, 'ko'); stuPet(pick(['praise', 'hooray', 'joy']));
+    foodGain(1, STU.streak % 3 === 0 ? 1 : 0, p);
   } else {
     btn.classList.add('no'); STU.streak = 0; if (!S.study.wrong.includes(key)) S.study.wrong.push(key); S.study.wrong = S.study.wrong.slice(-30);
     stuTop(`아깝다! 정답은 ${w[0]} (${w[1]}) 야`); stuPet('curious'); setTimeout(() => stuSpeak(w[0], 'en'), 300);
