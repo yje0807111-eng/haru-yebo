@@ -417,7 +417,7 @@ public class FloatPetPlugin extends Plugin {
         try {
             com.getcapacitor.JSArray a = call.getArray("files");
             String[] f = new String[a.length()]; for (int i = 0; i < a.length(); i++) f[i] = a.getString(i);
-            FloatPetService.framesStatic(f, call.getInt("fps", 8), call.getInt("ms", 5000));
+            FloatPetService.poseOnce = call.getBoolean("once", false); FloatPetService.framesStatic(f, call.getInt("fps", 8), call.getInt("ms", 5000));
         } catch (Exception e) { }
         call.resolve();
     }

@@ -79,9 +79,14 @@ const POSES = {
   angry: ['화남', '놀람'], solo: ['혼자놀기', '혼자놀기2', '물장난'], dance: ['춤', '즐거움'], bang: ['빵'], warn: ['위험'], wink: ['윙크'], crawl: ['기어'], drink: ['물먹기'], meal: ['밥먹기', '밥먹기2'], brush: ['양치'], wash: ['세수'], laugh: ['웃어', '기쁨'], sit: ['앉아', '눈망울_앉기'], roll: ['굴러'], peekaboo: ['숨어', '부끄러움'],
   curious: ['궁금', '생각중'], dizzy: ['헤롱', '놀람'], sick: ['아픔', '엎드림', '슬픔'], hello: ['인사_왼손', '인사_오른손', '인사_꾸벅', '손흔들기', '손흔들기2'], loveyou: ['사랑해', '사랑'], heart: ['하트날리기', '사랑'], cute: ['이쁜짓', '눈망울_앉기'], idle: ['정면'], walk: ['walk'], run: ['run', '네발뛰기', 'dash'], sleep: ['자자', '잠'], hang: ['걸치기', '눈망울_걸치기'],
   stretch: ['기지개'], talk: ['말하기', '정면'], bark: ['소리', '소리2'], joy: ['기쁨'], fun: ['즐거움', '춤'], sad: ['슬픔'], gloomy: ['우울'], hungry: ['배고픔'], think: ['생각중', '궁금'], surprise: ['놀람'], shy: ['부끄러움', '부끄러움2'], love: ['사랑', '사랑해'],
-  eat: ['먹기'], letter: ['편지'], magnify: ['돋보기'], wave: ['손흔들기', '인사_왼손'], paw: ['손', '손흔들기'], up: ['올려다보기', '정면'], back: ['뒷모습'], side: ['옆모습'], lie: ['엎드림', '눈망울_엎드림', '자자'],
+  eat: ['먹기'], letter: ['편지'], magnify: ['돋보기'], wave: ['손흔들기', '인사_왼손'], paw: ['손', '손흔들기'], up: ['올려다보기', '정면'], back: ['뒤돌아걷기', '뒷모습'], side: ['옆모습'], lie: ['엎드리기', '엎드림', '눈망울_엎드림', '자자'],
   jump: ['점프', '점프2'], splash: ['물장난'], flipover: ['발라당'], hooray: ['만세', '기쁨'], gaze: ['눈망울_앉기', '정면'],
+  // 11-10: 명령마다 자기 동작 (빌려 쓰던 것 → 새로 만든 영상 동작), 명령 없던 동작에도 명령 연결
+  stand: ['일어나기', '기쁨'], wait: ['기다리기', '앉아'], sorry: ['미안해', '슬픔'], quiet: ['쉿', '부끄러움'], spin: ['빙글', '즐거움', '춤'], speak: ['대답', '말하기', '정면'], praise: ['칭찬', '사랑', '사랑해'],
+  plop: ['주저앉기', '도착'], skip: ['신나걷기', 'walk'], emptybowl: ['빈그릇', '그릇없음', '배고픔'], gallop: ['gallop', 'gallop2', 'run'],
 };
+// 11-10: 반복하면 어색한 동작(한 번만 하고 마지막 모습으로 멈춤). 나머지는 반복해서 6초쯤 유지
+const ONCE = new Set(['점프', '점프2', '굴러', '빵', '놀람', '인사_꾸벅', '기지개', '엎드리기', '일어나기', '빙글', '도착', '주저앉기', '빈그릇', '그릇없음', '발라당']);
 const pet = $('#pet'), yard = $('#yard');
 const P = { x: 0.5, dir: 1, target: null, speed: 0.08, pose: 'idle', frames: null, fi: 0, fps: 8, until: 0, mode: 'idle', lastT: 0 };
 function setPose(p) {
@@ -89,11 +94,12 @@ function setPose(p) {
   // 강아지 걷기·뛰기: 얼굴·뒤통수가 안 잘린 그림 두 장을 번갈아 (11-05) — 고양이·돼지는 PC 와 같은 움직이는 그림
   const VW = CH && CH.anims && CH.anims.walk && CH.anims.walk.video ? CH.anims.walk : null;   // 11-09 영상으로 만든 걷기
   const CYC = SP() === 'dog' ? { walk: VW ? [VW.frames, VW.fps] : [['걷기1.webp', '걷기2.webp'], 5], run: [['뛰기1.webp', '뛰기2.webp'], 7] } : {};
+  P.an = ''; P.minUntil = 0;
   if (CYC[p]) { P.frames = CYC[p][0]; P.fps = CYC[p][1]; P.fi = 0; P.loop0 = 0; P.face = -1; P.hk = p === 'walk' && VW && CH.refH ? VW.h / CH.refH : 1; pet.src = DIR() + P.frames[0]; return; }
   const names = POSES[p] || POSES.idle, R = (CH && CH.refH) || 0;
   for (const n of names) {
     const an = CH && CH.anims && CH.anims[n];
-    if (an) { P.frames = an.frames; P.fps = an.fps || 8; P.fi = 0; P.loop0 = an.loop || 0; P.face = an.face || 0; P.hk = R && an.h ? an.h * (an.sc || 1) / R : 1; pet.src = DIR() + P.frames[0]; return; }   // 크기: PC 와 같은 셈(동작 그림 높이 ÷ 기준 높이)
+    if (an) { P.an = n; P.minUntil = an.frames.length > 1 ? performance.now() + (ONCE.has(n) ? an.frames.length / (an.fps || 8) * 1000 + 1200 : 6000) : 0; P.frames = an.frames; P.fps = an.fps || 8; P.fi = 0; P.loop0 = an.loop || 0; P.face = an.face || 0; P.hk = R && an.h ? an.h * (an.sc || 1) / R : 1; pet.src = DIR() + P.frames[0]; return; }   // 크기: PC 와 같은 셈(동작 그림 높이 ÷ 기준 높이)
     const sp = CH && CH.sprites && CH.sprites[n];
     if (sp) { P.frames = null; P.face = sp.face || 0; P.hk = R && sp.h ? sp.h / R : 1; pet.src = DIR() + sp.file; return; }
   }
@@ -123,8 +129,8 @@ function tick(now) {
     const d = P.target - P.x;
     if (Math.abs(d) < 0.01) { P.target = null; setPose(pick(['idle', 'sit', 'joy', 'gaze', 'jump', 'laugh'])); if (petAct() >= 4) fx('hop'); P.until = now + (petAct() >= 4 ? rnd(500, 1500) : rnd(2500, 6000)); }
     else { P.dir = d > 0 ? 1 : -1; P.x += Math.sign(d) * Math.min(Math.abs(d), P.speed * dt); }
-  } else if (now > P.until) decide();
-  if (P.frames && now - frameT > 1000 / P.fps) { frameT = now; P.fi = P.fi + 1 >= P.frames.length ? Math.min(P.loop0 || 0, P.frames.length - 1) : P.fi + 1; pet.src = DIR() + P.frames[P.fi]; }
+  } else if (now > Math.max(P.until, P.minUntil || 0)) decide();
+  if (P.frames && now - frameT > 1000 / P.fps) { frameT = now; P.fi = P.fi + 1 >= P.frames.length ? (ONCE.has(P.an) ? P.frames.length - 1 : Math.min(P.loop0 || 0, P.frames.length - 1)) : P.fi + 1; pet.src = DIR() + P.frames[P.fi]; }
   const hh = petPx(window.prevSize || S.me.size || 100);   // 크기 단계 → 화면 크기
   const hp = Math.round(hh * (P.hk || 1)); if (pet._h !== hp) { pet._h = hp; pet.style.height = hp + 'px'; }
   const w = pet.getBoundingClientRect().width || 100, W = yard.clientWidth;
@@ -203,11 +209,11 @@ function doCommand(id) {
   if (['home', 'free', 'run'].includes(id) && window.Native && Native.petAction) Native.petAction(id);   // 바탕화면 팻: 홈 = 말창 위로, 놀아·자유·뛰어 = 내려오기
   const now = performance.now(); P.target = null; P.until = now + 5000;
   const c = COMMANDS.find(x => x.id === id), line = c ? pick(c.say) : '';
-  const map = { sleep: 'sleep', sit: 'sit', lie: 'lie', playdead: 'bang', stand: 'joy', wait: 'sit', no: 'sad', quiet: 'shy', jump: 'jump', down: 'joy', climb: 'jump', paw: 'paw', spin: 'fun',
-    stretch: 'stretch', drink: 'drink', meal: 'meal', snack: 'eat', dance: 'fun', cute: 'cute', heart: 'heart', loveyou: 'loveyou', magnify: 'magnify', walk: 'walk', hello: 'hello', hungry: 'hungry', peekaboo: 'peekaboo', curious: 'curious', dizzy: 'dizzy', sick: 'sick', gloomy: 'gloomy', hang: 'hang', brush: 'brush', wash: 'wash', laugh: 'laugh', wink: 'wink', good: 'love', bark: 'bark', speak: 'up', call: 'up', hide: 'shy', back: 'walk', slow: 'walk', home: 'joy', free: 'run', hooray: 'hooray', flipover: 'flipover', splash: 'splash', turnback: 'back', angry: 'angry', surprise: 'surprise', warn: 'warn', letter: 'letter', joy: 'joy', sad: 'sad', solo: 'solo', gallop: 'run' };
-  if (id === 'run' || id === 'free' || id === 'follow' || id === 'come' || id === 'roll' || id === 'crawl') {
-    P.target = id === 'come' || id === 'follow' ? 0.5 : (P.x > 0.5 ? 0.12 : 0.88); P.speed = id === 'crawl' ? 0.05 : id === 'roll' ? 0.12 : 0.3;
-    setPose(id === 'roll' ? 'roll' : id === 'crawl' ? 'crawl' : 'run'); P.until = now + 15000;
+  const map = { sleep: 'sleep', sit: 'sit', lie: 'lie', playdead: 'bang', stand: 'stand', wait: 'wait', no: 'sorry', quiet: 'quiet', jump: 'jump', down: 'joy', climb: 'jump', paw: 'paw', spin: 'spin',
+    stretch: 'stretch', drink: 'drink', meal: 'meal', snack: 'eat', dance: 'fun', cute: 'cute', heart: 'heart', loveyou: 'loveyou', magnify: 'magnify', walk: 'walk', hello: 'hello', hungry: 'hungry', peekaboo: 'peekaboo', curious: 'curious', dizzy: 'dizzy', sick: 'sick', gloomy: 'gloomy', hang: 'hang', brush: 'brush', wash: 'wash', laugh: 'laugh', wink: 'wink', good: 'praise', bark: 'bark', speak: 'speak', call: 'speak', hide: 'shy', back: 'walk', slow: 'walk', home: 'joy', free: 'run', hooray: 'hooray', flipover: 'flipover', splash: 'splash', turnback: 'back', angry: 'angry', surprise: 'surprise', warn: 'warn', letter: 'letter', joy: 'joy', sad: 'sad', solo: 'solo', gallop: 'gallop', plop: 'plop', skip: 'skip', emptybowl: 'emptybowl' };
+  if (id === 'run' || id === 'gallop' || id === 'skip' || id === 'free' || id === 'follow' || id === 'come' || id === 'roll' || id === 'crawl') {
+    P.target = id === 'come' || id === 'follow' ? 0.5 : (P.x > 0.5 ? 0.12 : 0.88); P.speed = id === 'crawl' ? 0.05 : id === 'roll' ? 0.12 : id === 'skip' ? 0.14 : 0.3;
+    setPose(id === 'roll' ? 'roll' : id === 'crawl' ? 'crawl' : id === 'gallop' ? 'gallop' : id === 'skip' ? 'skip' : 'run'); P.until = now + 15000;
   } else setPose(map[id] || 'joy');
   if (id === 'quiet') quietUntil = Date.now() + 24 * 3600e3;
   if ((id === 'quiet' || id === 'bark' || id === 'speak' || id === 'call') && window.Native && Native.floatConfig) setTimeout(() => Native.floatConfig(), 100);

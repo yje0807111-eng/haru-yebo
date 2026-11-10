@@ -379,7 +379,7 @@ public class FloatPetService extends Service {
                         }
                         lp.x = (int) px; lp.y = (int) py - (hopping ? (int) (dp(26) * Math.sin(Math.PI * Math.min(1f, Math.abs(ty - py) / Math.max(1f, dp(180))))) : 0); wm.updateViewLayout(pet, lp);
                     } else if (poseFrames != null && now < poseUntil) {
-                        if (now - poseLast > 1000 / poseFps) { poseLast = now; poseFi = (poseFi + 1) % poseFrames.length; if (poseFrames[poseFi] != null) pet.setImageBitmap(poseFrames[poseFi]); }
+                        if (now - poseLast > 1000 / poseFps) { poseLast = now; poseFi = poseOnce && poseFi + 1 >= poseFrames.length ? poseFrames.length - 1 : (poseFi + 1) % poseFrames.length; if (poseFrames[poseFi] != null) pet.setImageBitmap(poseFrames[poseFi]); }
                     } else if (now > nextDecide) { poseFrames = null; decide(now); }
                     maybeChat(now);
                     musicDance(now);
@@ -835,7 +835,7 @@ public class FloatPetService extends Service {
         Bitmap b = file == null ? null : load(file);
         if (b != null) { moving = false; pet.setScaleX(1); pet.setImageBitmap(b); nextDecide = System.currentTimeMillis() + ms; poseUntil = nextDecide; }
     }
-    volatile long framesTok = 0;
+    volatile long framesTok = 0; static volatile boolean poseOnce = false;   // 11-10: 한 번만 하는 동작은 끝 모습에서 멈춤
     void showFrames(String[] files, int fps, int ms) {
         if (pet == null || files == null || files.length == 0) return;
         // 11-10: 그림 읽기는 뒤에서(화면·듣기 멈추지 않게), 다 읽으면 화면에 붙임
@@ -852,6 +852,7 @@ public class FloatPetService extends Service {
         }).start();
     }
     void showFramesB(Bitmap[] f, int fps, int ms) {   // 소심: 그 자리에서 걷는 시늉만
+        poseOnce = false;
         lastPoseAt = System.currentTimeMillis(); moving = false; pet.setScaleX(1);
         poseFrames = f; poseFps = Math.max(2, fps); poseFi = 0; poseUntil = lastPoseAt + Math.max(ms, 3000); nextDecide = poseUntil;
         if (f[0] != null) pet.setImageBitmap(f[0]);
