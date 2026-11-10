@@ -14,6 +14,7 @@ public class HaruTts {
     static boolean ready = false;
     static String pendText = null, pendId = null;
     static float rate = 1.0f;
+    static String lang = "ko";   // 11-10: "en" 이면 영어 목소리 (하루와 공부)
 
     static void init(Context c) {
         if (tts != null) return;
@@ -41,6 +42,7 @@ public class HaruTts {
         if (tts == null) return "nodata";
         if (!ready) { pendText = text; pendId = id; return "wait"; }
         tts.setSpeechRate(rate);
+        try { tts.setLanguage("en".equals(lang) ? Locale.US : Locale.KOREAN); } catch (Exception ignored) { }
         Bundle b = new Bundle();
         tts.speak(text, TextToSpeech.QUEUE_FLUSH, b, id);
         return "ok";

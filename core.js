@@ -115,6 +115,7 @@ function petAct() { const f = S.talk.freq, m = S.me.temper || 'normal'; if (f ==
 // 팻 크기: 10 = 예전 30 크기, 100 = 예전 130 크기 (11-05 사용자) — 바탕화면 팻과 같은 셈
 function petPx(n) { return Math.round(1.2 * (30 + (Math.max(10, Math.min(100, n)) - 10) * 100 / 90)); }
 function decide() {
+  { const mp = window.moodPose && moodPose(); if (mp) { setPose(mp); P.mode = 'mood'; P.until = performance.now() + rnd(8000, 15000); return; } }   // 11-10: 오래 굶으면 잠·삐짐·돌아서기
   const q = S.talk.freq === 'quiet', h = new Date().getHours(), night = h >= 23 || h < 6;
   const r = Math.random();
   if (q || (night && r < 0.7)) { setPose(pick(['sit', 'lie', 'sleep', 'gaze'])); P.mode = 'rest'; P.until = performance.now() + rnd(20000, 50000); return; }
@@ -165,7 +166,7 @@ function dialNum(num) {
 document.addEventListener('click', e => { const a = e.target.closest && e.target.closest('a[href^="tel:"]'); if (a) { e.preventDefault(); dialNum(a.getAttribute('href').slice(4)); } }, true);
 function petMenu() {
   setPose(pick(['joy', 'love', 'wave', 'laugh'])); fx('hop'); cry(true); P.until = performance.now() + 3000; P.target = null; markSign();
-  const b = [['💞 소개팅', () => openView('match')], ['💬 톡', () => openView('talk')], ['🧭 길찾기', () => openRoute('')], ['🎵 뮤직', () => openMusic()], ['📺 TV', () => openTV()], ['⏰ 시간·알람', () => openView('time')], ['🛡️ 지킴이', () => openView('safe')], ['📖 안내소식', () => openGuide()], ['⚙️ 설정', () => openView('set'), 'setb'], ['🌙 끝내기', quitApp, 'quitb']];
+  const b = [['💞 소개팅', () => openView('match')], ['💬 톡', () => openView('talk')], ['📚 공부', () => openStudy()], ['🧭 길찾기', () => openRoute('')], ['🎵 뮤직', () => openMusic()], ['📺 TV', () => openTV()], ['⏰ 시간·알람', () => openView('time')], ['🛡️ 지킴이', () => openView('safe')], ['📖 안내소식', () => openGuide()], ['⚙️ 설정', () => openView('set'), 'setb'], ['🌙 끝내기', quitApp, 'quitb']];
   clearTimeout(bubbleT);
   bubble.querySelector('.text').innerHTML = animalize(pick([`멍! 뭐 할까? 🐾`, `불렀어? 헤헤 🐶`, `${S.me.name ? esc(S.me.name) + '! ' : ''}뭐 도와줄까?`]));
   const box = bubble.querySelector('.btns'); box.innerHTML = '<div class="petmenu"></div>';
@@ -210,6 +211,8 @@ bubble.addEventListener('click', e => { if (e.target.closest('button')) return; 
 function doCommand(id) {
   if (['home', 'free', 'run'].includes(id) && window.Native && Native.petAction) Native.petAction(id);   // 바탕화면 팻: 홈 = 말창 위로, 놀아·자유·뛰어 = 내려오기
   const now = performance.now(); P.target = null; P.until = now + 5000;
+  if ((id === 'meal' || id === 'snack') && window.feedPet) { feedPet(id === 'snack' ? 'snack' : 'kibble'); return; }   // 11-10: 밥·간식은 창고에서 꺼내 주기
+  if (window.foodPlay) foodPlay();   // 놀아 주면 다섯 번마다 사료 1
   const c = COMMANDS.find(x => x.id === id), line = c ? pick(c.say) : '';
   const map = { sleep: 'sleep', sit: 'sit', lie: 'lie', playdead: 'bang', stand: 'stand', wait: 'wait', no: 'sorry', quiet: 'quiet', jump: 'jump', down: 'joy', climb: 'jump', paw: 'paw', spin: 'spin',
     stretch: 'stretch', drink: 'drink', meal: 'meal', snack: 'snack', dance: 'fun', cute: 'cute', heart: 'heart', loveyou: 'loveyou', magnify: 'magnify', walk: 'walk', hello: 'hello', hungry: 'hungry', peekaboo: 'peekaboo', curious: 'curious', dizzy: 'dizzy', sick: 'sick', gloomy: 'gloomy', hang: 'hang', brush: 'brush', wash: 'wash', laugh: 'laugh', wink: 'wink', good: 'praise', bark: 'bark', speak: 'speak', call: 'speak', hide: 'shy', back: 'walk', slow: 'walk', home: 'joy', free: 'run', hooray: 'hooray', flipover: 'flipover', splash: 'splash', turnback: 'back', angry: 'angry', surprise: 'surprise', warn: 'warn', letter: 'letter', joy: 'joy', sad: 'sad', solo: 'solo', gallop: 'gallop', plop: 'plop', skip: 'skip', emptybowl: 'emptybowl', soccer: 'soccer', basketball: 'basketball', baseball: 'baseball', tennis: 'tennis', jumprope: 'jumprope', taekwondo: 'taekwondo', hulahoop: 'hulahoop', bike: 'bike' };
@@ -244,7 +247,7 @@ function isSearch(text) {
 }
 // 11-08: 기능 말 알아듣기를 한 곳에 — 팻방 말창과 화면 위 팻이 똑같이 알아듣게
 async function featureTalk(text) {
-  for (const f of [window.pongTalk, window.matchTalk, window.mapTalk, window.routeTalk, window.tourTalk, window.ballTalk, window.dgTalk, window.worshipTalk, window.tvTalk]) if (f && f(text)) return true;
+  for (const f of [window.studyTalk, window.pongTalk, window.matchTalk, window.mapTalk, window.routeTalk, window.tourTalk, window.ballTalk, window.dgTalk, window.worshipTalk, window.tvTalk]) if (f && f(text)) return true;
   if (window.musicTalk && await musicTalk(text)) return true;
   return false;
 }

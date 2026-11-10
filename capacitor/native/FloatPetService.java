@@ -381,7 +381,7 @@ public class FloatPetService extends Service {
                     } else if (poseFrames != null && now < poseUntil) {
                         if (now - poseLast > 1000 / poseFps) { poseLast = now; poseFi = poseOnce && poseFi + 1 >= poseFrames.length ? poseFrames.length - 1 : (poseFi + 1) % poseFrames.length; if (poseFrames[poseFi] != null) pet.setImageBitmap(poseFrames[poseFi]); }
                     } else if (now > nextDecide) { poseFrames = null; decide(now); }
-                    maybeChat(now); maybeTeach(now);
+                    maybeChat(now); maybeTeach(now); maybeHungry(now);
                     musicDance(now);
                 }
             } catch (Exception e) { Log.e("HaruPet", "tick", e); }
@@ -432,6 +432,18 @@ public class FloatPetService extends Service {
         if (e.length < 3) return;
         bubble(e[0] + "!", 5000);   // 명령 말만 딱
         poseOnce = "1".equals(e[1]); showFrames(e[2].split("\\|"), 8, 6000);
+    }
+    // 11-10: 1시간마다 배고프다고 꼬르륵 → 누르면 앱에서 밥 주기
+    long nextHungry = 0;
+    void maybeHungry(long now) {
+        if (listening || moving || HaruBall.on || !screenOn()) return;
+        if (nextHungry == 0) { nextHungry = now + 60 * 60000L; return; }
+        if (now < nextHungry) return;
+        nextHungry = now + 60 * 60000L;
+        try { android.content.res.AssetFileDescriptor fd = getAssets().openFd("public/sounds/tummy_growl.mp3"); if (mp != null) { try { mp.release(); } catch (Exception ignored) { } } mp = new android.media.MediaPlayer(); mp.setDataSource(fd.getFileDescriptor(), fd.getStartOffset(), fd.getLength()); fd.close(); mp.prepare(); mp.start(); } catch (Exception e) { }
+        sayOpenStatic("배고파… 꼬르륵 🍚\n👉 누르면 밥 주기", "feed", 30000);
+        String hf = getSharedPreferences("pet", 0).getString("hungryF", "");
+        if (hf != null && !hf.isEmpty()) { poseOnce = false; showFrames(hf.split("\\|"), 8, 8000); }
     }
     void maybeChat(long now) {
         SharedPreferences sp = getSharedPreferences("pet", 0);

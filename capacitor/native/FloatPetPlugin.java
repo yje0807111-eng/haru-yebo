@@ -69,7 +69,7 @@ public class FloatPetPlugin extends Plugin {
             .putString("up", call.getString("up", "")).putString("down", call.getString("down", ""))
             .putString("hello", call.getString("hello", ""))
             .putString("dance", call.getString("dance", ""))
-            .putString("sports", call.getString("sports", "")).putString("teach", call.getString("teach", "")).putInt("teachMin", call.getInt("teachMin", 1))
+            .putString("sports", call.getString("sports", "")).putString("hungryF", call.getString("hungryF", "")).putString("teach", call.getString("teach", "")).putInt("teachMin", call.getInt("teachMin", 1))
             .putString("run", call.getString("run", ""))
             .putString("home", call.getString("home", ""))
             .putString("sndC", call.getString("sndC", ""))
@@ -442,7 +442,7 @@ public class FloatPetPlugin extends Plugin {
     // 📖 휴대폰 목소리로 읽기 (11-07)
     void fire(String name, JSObject d) { notifyListeners(name, d, true); }
     @PluginMethod
-    public void ttsSpeak(PluginCall call) { if (call.getDouble("rate") != null) HaruTts.rate = call.getDouble("rate").floatValue(); JSObject r = new JSObject(); r.put("st", HaruTts.speak(getContext(), call.getString("text", ""), call.getString("id", "x"))); call.resolve(r); }
+    public void ttsSpeak(PluginCall call) { if (call.getDouble("rate") != null) HaruTts.rate = call.getDouble("rate").floatValue(); HaruTts.lang = call.getString("lang", "ko"); JSObject r = new JSObject(); r.put("st", HaruTts.speak(getContext(), call.getString("text", ""), call.getString("id", "x"))); call.resolve(r); }
     @PluginMethod
     public void ttsStop(PluginCall call) { HaruTts.stop(); call.resolve(); }
     @PluginMethod
