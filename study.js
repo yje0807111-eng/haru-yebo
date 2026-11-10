@@ -43,16 +43,21 @@ window.moodPose = () => { if (STU.on) return null; const h = hungerNow(); if (h 
 window.foodPlay = () => { const f = FOOD(); f.plays = (f.plays || 0) + 1; save(); if (f.plays % 5 === 0) foodGain(1, 0, '놀아 줘서 고마워!'); };
 
 // ── 영어 단어
-const WORDS = [
-  ['dog', '강아지', '🐶'], ['cat', '고양이', '🐱'], ['pig', '돼지', '🐷'], ['cow', '소', '🐮'], ['horse', '말', '🐴'], ['rabbit', '토끼', '🐰'], ['bear', '곰', '🐻'], ['tiger', '호랑이', '🐯'],
-  ['lion', '사자', '🦁'], ['monkey', '원숭이', '🐵'], ['elephant', '코끼리', '🐘'], ['bird', '새', '🐦'], ['fish', '물고기', '🐟'], ['duck', '오리', '🦆'], ['frog', '개구리', '🐸'], ['chicken', '닭', '🐔'],
-  ['apple', '사과', '🍎'], ['banana', '바나나', '🍌'], ['grape', '포도', '🍇'], ['orange', '오렌지', '🍊'], ['strawberry', '딸기', '🍓'], ['watermelon', '수박', '🍉'], ['peach', '복숭아', '🍑'], ['lemon', '레몬', '🍋'],
-  ['milk', '우유', '🥛'], ['bread', '빵', '🍞'], ['egg', '달걀', '🥚'], ['rice', '밥', '🍚'], ['cake', '케이크', '🍰'], ['candy', '사탕', '🍬'], ['water', '물', '💧'], ['pizza', '피자', '🍕'],
-  ['red', '빨간색', '🟥'], ['blue', '파란색', '🟦'], ['yellow', '노란색', '🟨'], ['green', '초록색', '🟩'], ['black', '검은색', '⬛'], ['white', '하얀색', '⬜'], ['purple', '보라색', '🟪'], ['orange', '주황색', '🟧'],
-  ['sun', '해', '☀️'], ['moon', '달', '🌙'], ['star', '별', '⭐'], ['rain', '비', '🌧️'], ['snow', '눈', '❄️'], ['cloud', '구름', '☁️'], ['tree', '나무', '🌳'], ['flower', '꽃', '🌸'],
-  ['book', '책', '📖'], ['pencil', '연필', '✏️'], ['bag', '가방', '🎒'], ['school', '학교', '🏫'], ['ball', '공', '⚽'], ['car', '자동차', '🚗'], ['bus', '버스', '🚌'], ['house', '집', '🏠'],
-  ['eye', '눈', '👁️'], ['ear', '귀', '👂'], ['nose', '코', '👃'], ['mouth', '입', '👄'], ['hand', '손', '✋'], ['foot', '발', '🦶'], ['one', '하나', '1️⃣'], ['two', '둘', '2️⃣'], ['three', '셋', '3️⃣'],
+// 11-10: 단계별 단어 (1 쉬움 → 10 어려움). 한 판 8개 이상 = ⭐, ⭐ 2개면 다음 단계, 10단계 끝 = 🗣️ 회화
+const LEVELS = [
+ ['🐶 동물·색깔·숫자', [['dog','강아지','🐶'],['cat','고양이','🐱'],['pig','돼지','🐷'],['cow','소','🐮'],['bird','새','🐦'],['fish','물고기','🐟'],['duck','오리','🦆'],['frog','개구리','🐸'],['red','빨간색','🟥'],['blue','파란색','🟦'],['yellow','노란색','🟨'],['green','초록색','🟩'],['one','하나','1️⃣'],['two','둘','2️⃣'],['three','셋','3️⃣'],['four','넷','4️⃣'],['five','다섯','5️⃣'],['ball','공','⚽'],['sun','해','☀️'],['star','별','⭐']]],
+ ['🍎 과일·음식', [['apple','사과','🍎'],['banana','바나나','🍌'],['grape','포도','🍇'],['orange','오렌지','🍊'],['strawberry','딸기','🍓'],['watermelon','수박','🍉'],['peach','복숭아','🍑'],['lemon','레몬','🍋'],['milk','우유','🥛'],['bread','빵','🍞'],['egg','달걀','🥚'],['rice','밥','🍚'],['cake','케이크','🍰'],['candy','사탕','🍬'],['water','물','💧'],['pizza','피자','🍕'],['cookie','쿠키','🍪'],['juice','주스','🧃'],['carrot','당근','🥕'],['corn','옥수수','🌽']]],
+ ['👪 몸·가족', [['eye','눈','👁️'],['ear','귀','👂'],['nose','코','👃'],['mouth','입','👄'],['hand','손','✋'],['foot','발','🦶'],['head','머리','🙆'],['leg','다리','🦵'],['tooth','이','🦷'],['mom','엄마','👩'],['dad','아빠','👨'],['baby','아기','👶'],['brother','남자 형제','👦'],['sister','여자 형제','👧'],['grandma','할머니','👵'],['grandpa','할아버지','👴'],['friend','친구','🧑‍🤝‍🧑'],['boy','소년','🧒'],['girl','소녀','👧'],['family','가족','👨‍👩‍👧']]],
+ ['🏫 학교·물건', [['book','책','📖'],['pencil','연필','✏️'],['bag','가방','🎒'],['school','학교','🏫'],['desk','책상','🪑'],['chair','의자','💺'],['eraser','지우개','🧽'],['ruler','자','📏'],['scissors','가위','✂️'],['clock','시계','⏰'],['phone','전화기','📱'],['computer','컴퓨터','💻'],['teacher','선생님','🧑‍🏫'],['student','학생','🧑‍🎓'],['door','문','🚪'],['window','창문','🪟'],['cup','컵','🥤'],['hat','모자','🧢'],['shoes','신발','👟'],['umbrella','우산','☂️']]],
+ ['🌳 자연·날씨', [['moon','달','🌙'],['rain','비','🌧️'],['snow','눈','❄️'],['cloud','구름','☁️'],['wind','바람','🌬️'],['tree','나무','🌳'],['flower','꽃','🌸'],['river','강','🏞️'],['mountain','산','⛰️'],['sea','바다','🌊'],['sky','하늘','🌌'],['spring','봄','🌷'],['summer','여름','🏖️'],['fall','가을','🍂'],['winter','겨울','⛄'],['hot','더운','🥵'],['cold','추운','🥶'],['rainbow','무지개','🌈'],['leaf','나뭇잎','🍃'],['rock','바위','🪨']]],
+ ['🚌 장소·탈것', [['house','집','🏠'],['park','공원','🏞️'],['hospital','병원','🏥'],['library','도서관','📚'],['store','가게','🏪'],['zoo','동물원','🦒'],['bank','은행','🏦'],['church','교회','⛪'],['kitchen','부엌','🍳'],['bedroom','침실','🛏️'],['car','자동차','🚗'],['bus','버스','🚌'],['train','기차','🚆'],['bike','자전거','🚲'],['ship','배','🚢'],['airplane','비행기','✈️'],['taxi','택시','🚕'],['subway','지하철','🚇'],['road','길','🛣️'],['bridge','다리(건너는)','🌉']]],
+ ['🏃 움직임', [['run','달리다','🏃'],['walk','걷다','🚶'],['eat','먹다','🍽️'],['drink','마시다','🥤'],['sleep','자다','😴'],['swim','수영하다','🏊'],['jump','뛰어오르다','🤸'],['sing','노래하다','🎤'],['dance','춤추다','💃'],['read','읽다','📖'],['write','쓰다','✍️'],['draw','그리다','🎨'],['cook','요리하다','🍳'],['play','놀다','🧸'],['sit','앉다','🪑'],['stand','서다','🧍'],['open','열다','📂'],['cry','울다','😢'],['laugh','웃다','😂'],['wash','씻다','🧼']]],
+ ['😊 모양·느낌', [['big','큰','🐘'],['small','작은','🐜'],['long','긴','🐍'],['short','짧은','📏'],['tall','키가 큰','🦒'],['happy','행복한','😊'],['sad','슬픈','😢'],['angry','화난','😠'],['tired','피곤한','😫'],['hungry','배고픈','🤤'],['fast','빠른','🐆'],['slow','느린','🐢'],['new','새로운','✨'],['old','오래된','🏚️'],['beautiful','아름다운','🌹'],['clean','깨끗한','🧼'],['dirty','더러운','💩'],['heavy','무거운','🏋️'],['soft','부드러운','🧸'],['strong','힘센','💪']]],
+ ['⚽ 직업·운동', [['doctor','의사','🧑‍⚕️'],['nurse','간호사','👩‍⚕️'],['police officer','경찰관','👮'],['firefighter','소방관','🧑‍🚒'],['farmer','농부','🧑‍🌾'],['cook','요리사','🧑‍🍳'],['singer','가수','🧑‍🎤'],['pilot','조종사','🧑‍✈️'],['scientist','과학자','🧑‍🔬'],['artist','화가','🧑‍🎨'],['soccer','축구','⚽'],['baseball','야구','⚾'],['basketball','농구','🏀'],['tennis','테니스','🎾'],['swimming','수영','🏊'],['skating','스케이트','⛸️'],['skiing','스키','⛷️'],['badminton','배드민턴','🏸'],['golf','골프','⛳'],['boxing','권투','🥊']]],
+ ['📅 요일·달·반대말', [['Monday','월요일','1️⃣'],['Tuesday','화요일','2️⃣'],['Wednesday','수요일','3️⃣'],['Thursday','목요일','4️⃣'],['Friday','금요일','5️⃣'],['Saturday','토요일','6️⃣'],['Sunday','일요일','☀️'],['January','1월','🎍'],['May','5월','🌹'],['December','12월','🎄'],['morning','아침','🌅'],['night','밤','🌃'],['today','오늘','📅'],['tomorrow','내일','➡️'],['yesterday','어제','⬅️'],['up','위','⬆️'],['down','아래','⬇️'],['left','왼쪽','⬅️'],['right','오른쪽','➡️'],['question','질문','❓']]],
 ];
+const LV = () => { S.study = S.study || { wrong: [] }; const st = S.study; st.level = st.level || 1; st.open = st.open || 1; st.stars = st.stars || {}; st.score = st.score || 0; return st; };
+let WORDS = LEVELS[0][1];
 const PRAISE = ['맞았어! 잘했어!', '참 잘하네요!', '천재 아니야?', '대단해! 최고야!', '와~ 정답이야!', '우와 멋지다!', '똑똑해!'];
 const STU = { on: false, n: 0, ok: 0, streak: 0, q: null, timer: 0, busy: false };
 const stuSpeak = (text, lang) => {
@@ -92,11 +97,18 @@ function stuPet(pose) {
   let i = 0; const once = window.ONCE && ONCE.has(n); img.src = DIR() + an.frames[0];
   STU.timer = setInterval(() => { i = i + 1 >= an.frames.length ? (once ? an.frames.length - 1 : 0) : i + 1; img.src = DIR() + an.frames[i]; }, 1000 / (an.fps || 8));
 }
+function stuLevels() {
+  const st = LV(), q = document.getElementById('sQ'); clearInterval(STU.timer); STU.n = 0; STU.ok = 0; STU.streak = 0;
+  const done = st.open > LEVELS.length;
+  q.innerHTML = `<div class="sAsk" style="font-size:16px">단계를 골라! ⭐ 2개면 다음 단계가 열려 · 점수 ${st.score}</div><div class="sOpts" style="grid-template-columns:1fr">` + LEVELS.map((L, k) => { const n = k + 1, lock = n > st.open, sv = st.stars[n] || 0; return `<button class="sOpt" data-lv="${n}" ${lock ? 'disabled style="opacity:.45"' : ''}>${lock ? '🔒' : n + '단계'} ${L[0]} <span class="sm">${'⭐'.repeat(Math.min(2, sv))}${'☆'.repeat(Math.max(0, 2 - sv))}</span></button>`; }).join('') + `<button class="sOpt" data-lv="talk" ${done ? '' : 'disabled style="opacity:.45"'}>${done ? '🗣️' : '🔒'} 회화 <span class="sm">${done ? '곧 열려요!' : '10단계를 다 깨면 열려요'}</span></button></div>`;
+  q.querySelectorAll('[data-lv]').forEach(b => b.onclick = () => { if (b.dataset.lv === 'talk') { stuTop('🗣️ 회화는 곧 만들어 줄게! 조금만 기다려 💛'); return; } st.level = +b.dataset.lv; save(); WORDS = LEVELS[st.level - 1][1]; stuTop(`${st.level}단계 ${LEVELS[st.level - 1][0]} 시작!`); stuNext(); });
+  document.getElementById('sProg').textContent = ''; stuPet('idle');
+}
 function stuNext() {
   STU.busy = false;
   if (STU.n >= 10) return stuDone();
   S.study = S.study || { wrong: [] };
-  const wrong = S.study.wrong.map(e => WORDS.find(w => w[0] + w[1] === e)).filter(Boolean);
+  const wrong = S.study.wrong.map(e => WORDS.find(w => w[0] + w[1] === e)).filter(Boolean);   // 지금 단계에서 틀렸던 단어
   const w = wrong.length && Math.random() < 0.5 ? pick(wrong) : pick(WORDS);
   const mode = STU.n % 2;   // 0: 영어 보고 뜻 고르기 · 1: 그림·한글 보고 영어 고르기
   const others = WORDS.filter(x => x[1] !== w[1] && x[0] !== w[0]).sort(() => Math.random() - 0.5).slice(0, 3);
@@ -112,7 +124,7 @@ function stuNext() {
     const sp = e.target.closest('[data-sp]'); if (sp) { e.stopPropagation(); stuSpeak(opts[+sp.dataset.sp][0], 'en'); return; }
     stuPick(+b.dataset.i, b);
   });
-  document.getElementById('sProg').textContent = `${STU.n + 1} / 10 문제 · 맞은 수 ${STU.ok}`;
+  document.getElementById('sProg').textContent = `${LV().level}단계 · ${STU.n + 1} / 10 문제 · 맞은 수 ${STU.ok}`;
   stuPet(hungerNow() >= 75 ? 'hungry' : 'idle');
 }
 function stuPick(i, btn) {
@@ -121,7 +133,7 @@ function stuPick(i, btn) {
   S.study = S.study || { wrong: [] };
   document.querySelectorAll('#sQ .sOpt').forEach((b, k) => { if (opts[k] === w) b.classList.add('ok'); });
   if (ok) {
-    STU.ok++; STU.streak++; S.study.wrong = S.study.wrong.filter(x => x !== key);
+    STU.ok++; STU.streak++; LV().score += 10 * LV().level; S.study.wrong = S.study.wrong.filter(x => x !== key);
     const p = pick(PRAISE); stuSpeak(p, 'ko'); stuPet(pick(['praise', 'hooray', 'joy']));
     foodGain(1, STU.streak % 3 === 0 ? 1 : 0, p);
   } else {
@@ -133,11 +145,19 @@ function stuPick(i, btn) {
   setTimeout(stuNext, ok ? 1800 : 2600);
 }
 function stuDone() {
-  const q = document.getElementById('sQ');
+  const st = LV(), q = document.getElementById('sQ'), lv = st.level;
+  let extra = '';
+  if (STU.ok >= 8) {
+    st.stars[lv] = Math.min(2, (st.stars[lv] || 0) + 1);
+    if (st.stars[lv] >= 2 && st.open === lv) { st.open = lv + 1; extra = lv >= LEVELS.length ? '🎉 10단계를 다 깼어! 🗣️ 회화가 열렸어!' : `🎉 ${lv + 1}단계가 열렸어!`; foodGain(2, 2, '🎁 단계 선물!'); }
+    else extra = `⭐ 별 하나! (${st.stars[lv]}/2)`;
+  }
+  save();
   const msg = STU.ok >= 9 ? '완벽해! 최고야! 🏆' : STU.ok >= 7 ? '정말 잘했어! 🎉' : STU.ok >= 4 ? '좋아! 조금만 더 하면 돼 💪' : '괜찮아! 다시 해 보자 🙂';
-  q.innerHTML = `<div class="sEmo">🎓</div><div class="sWord">${STU.ok} / 10 맞혔어!</div><div class="sAsk">${msg}<br>사료·간식으로 ${bn()}에게 밥을 줘!</div><button class="sBig" id="sAgain">한 번 더 하기</button>`;
-  q.querySelector('#sAgain').onclick = () => { STU.n = 0; STU.ok = 0; STU.streak = 0; stuTop(''); stuNext(); };
-  stuTop(msg); stuSpeak(`${STU.ok}개 맞혔어! ${msg.replace(/[🏆🎉💪🙂]/gu, '')}`, 'ko'); stuPet(STU.ok >= 7 ? 'hooray' : 'joy');
+  q.innerHTML = `<div class="sEmo">🎓</div><div class="sWord">${STU.ok} / 10 맞혔어!</div><div class="sAsk">${msg}${extra ? '<br><b>' + extra + '</b>' : '<br>8개 이상 맞히면 ⭐ 를 받아!'}<br>점수 ${st.score} · 사료·간식으로 ${bn()}에게 밥을 줘!</div><button class="sBig" id="sAgain">한 번 더 하기</button><button class="sBig" id="sLv" style="background:#8a6bff">단계 고르기</button>`;
+  q.querySelector('#sAgain').onclick = () => { STU.n = 0; STU.ok = 0; STU.streak = 0; stuTop(''); if (st.open > lv && lv < LEVELS.length && STU.ok === 0 && extra.includes('열렸')) { st.level = lv + 1; WORDS = LEVELS[lv][1]; } stuNext(); };
+  q.querySelector('#sLv').onclick = () => stuLevels();
+  stuTop(extra || msg); stuSpeak(`${STU.ok}개 맞혔어! ${(extra || msg).replace(/[🏆🎉💪🙂⭐🗣️]/gu, '')}`, 'ko'); stuPet(STU.ok >= 7 ? 'hooray' : 'joy');
   document.getElementById('sProg').textContent = '';
 }
 function openStudy() {
@@ -145,7 +165,7 @@ function openStudy() {
   const ui = stuUI(); if (STU.on) return;
   ui.hidden = false; STU.on = true; STU.n = 0; STU.ok = 0; STU.streak = 0;
   if (typeof navPush === 'function') navPush(() => closeStudy());
-  stuTop(hungerNow() >= 25 ? `${bn()}가 배고파해! 단어를 맞혀서 밥을 주자 🍚` : '영어 단어를 맞히면 🍚 사료를 받아!'); stuNext();
+  stuTop(hungerNow() >= 25 ? `${bn()}가 배고파해! 단어를 맞혀서 밥을 주자 🍚` : '영어 단어를 맞히면 🍚 사료를 받아!'); stuLevels();
 }
 function closeStudy() { const ui = document.getElementById('studyUI'); if (ui) ui.hidden = true; STU.on = false; clearInterval(STU.timer); try { speechSynthesis.cancel(); } catch { } }
 window.openStudy = openStudy; window.closeStudy = closeStudy;
