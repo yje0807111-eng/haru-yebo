@@ -469,7 +469,7 @@ public class FloatPetService extends Service {
         nextFact = now + 15000;   // 위키백과 받는 동안 잠깐 (showFact 가 다시 맞춤)
         int k = factTick++ % 6, age = sp.getInt("age", 0);
         if (k == 2) { String eng = sp.getString("eng", ""); if (eng != null && !eng.isEmpty()) { String[] L = eng.split("\n"); showFact("🇺🇸 오늘의 영어: " + L[(int) (Math.random() * L.length)]); return true; } }
-        if (k == 4 && age >= 20) { wikiFact(); return true; }
+        if (k == 1 || k == 3 || k == 5 || (k == 4 && age >= 20)) { wikiFact(); return true; }   // 11-10: 위키백과 최대한 (20대+ 6개 중 4개, 그 밖 3개)
         if (!factQ.isEmpty()) showFact(factQ.remove(0));
         return true;
     }

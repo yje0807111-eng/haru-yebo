@@ -42,8 +42,9 @@ async function factTick() {
   if (FX.q.length < 10) factsLoad();
   const k = FX.tick++ % 6, age = S.me.age || 0;
   let text = null;
+  const wikiK = age >= 20 ? [1, 3, 4, 5] : [1, 3, 5];   // 위키백과 최대한
   if (k === 2) { const p = engPool(); if (p.length) text = '🇺🇸 오늘의 영어: ' + pick(p); }
-  else if (k === 4 && age >= 20) text = await wikiOne();
+  else if (wikiK.includes(k)) text = await wikiOne();
   if (!text) text = FX.q.shift();
   if (!text) return 3000;
   const ms = Math.max(7000, Math.min(14000, 5000 + text.length * 110));   // 읽을 시간만큼 보여 주고 바로 다음 (끊임없이)
