@@ -79,11 +79,9 @@ function stuUI() {
 #studyUI .sProg{margin:10px 0 24px;color:#666;font-size:15px}#studyUI .sBig{border:0;background:#4f8cff;color:#fff;border-radius:16px;padding:14px 22px;font-size:18px;font-weight:700;margin:8px}`;
   document.head.appendChild(st);
   ui = document.createElement('div'); ui.id = 'studyUI'; ui.hidden = true;
-  ui.innerHTML = '<div class="sTop"><button class="sX" id="sX">✕</button><b>📚 하루와 공부</b><div class="sInv" id="sInv"></div></div><div class="sFeed"><button id="sKib">🍚 사료 주기</button><button id="sSnk">🍪 간식 주기</button></div><div class="sMsg" id="sMsg"></div><img class="sPet" id="sPet" alt=""><div class="sQ" id="sQ"></div><div class="sProg" id="sProg"></div>';
+  ui.innerHTML = '<div class="sTop"><button class="sX" id="sX">✕</button><b>📚 하루와 공부</b><div class="sInv" id="sInv"></div></div><div class="sMsg" id="sMsg"></div><div class="sQ" id="sQ"></div><div class="sProg" id="sProg"></div>';
   document.body.appendChild(ui);
   ui.querySelector('#sX').onclick = () => (window.haruBack ? haruBack() : closeStudy());
-  ui.querySelector('#sKib').onclick = () => { feedPet('kibble'); stuInv(); };
-  ui.querySelector('#sSnk').onclick = () => { feedPet('snack'); stuInv(); };
   return ui;
 }
 function stuInv() { const f = FOOD(), h = Math.round(hungerNow()); const el = document.getElementById('sInv'); if (el) el.textContent = `🍚 ${f.kibble} · 🍪 ${f.snack} · ${h >= 75 ? '😫 배고파' : h >= 25 ? '🙂 조금 배고파' : '😊 배불러'}`; }
@@ -101,7 +99,7 @@ function stuPet(pose) {
 function stuLevels() {
   const st = LV(), q = document.getElementById('sQ'); clearInterval(STU.timer); STU.n = 0; STU.ok = 0; STU.streak = 0;
   const done = st.open > LEVELS.length;
-  q.innerHTML = `<div class="sAsk" style="font-size:16px">단계를 골라! ⭐ 2개면 다음 단계가 열려 · 점수 ${st.score}</div><div class="sOpts" style="grid-template-columns:1fr">` + LEVELS.map((L, k) => { const n = k + 1, lock = n > st.open, sv = st.stars[n] || 0; return `<button class="sOpt" data-lv="${n}" ${lock ? 'disabled style="opacity:.45"' : ''}>${lock ? '🔒' : n + '단계'} ${L[0]} <span class="sm">${'⭐'.repeat(Math.min(2, sv))}${'☆'.repeat(Math.max(0, 2 - sv))}</span></button>`; }).join('') + `<button class="sOpt" data-lv="talk" ${done ? '' : 'disabled style="opacity:.45"'}>${done ? '🗣️' : '🔒'} 회화 <span class="sm">${done ? '곧 열려요!' : `${LEVELS.length}단계를 다 깨면 열려요`}</span></button></div>`;
+  q.innerHTML = `<div class="sAsk" style="font-size:16px">자기 실력에 맞는 단계를 골라! (1~20 초등 · 21~45 중학교 · 46~70 고등학교) · 점수 ${st.score}</div><div class="sOpts" style="grid-template-columns:1fr">` + LEVELS.map((L, k) => { const n = k + 1, lock = false, sv = st.stars[n] || 0; return `<button class="sOpt" data-lv="${n}" ${lock ? 'disabled style="opacity:.45"' : ''}>${lock ? '🔒' : n + '단계'} ${L[0]} <span class="sm">${'⭐'.repeat(Math.min(2, sv))}${'☆'.repeat(Math.max(0, 2 - sv))}</span></button>`; }).join('') + `<button class="sOpt" data-lv="talk" ${done ? '' : 'disabled style="opacity:.45"'}>${done ? '🗣️' : '🔒'} 회화 <span class="sm">${done ? '곧 열려요!' : `${LEVELS.length}단계를 다 깨면 열려요`}</span></button></div>`;
   q.querySelectorAll('[data-lv]').forEach(b => b.onclick = () => { if (b.dataset.lv === 'talk') { stuTop('🗣️ 회화는 곧 만들어 줄게! 조금만 기다려 💛'); return; } st.level = +b.dataset.lv; save(); WORDS = LEVELS[st.level - 1][1]; stuTop(`${st.level}단계 ${LEVELS[st.level - 1][0]} 시작!`); stuNext(); });
   document.getElementById('sProg').textContent = ''; stuPet('idle');
 }
@@ -137,7 +135,7 @@ function stuPick(i, btn) {
   document.querySelectorAll('#sQ .sOpt').forEach((b, k) => { if (opts[k] === w) b.classList.add('ok'); });
   if (ok) {
     STU.ok++; STU.streak++; LV().score += 10 * LV().level; S.study.wrong = S.study.wrong.filter(x => x !== key);
-    const p = pick(PRAISE); stuSpeak(p, 'ko'); stuPet(pick(['praise', 'hooray', 'joy']));
+    const p = pick(PRAISE); stuPet(pick(['praise', 'hooray', 'joy']));
     stuTop(p);   // 11-10: 문제마다 사료는 없음 — 한 판 끝에 8개 이상이면 사료
   } else {
     btn.classList.add('no'); STU.streak = 0; if (!S.study.wrong.includes(key)) S.study.wrong.push(key); S.study.wrong = S.study.wrong.slice(-30);
@@ -153,7 +151,7 @@ function stuDone() {
   if (STU.ok >= 8) {
     st.stars[lv] = Math.min(2, (st.stars[lv] || 0) + 1);
     foodGain(1, STU.ok >= 10 ? 1 : 0, '');   // 8개 이상 = 사료 1 · 다 맞히면 간식 1
-    if (st.stars[lv] >= 2 && st.open === lv) { st.open = lv + 1; extra = lv >= LEVELS.length ? `🎉 ${LEVELS.length}단계를 다 깼어! 🗣️ 회화가 열렸어!` : `🎉 ${lv + 1}단계가 열렸어!`; foodGain(1, 1, '🎁 단계 선물!'); }
+    if (st.stars[lv] >= 2 && st.open === lv) { st.open = lv + 1; extra = lv >= LEVELS.length ? `🎉 ${LEVELS.length}단계를 다 깼어! 🗣️ 회화가 열렸어!` : `🎉 ${lv}단계 통과! ${lv + 1}단계에 도전해 봐!`; foodGain(1, 1, '🎁 단계 선물!'); }
     else extra = `⭐ 별 하나! (${st.stars[lv]}/2)`;
   }
   save();
@@ -161,14 +159,14 @@ function stuDone() {
   q.innerHTML = `<div class="sEmo">🎓</div><div class="sWord">${STU.ok} / 10 맞혔어!</div><div class="sAsk">${msg}${extra ? '<br><b>' + extra + '</b>' : '<br>8개 이상 맞히면 ⭐ 를 받아!'}<br>점수 ${st.score} · 사료·간식으로 ${bn()}에게 밥을 줘!</div><button class="sBig" id="sAgain">한 번 더 하기</button><button class="sBig" id="sLv" style="background:#8a6bff">단계 고르기</button>`;
   q.querySelector('#sAgain').onclick = () => { STU.n = 0; STU.ok = 0; STU.streak = 0; stuTop(''); if (st.open > lv && lv < LEVELS.length && STU.ok === 0 && extra.includes('열렸')) { st.level = lv + 1; WORDS = LEVELS[lv][1]; } stuNext(); };
   q.querySelector('#sLv').onclick = () => stuLevels();
-  stuTop(extra || msg); stuSpeak(`${STU.ok}개 맞혔어! ${(extra || msg).replace(/[🏆🎉💪🙂⭐🗣️]/gu, '')}`, 'ko'); stuPet(STU.ok >= 7 ? 'hooray' : 'joy');
+  stuTop(extra || msg); stuPet(STU.ok >= 7 ? 'hooray' : 'joy');
   document.getElementById('sProg').textContent = '';
 }
 function openStudy() {
   window.wantViewAt = Date.now(); if (typeof hideBubble === 'function') hideBubble();
   const ui = stuUI(); if (STU.on) return;
   ui.hidden = false; STU.on = true; STU.n = 0; STU.ok = 0; STU.streak = 0;
-  if (typeof navPush === 'function') navPush(() => closeStudy());
+  if (typeof navPush === 'function') navPush(Object.assign(() => closeStudy(), { study: 1 }));
   stuTop(hungerNow() >= 25 ? `${bn()}가 배고파해! 단어를 맞혀서 밥을 주자 🍚` : '영어 단어를 맞히면 🍚 사료를 받아!'); stuLevels();
 }
 function closeStudy() { const ui = document.getElementById('studyUI'); if (ui) ui.hidden = true; STU.on = false; clearInterval(STU.timer); try { speechSynthesis.cancel(); } catch { } }

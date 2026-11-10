@@ -833,7 +833,7 @@ public class FloatPetService extends Service {
     // 11-07: 화면이 꺼져 있으면(어두우면) 짖지 않기 — 알람만 예외. 다시 켜면 greet() 가 인사
     boolean screenOn() { try { return ((android.os.PowerManager) getSystemService(POWER_SERVICE)).isInteractive(); } catch (Exception e) { return true; } }
     void bark(boolean happy, float vol) {
-        if (listening) return;   // 듣는 중엔 짖지 않기 (게임 중에도 말을 잘 알아듣게)
+        if (listening || HaruBall.on) return;   // 듣는 중·게임 중엔 짖지 않기 (게임 중에도 말을 잘 알아듣게)
         if (!alarmOn && !screenOn()) return;
         try {
             String cv = getSharedPreferences("pet", 0).getString(happy ? "sndH" : "sndC", ""); String[] list = cv != null && !cv.isEmpty() ? cv.split("\\|") : happy ? new String[] { "dog_happy1", "dog_happy2", "dog_happy3" } : new String[] { "dog_bark1", "dog_bark2", "dog_bark3", "dog_bark4" };

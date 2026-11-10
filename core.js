@@ -39,6 +39,7 @@ function navReset() { NAV.length = 0; }
 window.haruBack = function () {
   try {
     if (typeof bubble !== 'undefined' && !bubble.hidden && bubble.querySelector('.petmenu')) { hideBubble(); return true; }
+    if (window.STU && STU.on) { for (let i = NAV.length - 1; i >= 0; i--) if (NAV[i].study) { NAV.splice(i, 1); break; } closeStudy(); return true; }   // 11-10: 공부 중 뒤로 = 바로 나가기
     const f = NAV.pop();
     if (f) { navPopping = true; try { f(); } catch { } navPopping = false; if (view === 'home') backHome(); return true; }
     if (view !== 'home') { go('home', true); backHome(); return true; }
@@ -146,6 +147,7 @@ function tick(now) {
 const SOUNDS = { dog: [['dog_bark1', 'dog_bark2', 'dog_bark3', 'dog_bark4'], ['dog_happy1', 'dog_happy2', 'dog_happy3']], cat: [['cat_meow1', 'cat_meow2', 'cat_meow3', 'cat_meow4'], ['cat_meow1', 'cat_meow3']], pig: [['pig_oink1', 'pig_oink2', 'pig_oink3', 'pig_oink4', 'pig_oink5'], ['pig_oink1', 'pig_oink3', 'pig_oink4']] };
 let quietUntil = 0;
 function cry(happy, loud, force) {
+  if ((window.STU && STU.on) || (window.PONG && PONG.on)) return;   // 11-10: 게임·공부 중엔 조용히
   if (S.talk.mute && !force) return;   // ⏰ 알람(force)은 음소거여도 울림   // 11-06: 🔇 음소거면 어떤 소리도 안 냄
   if (!loud && (S.talk.cries === false || Date.now() < quietUntil)) return;
   const L = SOUNDS[SP()] || SOUNDS.dog; const a = new Audio(`sounds/${pick(happy ? L[1] : L[0])}.mp3`);
