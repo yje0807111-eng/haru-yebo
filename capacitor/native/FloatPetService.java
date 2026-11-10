@@ -363,7 +363,7 @@ public class FloatPetService extends Service {
                             px += d / dist * speed; py += dyy / dist * speed; if (Math.abs(d) > 1) dir = d > 0 ? 1 : -1;
                             boolean vert = !hopping && Math.abs(dyy) > Math.abs(d) * 1.2f; Bitmap[] vf = vert ? (dyy > 0 ? downF : upF) : null;   // 11-10: 위아래로 갈 땐 앞/뒤 모습
                             if (vf != null && vf.length > 0) { if (now - last > 125) { last = now; frame++; Bitmap b = vf[frame % vf.length]; if (b != null) pet.setImageBitmap(b); } pet.setScaleX(1); }
-                            else { if (now - last > (running ? 140 : 200)) { last = now; frame++; Bitmap[] f = running ? run : walk; Bitmap b = f[frame % f.length]; if (b != null) pet.setImageBitmap(b); }
+                            else { Bitmap[] f = running ? run : walk; if (now - last > (f.length > 4 ? 125 : running ? 140 : 200)) { last = now; frame++; Bitmap b = f[frame % f.length]; if (b != null) pet.setImageBitmap(b); }
                             pet.setScaleX(-dir); }  // 그림은 왼쪽을 봄 → 오른쪽으로 갈 땐 뒤집기
                         }
                         lp.x = (int) px; lp.y = (int) py - (hopping ? (int) (dp(26) * Math.sin(Math.PI * Math.min(1f, Math.abs(ty - py) / Math.max(1f, dp(180))))) : 0); wm.updateViewLayout(pet, lp);

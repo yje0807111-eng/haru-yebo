@@ -94,15 +94,15 @@
   const petLists = () => {
     const sp = SP(), C = CH || {}, A = C.anims || {}, Sp = C.sprites || {};
     const one = n => Sp[n] ? Sp[n].file : A[n] ? A[n].frames[0] : null;
-    const uniq = a => [...new Set(a)].slice(0, 10);
+    const uniq = a => [...new Set(a)].slice(0, 10), full = a => a.slice(0, 40);   // 11-10: 영상 동작(걷기·달리기)은 한 주기 전부
     const idle = ['정면', '눈망울_앉기', '기쁨', '윙크', '엎드림', '앉아'].map(one).filter(Boolean).slice(0, 5);
-    const walk = sp === 'dog' ? (A.walk && A.walk.video ? A.walk.frames : ['걷기1.webp', '걷기2.webp']) : uniq((A.walk || A['신나걷기'] || { frames: [Sp['정면'].file] }).frames);
+    const walk = sp === 'dog' ? (A.walk && A.walk.video ? A.walk.frames : ['걷기1.webp', '걷기2.webp']) : (A.walk && A.walk.video ? full : uniq)((A.walk || A['신나걷기'] || { frames: [Sp['정면'].file] }).frames);
     const rk = (C.runList || []).concat(['run', '네발뛰기', 'dash']).find(k => A[k]);
-    const run = sp === 'dog' ? ['뛰기1.webp', '뛰기2.webp'] : rk ? uniq(A[rk].frames) : walk;
+    const run = sp === 'dog' ? ['뛰기1.webp', '뛰기2.webp'] : rk ? (A[rk].video ? full : uniq)(A[rk].frames) : walk;
     const L = SOUNDS[sp] || SOUNDS.dog;
     const hk = ['인사_오른손', '인사_왼손', '기쁨', '만세'].find(k => A[k]); const hello = hk ? uniq(A[hk].frames) : [one('기쁨') || idle[0]];
     const dk = ['춤', '즐거움', '기쁨'].find(k => A[k]); const dance = dk ? uniq(A[dk].frames) : hello;
-    const up = A['뒤돌아걷기'] ? A['뒤돌아걷기'].frames : [], down = A['춤'] ? A['춤'].frames : [];   // 11-10: 위로 갈 땐 뒤돌아 걷기, 아래로 올 땐 춤(앞으로 걸어오기)
+    const up = A['뒤돌아걷기'] ? full(A['뒤돌아걷기'].frames) : [], down = A['춤'] ? full(A['춤'].frames) : [];   // 11-10: 위로 갈 땐 뒤돌아 걷기, 아래로 올 땐 춤(앞으로 걸어오기)
     return { sp, up: up.join('|'), down: down.join('|'), dance: dance.join('|'), hello: hello.join('|'), idle: idle.join('|'), walk: walk.join('|'), run: run.join('|'), home: one('기쁨') || idle[0], sndC: L[0].join('|'), sndH: L[1].join('|') };
   };
   N.floatConfig = () => { if (FP) FP.config({ size: S.me.size || 100, name: bn(), on: !S.floatOff, act: petAct(), cries: !S.talk.mute && S.talk.cries !== false && Date.now() >= (quietUntil || 0), micBeep: S.talk.micBeep ?? 1, temper: S.me.temper || 'normal', kakao: !S.kakaoOff, talkMin: ({ often: 5, normal: 20, rare: 30, quiet: 0 })[S.talk.freq || 'normal'] ?? 20, uname: S.me.name || '', vol: Math.max(0.2, S.talk.volume || 0.4), ...petLists() }).catch(() => {}); };
