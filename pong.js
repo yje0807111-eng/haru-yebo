@@ -206,7 +206,6 @@ function pongEnd(meWin) {
     meWin ? r.win++ : r.lose++;
     const up = meWin && r.stage < 10; if (up) r.stage++;
     save(); pongScore(); pongPublish();
-    if (meWin && window.foodGain) foodGain(1, 0, '🏓 이겼다!');   // 11-10: 이기면 사료
     pongMsg(meWin ? `🎉 이겼어! ${a} : ${b}${up ? ` → ${r.stage}단계로!` : ''}  (누르면 다시)` : `${bn()}가 이겼어! ${a} : ${b}  (누르면 다시)`);
     return;
   }
@@ -214,7 +213,7 @@ function pongEnd(meWin) {
   const exp = 1 / (1 + Math.pow(10, ((NET.rating || 1000) - r.rating) / 400)), k = 32;
   r.rating = Math.round(r.rating + k * ((meWin ? 1 : 0) - exp)); meWin ? r.nwin++ : r.nlose++;
   save(); pongScore(); pongPublish();
-  if (meWin && window.foodGain) foodGain(2, 1, '🏓 친구를 이겼다!');   // 11-10: 사람을 이기면 사료+간식
+  if (meWin && window.foodGain) foodGain(1, 0, '🏓 친구를 이겼다!');   // 11-10: 사람을 이기면 사료+간식
   pongMsg(meWin ? `🎉 ${NET.name || '상대'}를 이겼어! ${a} : ${b} · 내 점수 ${r.rating}` : `${NET.name || '상대'}가 이겼어 ${a} : ${b} · 내 점수 ${r.rating}  (누르면 처음 화면)`);
   setTimeout(() => netEnd(false), 1500);
 }

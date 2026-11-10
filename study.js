@@ -2,7 +2,7 @@
 //  · 팻은 시간이 지나면 배가 고파짐(1시간마다 꼬르륵) → 사료·간식을 줘야 함
 //  · 사료·간식은 영어 단어 맞히기, 게임 이기기, 명령으로 놀아 주기로 받음
 //  · 오래 안 주면 잠만 자고 · 삐지고 · 돌아서 있고 · 배고픈 표정
-const FOOD = () => { if (!S.food) S.food = { kibble: 3, snack: 1, hunger: 0, t: Date.now(), cryAt: 0, plays: 0 }; return S.food; };
+const FOOD = () => { if (!S.food) S.food = { kibble: 2, snack: 0, hunger: 0, t: Date.now(), cryAt: 0, plays: 0 }; return S.food; };
 function hungerNow() { const f = FOOD(), now = Date.now(); f.hunger = Math.min(100, (f.hunger || 0) + Math.max(0, now - (f.t || now)) / 3.6e6 * 25); f.t = now; return f.hunger; }   // 4시간이면 100
 function foodGain(k, s, why) {
   const f = FOOD(); f.kibble += k || 0; f.snack += s || 0; save();
@@ -39,8 +39,8 @@ function hungerTick() {
 setInterval(hungerTick, 60000); setTimeout(hungerTick, 8000);
 // 오래 굶으면 기분이 나빠짐 → 혼자 있을 때 잠·삐짐·돌아서기·배고픔
 window.moodPose = () => { if (STU.on) return null; const h = hungerNow(); if (h < 75 || Math.random() > 0.75) return null; return pick(['sleep', 'gloomy', 'back', 'hungry', 'angry', 'sorry']); };
-// 명령으로 놀아 주면 다섯 번마다 사료 1
-window.foodPlay = () => { const f = FOOD(); f.plays = (f.plays || 0) + 1; save(); if (f.plays % 5 === 0) foodGain(1, 0, '놀아 줘서 고마워!'); };
+// 명령으로 놀아 주면 열 번마다 사료 1
+window.foodPlay = () => { const f = FOOD(); f.plays = (f.plays || 0) + 1; save(); if (f.plays % 10 === 0) foodGain(1, 0, '놀아 줘서 고마워!'); };
 
 // ── 영어 단어
 // 11-10: 단계별 단어 (1 쉬움 → 10 어려움). 한 판 8개 이상 = ⭐, ⭐ 2개면 다음 단계, 10단계 끝 = 🗣️ 회화
@@ -57,6 +57,7 @@ const LEVELS = [
  ['📅 요일·달·반대말', [['Monday','월요일','1️⃣'],['Tuesday','화요일','2️⃣'],['Wednesday','수요일','3️⃣'],['Thursday','목요일','4️⃣'],['Friday','금요일','5️⃣'],['Saturday','토요일','6️⃣'],['Sunday','일요일','☀️'],['January','1월','🎍'],['May','5월','🌹'],['December','12월','🎄'],['morning','아침','🌅'],['night','밤','🌃'],['today','오늘','📅'],['tomorrow','내일','➡️'],['yesterday','어제','⬅️'],['up','위','⬆️'],['down','아래','⬇️'],['left','왼쪽','⬅️'],['right','오른쪽','➡️'],['question','질문','❓']]],
 ];
 const LV = () => { S.study = S.study || { wrong: [] }; const st = S.study; st.level = st.level || 1; st.open = st.open || 1; st.stars = st.stars || {}; st.score = st.score || 0; return st; };
+if (window.WORD_LEVELS && WORD_LEVELS.length) LEVELS.splice(0, LEVELS.length, ...WORD_LEVELS, ...(window.WORD_LEVELS_MID || []), ...(window.WORD_LEVELS_HIGH || []));   // lib/words.js 초등 800 + lib/words_mid.js 중학교
 let WORDS = LEVELS[0][1];
 const PRAISE = ['맞았어! 잘했어!', '참 잘하네요!', '천재 아니야?', '대단해! 최고야!', '와~ 정답이야!', '우와 멋지다!', '똑똑해!'];
 const STU = { on: false, n: 0, ok: 0, streak: 0, q: null, timer: 0, busy: false };
@@ -100,10 +101,12 @@ function stuPet(pose) {
 function stuLevels() {
   const st = LV(), q = document.getElementById('sQ'); clearInterval(STU.timer); STU.n = 0; STU.ok = 0; STU.streak = 0;
   const done = st.open > LEVELS.length;
-  q.innerHTML = `<div class="sAsk" style="font-size:16px">단계를 골라! ⭐ 2개면 다음 단계가 열려 · 점수 ${st.score}</div><div class="sOpts" style="grid-template-columns:1fr">` + LEVELS.map((L, k) => { const n = k + 1, lock = n > st.open, sv = st.stars[n] || 0; return `<button class="sOpt" data-lv="${n}" ${lock ? 'disabled style="opacity:.45"' : ''}>${lock ? '🔒' : n + '단계'} ${L[0]} <span class="sm">${'⭐'.repeat(Math.min(2, sv))}${'☆'.repeat(Math.max(0, 2 - sv))}</span></button>`; }).join('') + `<button class="sOpt" data-lv="talk" ${done ? '' : 'disabled style="opacity:.45"'}>${done ? '🗣️' : '🔒'} 회화 <span class="sm">${done ? '곧 열려요!' : '10단계를 다 깨면 열려요'}</span></button></div>`;
+  q.innerHTML = `<div class="sAsk" style="font-size:16px">단계를 골라! ⭐ 2개면 다음 단계가 열려 · 점수 ${st.score}</div><div class="sOpts" style="grid-template-columns:1fr">` + LEVELS.map((L, k) => { const n = k + 1, lock = n > st.open, sv = st.stars[n] || 0; return `<button class="sOpt" data-lv="${n}" ${lock ? 'disabled style="opacity:.45"' : ''}>${lock ? '🔒' : n + '단계'} ${L[0]} <span class="sm">${'⭐'.repeat(Math.min(2, sv))}${'☆'.repeat(Math.max(0, 2 - sv))}</span></button>`; }).join('') + `<button class="sOpt" data-lv="talk" ${done ? '' : 'disabled style="opacity:.45"'}>${done ? '🗣️' : '🔒'} 회화 <span class="sm">${done ? '곧 열려요!' : `${LEVELS.length}단계를 다 깨면 열려요`}</span></button></div>`;
   q.querySelectorAll('[data-lv]').forEach(b => b.onclick = () => { if (b.dataset.lv === 'talk') { stuTop('🗣️ 회화는 곧 만들어 줄게! 조금만 기다려 💛'); return; } st.level = +b.dataset.lv; save(); WORDS = LEVELS[st.level - 1][1]; stuTop(`${st.level}단계 ${LEVELS[st.level - 1][0]} 시작!`); stuNext(); });
   document.getElementById('sProg').textContent = ''; stuPet('idle');
 }
+// 예문에서 정답 단어를 ____ 로 가리기 (대소문자 무시)
+function blankOut(sent, word) { const lo = sent.toLowerCase(), w = word.toLowerCase(); let out = '', at = 0, f; while ((f = lo.indexOf(w, at)) >= 0) { out += sent.slice(at, f) + '_____'; at = f + w.length; } return out + sent.slice(at); }
 function stuNext() {
   STU.busy = false;
   if (STU.n >= 10) return stuDone();
@@ -116,8 +119,8 @@ function stuNext() {
   STU.q = { w, mode, opts };
   const q = document.getElementById('sQ'), num = ['①', '②', '③', '④'];
   q.innerHTML = `<div class="sEmo">${w[2]}</div>` + (mode === 0
-    ? `<div class="sWord">${w[0]}</div><button class="sSpk" id="sSay">🔊 듣기</button><div class="sAsk">무슨 뜻일까? 번호를 골라 봐!</div>`
-    : `<div class="sWord">${w[1]}</div><div class="sAsk">영어로 뭘까? 번호를 골라 봐! (🔊 를 누르면 소리)</div>`)
+    ? `<div class="sWord">${w[0]}</div>${w[3] ? `<div class="sAsk" style="font-style:italic;color:#446">“${w[3]}”</div>` : ''}<button class="sSpk" id="sSay">🔊 듣기</button><div class="sAsk">무슨 뜻일까? 번호를 골라 봐!</div>`
+    : `<div class="sWord">${w[1]}</div>${w[3] ? `<div class="sAsk" style="font-style:italic;color:#446">“${blankOut(w[3], w[0])}”</div>` : ''}<div class="sAsk">영어로 뭘까? 번호를 골라 봐! (🔊 를 누르면 소리)</div>`)
     + `<div class="sOpts">${opts.map((o, i) => `<button class="sOpt" data-i="${i}">${num[i]} ${mode === 0 ? o[1] : o[0]}${mode === 1 ? `<span class="sm" data-sp="${i}">🔊 듣기</span>` : ''}</button>`).join('')}</div>`;
   if (mode === 0) { q.querySelector('#sSay').onclick = () => stuSpeak(w[0], 'en'); setTimeout(() => stuSpeak(w[0], 'en'), 400); }
   q.querySelectorAll('.sOpt').forEach(b => b.onclick = e => {
@@ -135,7 +138,7 @@ function stuPick(i, btn) {
   if (ok) {
     STU.ok++; STU.streak++; LV().score += 10 * LV().level; S.study.wrong = S.study.wrong.filter(x => x !== key);
     const p = pick(PRAISE); stuSpeak(p, 'ko'); stuPet(pick(['praise', 'hooray', 'joy']));
-    foodGain(1, STU.streak % 3 === 0 ? 1 : 0, p);
+    stuTop(p);   // 11-10: 문제마다 사료는 없음 — 한 판 끝에 8개 이상이면 사료
   } else {
     btn.classList.add('no'); STU.streak = 0; if (!S.study.wrong.includes(key)) S.study.wrong.push(key); S.study.wrong = S.study.wrong.slice(-30);
     stuTop(`아깝다! 정답은 ${w[0]} (${w[1]}) 야`); stuPet('curious'); setTimeout(() => stuSpeak(w[0], 'en'), 300);
@@ -149,7 +152,8 @@ function stuDone() {
   let extra = '';
   if (STU.ok >= 8) {
     st.stars[lv] = Math.min(2, (st.stars[lv] || 0) + 1);
-    if (st.stars[lv] >= 2 && st.open === lv) { st.open = lv + 1; extra = lv >= LEVELS.length ? '🎉 10단계를 다 깼어! 🗣️ 회화가 열렸어!' : `🎉 ${lv + 1}단계가 열렸어!`; foodGain(2, 2, '🎁 단계 선물!'); }
+    foodGain(1, STU.ok >= 10 ? 1 : 0, '');   // 8개 이상 = 사료 1 · 다 맞히면 간식 1
+    if (st.stars[lv] >= 2 && st.open === lv) { st.open = lv + 1; extra = lv >= LEVELS.length ? `🎉 ${LEVELS.length}단계를 다 깼어! 🗣️ 회화가 열렸어!` : `🎉 ${lv + 1}단계가 열렸어!`; foodGain(1, 1, '🎁 단계 선물!'); }
     else extra = `⭐ 별 하나! (${st.stars[lv]}/2)`;
   }
   save();
