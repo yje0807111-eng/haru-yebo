@@ -137,7 +137,7 @@ public class FloatPetService extends Service {
 
     // 11-10: 영상 동작이 늘어 그림이 많아짐 → 작게(높이 320) 줄여 한 번만 읽고 같이 씀 (메모리 아끼기, 듣기 끊김 방지)
     final java.util.HashMap<String, Bitmap> bcache = new java.util.HashMap<>(); String bcacheSp = "";
-    Bitmap load(String n) {
+    synchronized Bitmap load(String n) {
         String sp = getSharedPreferences("pet", 0).getString("sp", "dog");
         if (!sp.equals(bcacheSp)) { bcache.clear(); bcacheSp = sp; }
         Bitmap c = bcache.get(n); if (c != null) return c;
@@ -829,18 +829,27 @@ public class FloatPetService extends Service {
         if (pet == null) return;
         if ("home".equals(action)) { goHome(); return; }
         if ("free".equals(action) || "run".equals(action)) leaveHome();
-        lastPoseAt = System.currentTimeMillis(); poseFrames = null;
+        lastPoseAt = System.currentTimeMillis(); poseFrames = null; framesTok++;
         if (("run".equals(action) || "walk".equals(action)) && "shy".equals(getSharedPreferences("pet", 0).getString("temper", "normal"))) { Bitmap[] f = "run".equals(action) ? run : walk; if (f != null && f.length > 0) showFramesB(f, 6, ms); return; }
         if ("run".equals(action) || "walk".equals(action)) { int w = lp.width > 0 ? lp.width : dp(120); if (py < 0) py = lp.y; tx = (float) (Math.random() * Math.max(1, sw() - w)); if (Math.abs(tx - px) < dp(80)) tx = px > sw() / 2f ? dp(10) : sw() - w - dp(10); int hgt = lp.height > 0 ? lp.height : dp(120); int bottom = (blp != null ? blp.y - dp(8) : sh() - dp(100)) - hgt; ty = dp(60) + (float) (Math.random() * Math.max(1, bottom - dp(60))); if ("normal".equals(getSharedPreferences("pet", 0).getString("temper", "normal"))) ty = py; running = "run".equals(action); moving = true; return; }
         Bitmap b = file == null ? null : load(file);
         if (b != null) { moving = false; pet.setScaleX(1); pet.setImageBitmap(b); nextDecide = System.currentTimeMillis() + ms; poseUntil = nextDecide; }
     }
+    volatile long framesTok = 0;
     void showFrames(String[] files, int fps, int ms) {
         if (pet == null || files == null || files.length == 0) return;
-        Bitmap[] f = new Bitmap[files.length]; for (int i = 0; i < files.length; i++) f[i] = load(files[i]);
-        lastPoseAt = System.currentTimeMillis(); moving = false; pet.setScaleX(1);
-        poseFrames = f; poseFps = Math.max(2, fps); poseFi = 0; poseUntil = lastPoseAt + ms; nextDecide = poseUntil;
-        if (f[0] != null) pet.setImageBitmap(f[0]);
+        // 11-10: 그림 읽기는 뒤에서(화면·듣기 멈추지 않게), 다 읽으면 화면에 붙임
+        final long tok = ++framesTok;
+        lastPoseAt = System.currentTimeMillis(); moving = false; nextDecide = lastPoseAt + ms;
+        new Thread(() -> {
+            Bitmap[] f = new Bitmap[files.length]; for (int i = 0; i < files.length; i++) f[i] = load(files[i]);
+            h.post(() -> {
+                if (tok != framesTok || pet == null) return;
+                lastPoseAt = System.currentTimeMillis(); moving = false; pet.setScaleX(1);
+                poseFrames = f; poseFps = Math.max(2, fps); poseFi = 0; poseUntil = lastPoseAt + ms; nextDecide = poseUntil;
+                if (f[0] != null) pet.setImageBitmap(f[0]);
+            });
+        }).start();
     }
     void showFramesB(Bitmap[] f, int fps, int ms) {   // 소심: 그 자리에서 걷는 시늉만
         lastPoseAt = System.currentTimeMillis(); moving = false; pet.setScaleX(1);
