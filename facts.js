@@ -35,20 +35,20 @@ async function wikiOne() {
 function factPose(ms) {   // 팻 동작은 1분에 하나씩 차례로 전부 (상식은 끊임없이)
   const now = performance.now(); if (FX.poseAt && now - FX.poseAt < 60000) return; FX.poseAt = now;
   const keys = Object.keys(POSES).filter(k => !['idle', 'walk', 'run', 'talk', 'up', 'side', 'gaze'].includes(k));
-  setPose(keys[FX.poseI++ % keys.length]); P.target = null; P.until = now + 60000;
+  setPose(keys[FX.poseI++ % keys.length]); P.target = null; P.until = now + 6000;   // 동작 하나 보여 주고 다시 자유롭게
 }
 async function factTick() {
-  if (S.talk.facts === false || document.hidden || view !== 'home' || !bubble.hidden || (window.PONG && PONG.on) || (window.STU && STU.on)) return 4000;
+  if (S.talk.facts === false || document.hidden || view !== 'home' || (!bubble.hidden && !FX.mine) || (window.PONG && PONG.on) || (window.STU && STU.on)) return 4000;
   if (FX.q.length < 10) factsLoad();
   const k = FX.tick++ % 6, age = S.me.age || 0;
   let text = null;
-  const wikiK = age >= 20 ? [1, 3, 4, 5] : [1, 3, 5];   // 위키백과 최대한
+  const wikiK = [];   // 11-10 사용자: 위키백과는 뺌 — 내가 준비한 상식 + 영어만
   if (k === 2) { const p = engPool(); if (p.length) text = '🇺🇸 오늘의 영어: ' + pick(p); }
   else if (wikiK.includes(k)) text = await wikiOne();
   if (!text) text = FX.q.shift();
   if (!text) return 3000;
   const ms = Math.max(7000, Math.min(14000, 5000 + text.length * 110));   // 읽을 시간만큼 보여 주고 바로 다음 (끊임없이)
-  say(esc(text), { ms }); factPose(ms); return ms + 700;
+  say(esc(text), { ms }); factPose(ms); return ms + 4000;
 }
 (function loop() { Promise.resolve(factTick()).then(ms => setTimeout(loop, ms || 4000), () => setTimeout(loop, 5000)); })(); setTimeout(() => { factsLoad(); }, 1500);
 // 처음엔 팻 소리가 0 → 다섯 번째 열 때 짖는 소리가 있다고 한 번 알려 주기

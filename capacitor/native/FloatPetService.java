@@ -377,7 +377,7 @@ public class FloatPetService extends Service {
                             else { Bitmap[] f = running ? run : walk; if (now - last > (f.length > 4 ? 125 : running ? 140 : 200)) { last = now; frame++; Bitmap b = f[frame % f.length]; if (b != null) pet.setImageBitmap(b); }
                             pet.setScaleX(-dir); }  // 그림은 왼쪽을 봄 → 오른쪽으로 갈 땐 뒤집기
                         }
-                        lp.x = (int) px; lp.y = (int) py - (hopping ? (int) (dp(26) * Math.sin(Math.PI * Math.min(1f, Math.abs(ty - py) / Math.max(1f, dp(180))))) : 0); wm.updateViewLayout(pet, lp);
+                        lp.x = (int) px; lp.y = (int) py - (hopping ? (int) (dp(26) * Math.sin(Math.PI * Math.min(1f, Math.abs(ty - py) / Math.max(1f, dp(180))))) : 0); wm.updateViewLayout(pet, lp); if (bubFollow) placeBub();
                     } else if (poseFrames != null && now < poseUntil) {
                         if (now - poseLast > 1000 / poseFps) { poseLast = now; poseFi = poseOnce && poseFi + 1 >= poseFrames.length ? poseFrames.length - 1 : (poseFi + 1) % poseFrames.length; if (poseFrames[poseFi] != null) pet.setImageBitmap(poseFrames[poseFi]); }
                     } else if (now > nextDecide) { poseFrames = null; decide(now); }
@@ -453,23 +453,23 @@ public class FloatPetService extends Service {
     }
     void showFact(String text) {
         int ms = Math.max(7000, Math.min(14000, 5000 + text.length() * 110));   // 11-10: 읽을 시간만큼 보여 주고 바로 다음 (끊임없이)
-        bubble(text, ms); nextFact = System.currentTimeMillis() + ms + 700;
+        bubFree = true; bubble(text, ms); bubFree = false; bubFollow = true; nextFact = System.currentTimeMillis() + ms + 4000;   // 팻은 자유롭게, 말풍선은 따라다님, 다음 상식까지 4초 쉼
         long nowP = System.currentTimeMillis(); if (nowP - factPoseAt < 60000) return; factPoseAt = nowP;   // 11-10: 팻 동작은 1분에 하나씩 (상식은 끊임없이)
         String all = getSharedPreferences("pet", 0).getString("teach", "");   // 팻 동작은 차례로 하나씩 전부
-        if (all != null && !all.isEmpty()) { String[] L = all.split("\n"); String[] e = L[teachI++ % L.length].split("\t"); if (e.length >= 3) { poseOnce = "1".equals(e[1]); showFrames(e[2].split("\\|"), 8, 60000); } }
+        if (all != null && !all.isEmpty()) { String[] L = all.split("\n"); String[] e = L[teachI++ % L.length].split("\t"); if (e.length >= 3) { poseOnce = "1".equals(e[1]); if (!moving) showFrames(e[2].split("\\|"), 8, 6000); } }
     }
     long nextFact = 0, factPoseAt = 0;
     boolean maybeFacts(long now) {
         SharedPreferences sp = getSharedPreferences("pet", 0);
         if (!sp.getBoolean("factsOn", true)) return false;
-        if (listening || moving || HaruBall.on || !screenOn()) return true;
+        if (listening || HaruBall.on || !screenOn()) return true;
         if (factQ.size() < 10) loadFacts();
         if (nextFact == 0) { nextFact = now + 4000; return true; }
         if (now < nextFact) return true;
         nextFact = now + 15000;   // 위키백과 받는 동안 잠깐 (showFact 가 다시 맞춤)
         int k = factTick++ % 6, age = sp.getInt("age", 0);
         if (k == 2) { String eng = sp.getString("eng", ""); if (eng != null && !eng.isEmpty()) { String[] L = eng.split("\n"); showFact("🇺🇸 오늘의 영어: " + L[(int) (Math.random() * L.length)]); return true; } }
-        if (k == 1 || k == 3 || k == 5 || (k == 4 && age >= 20)) { wikiFact(); return true; }   // 11-10: 위키백과 최대한 (20대+ 6개 중 4개, 그 밖 3개)
+        // 11-10 사용자: 위키백과는 뺌 (난해함) — 내가 준비한 상식 창고 + 영어만
         if (!factQ.isEmpty()) showFact(factQ.remove(0));
         return true;
     }
@@ -863,6 +863,8 @@ public class FloatPetService extends Service {
     TextView bub;
     WindowManager.LayoutParams bubLp;
     final Runnable hideBub = () -> { if (bub != null) bub.setVisibility(View.GONE); };
+    boolean bubFree = false, bubFollow = false;   // 11-10: 상식 말풍선은 팻을 붙잡지 않고 따라다님
+    void placeBub() { try { if (bub == null || bub.getVisibility() != View.VISIBLE || lp == null) return; int bw = bub.getMeasuredWidth(), bh = bub.getMeasuredHeight(), pw = lp.width > 0 ? lp.width : dp(120); bubLp.x = Math.max(dp(8), Math.min(sw() - bw - dp(8), lp.x + pw / 2 - bw / 2)); bubLp.y = Math.max(dp(30), lp.y - bh - dp(6)); wm.updateViewLayout(bub, bubLp); } catch (Exception ignored) { } }
     void bubble(String text, int ms) {
         try {
             if (bub == null) {
@@ -890,8 +892,9 @@ public class FloatPetService extends Service {
             h.removeCallbacks(hideBub);
             h.postDelayed(hideBub, ms);
             long nowB = System.currentTimeMillis();
-            if (!moving) nextDecide = Math.max(nextDecide, nowB + Math.min(ms, 8000));
-            if (nowB - lastPoseAt > 1500 && !moving && pet != null && idle != null && idle[2] != null && !text.startsWith("💭") && !text.startsWith("👂")) pet.setImageBitmap(idle[2]);
+            if (!bubFree) bubFollow = false;
+            if (!bubFree && !moving) nextDecide = Math.max(nextDecide, nowB + Math.min(ms, 8000));
+            if (!bubFree && nowB - lastPoseAt > 1500 && !moving && pet != null && idle != null && idle[2] != null && !text.startsWith("💭") && !text.startsWith("👂")) pet.setImageBitmap(idle[2]);
         } catch (Exception e) { Log.e("HaruPet", "bubble", e); }
     }
     android.media.MediaPlayer mp;
