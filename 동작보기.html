@@ -1,0 +1,23 @@
+<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>강아지 동작 보기</title>
+<style>body{margin:0;background:#eef6f0;font-family:sans-serif}h1{font-size:18px;margin:12px 16px}
+#g{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:10px;padding:0 16px 20px}
+.c{background:#fff;border-radius:12px;padding:6px;text-align:center;box-shadow:0 1px 3px #0002}
+.c img{height:150px;max-width:100%;object-fit:contain}.c b{display:block;font-size:15px}.c small{color:#888}
+.v{border:2px solid #7c6}</style>
+<h1>🐶 강아지 동작 전부 (초록 테두리 = 새 영상 동작) · 누르면 크게</h1><div id="g"></div>
+<script src="chars/dog/manifest.js"></script>
+<script>
+const M=CHARS.dog, g=document.getElementById('g'), cards=[];
+for(const [k,a] of Object.entries(M.anims)){ if(!a.frames||!a.frames.length) continue;
+  const d=document.createElement('div'); d.className='c'+(a.video?' v':'');
+  const im=new Image(); im.src='chars/dog/'+a.frames[0];
+  d.append(im); d.insertAdjacentHTML('beforeend',`<b>${k}</b><small>${a.frames.length}장 · ${a.fps||12}fps</small>`);
+  d.onclick=()=>{im.style.height=im.style.height?'':'300px'};
+  g.append(d); cards.push({im,a,i:0,t:0});
+  a.frames.forEach(f=>{new Image().src='chars/dog/'+f});
+}
+let last=performance.now();
+setInterval(()=>{const n=performance.now();for(const c of cards){c.t+=n-last;const step=1000/(c.a.fps||12);
+  while(c.t>=step){c.t-=step;c.i=(c.i+1)%c.a.frames.length;c.im.src='chars/dog/'+c.a.frames[c.i]}}last=n},30);
+</script>
