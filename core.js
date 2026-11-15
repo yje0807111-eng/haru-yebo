@@ -155,6 +155,14 @@ function cry(happy, loud, force) {
   a.volume = Math.max(0, Math.min(1, loud ? Math.max(0.8, S.talk.volume) : S.talk.volume));
   a.play().catch(() => {});
 }
+// 11-15: 말로 "끝" → 하루를 뒤로 보내고 바탕 화면으로 (팻은 화면 위에 그대로)
+window.endTalk = text => {
+  const t = (typeof stripName === 'function' ? stripName(String(text || '')) : String(text || '')).replace(/[!.~?\s]+$/g, '').trim();
+  if (!/^((다루|하루)[야아]?\s*)?(끝|끝내|끝내자|끝났어|닫아|닫아\s*줘|나가|나가자|이제\s*끝)$/.test(t)) return false;
+  say(pick(['응, 또 불러 줘! 🐾', '알았어~ 여기 있을게 💛']), { ms: 1200 }); window.wokeByName = false;
+  const F = window.Capacitor && Capacitor.Plugins && Capacitor.Plugins.FloatPet; setTimeout(() => { if (F && F.toBack) F.toBack().catch(() => { }); }, 900);
+  return true;
+};
 function quitApp() {   // 11-06: 조용히 끝내기 — 팻도 화면에서 사라짐(하루 예보를 다시 누르면 다시 나옴)
   say(pick(['잘 자~ 또 불러 줘 🐾', '응, 조용히 있을게. 또 봐! 💛', '오늘도 고마웠어. 안녕~']), { pose: 'wave', ms: 1500 });
   setTimeout(() => { if (window.Native && Native.quit) Native.quit(); else { hideBubble(); petOnly(true); } }, 1200);
@@ -250,7 +258,7 @@ function isSearch(text) {
 }
 // 11-08: 기능 말 알아듣기를 한 곳에 — 팻방 말창과 화면 위 팻이 똑같이 알아듣게
 async function featureTalk(text) {
-  for (const f of [window.studyTalk, window.pongTalk, window.matchTalk, window.mapTalk, window.routeTalk, window.tourTalk, window.ballTalk, window.dgTalk, window.worshipTalk, window.tvTalk]) if (f && f(text)) return true;
+  for (const f of [window.endTalk, window.studyTalk, window.pongTalk, window.matchTalk, window.mapTalk, window.routeTalk, window.tourTalk, window.ballTalk, window.dgTalk, window.worshipTalk, window.tvTalk]) if (f && f(text)) return true;
   if (window.musicTalk && await musicTalk(text)) return true;
   return false;
 }

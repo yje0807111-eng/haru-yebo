@@ -488,6 +488,9 @@ public class FloatPetPlugin extends Plugin {
         r.put("how", "sms".equals(kind) ? HaruSend.sms(getContext(), call.getString("num", ""), text) : HaruSend.kakao(getContext(), call.getString("who", ""), text));
         call.resolve(r);
     }
+    // 11-15: "끝" → 하루를 뒤로 보내고 바탕 화면으로 (팻은 화면 위에 그대로)
+    @PluginMethod
+    public void toBack(PluginCall call) { try { if (getActivity() != null) getActivity().runOnUiThread(() -> getActivity().moveTaskToBack(true)); } catch (Exception ignored) { } call.resolve(); }
     // 🎤 11-15: 이름 부르면 깨우기 — on 이면 모델(약 80MB) 받고 듣기 시작, 배터리 최적화 예외 화면도 한 번 열어 줌
     @PluginMethod
     public void wakeSetup(PluginCall call) {
