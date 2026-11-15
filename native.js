@@ -156,8 +156,10 @@
   if (FP) FP.addListener('music', d => { window.musicNow = d; if (!document.hidden && d.playing) { setPose('dance'); P.until = performance.now() + 8000; if (d.title) say(`🎵 ${esc(d.title)}${d.artist ? ' · ' + esc(d.artist) : ''}`, { ms: 3500 }); } });
   if (FP) FP.addListener('petTap', d => { const w = d && d.what; if (w === 'run') return;   // 화면 위 팻에게 한 말을 앱이 이어서 처리 (takePending)
     if (w === 'wake') { petOnly(true); hideBubble(); window.wokeByName = true;   // 🎤 이름으로 깨움: 팻창만 · 울음소리 → '듣고 있어… 말해 줘!' → 바로 듣기
-      try { const L = SOUNDS[SP()] || SOUNDS.dog, a = new Audio('sounds/' + pick(L[1]) + '.mp3'); a.volume = Math.max(0.6, S.talk.volume || 0); a.play().catch(() => { }); } catch { }
-      setPose('joy'); say('👂 듣고 있어… 말해 줘!', { ms: 6000 }); setTimeout(() => { const m = $('#micBtn'); if (m) m.click(); }, 1100); return; } if (w === 'feed' && window.openStudy) { if (S.food) { S.food.cryAt = Date.now(); save(); } setTimeout(openStudy, 400); return; } if (w && w.startsWith('chat:') && window.openChat) { setTimeout(() => openChat(w.slice(5)), 300); return; } if (w && w.startsWith('pong:') && window.PONG && PONG.invite) { const g = PONG.invite.go; PONG.invite = null; setTimeout(g, 400); return; } petOnly(true); if (w === 'talk') setTimeout(() => { hideBubble(); t.focus(); }, 300); else if (w === 'mic') setTimeout(() => $('#micBtn').click(), 500); else setTimeout(petMenu, 400); });
+      setPose('joy');
+      const go = () => window.wakeHear && wakeHear(0);
+      try { const L = SOUNDS[SP()] || SOUNDS.dog, a = new Audio('sounds/' + pick(L[1]) + '.mp3'); a.volume = Math.max(0.6, S.talk.volume || 0); let done = false; const g = () => { if (!done) { done = true; setTimeout(go, 250); } }; a.onended = g; setTimeout(g, 2500); a.play().catch(g); } catch { go(); }
+      return; } if (w === 'feed' && window.openStudy) { if (S.food) { S.food.cryAt = Date.now(); save(); } setTimeout(openStudy, 400); return; } if (w && w.startsWith('chat:') && window.openChat) { setTimeout(() => openChat(w.slice(5)), 300); return; } if (w && w.startsWith('pong:') && window.PONG && PONG.invite) { const g = PONG.invite.go; PONG.invite = null; setTimeout(g, 400); return; } petOnly(true); if (w === 'talk') setTimeout(() => { hideBubble(); t.focus(); }, 300); else if (w === 'mic') setTimeout(() => $('#micBtn').click(), 500); else setTimeout(petMenu, 400); });
   // 켤 때 알람 다시 예약 · 새 버전 확인(하루 한 번)
   window.addEventListener('load', () => {
     setTimeout(() => N.schedule(S.alarms), 2000);
@@ -168,3 +170,18 @@
     setTimeout(() => N.checkUpdate(false), 4000);   // 11-06: 열 때마다 새 버전 확인 → 있으면 '1'
   });
 })();
+
+// 🎤 11-15: 이름으로 깨웠을 때 듣기 — 잠금 화면에선 구글 받아쓰기가 막히니 폰 안 인식(Vosk)으로 이어서
+window.wakeHear = async function (tries) {
+  const FPw = window.Capacitor && Capacitor.Plugins && Capacitor.Plugins.FloatPet;
+  say('👂 듣고 있어… 말해 줘!', { pose: 'up', ms: 9000 });
+  let txt = '';
+  try { txt = await Promise.race([window.Native && Native.listen ? Native.listen().catch(() => '') : Promise.resolve(''), new Promise(r => setTimeout(() => r(''), 4500))]) || ''; } catch { }
+  if (!txt && FPw && FPw.voskListen) {
+    try { const P = window.Capacitor.Plugins.SpeechRecognition; if (P && P.stop) await P.stop().catch(() => { }); } catch { }
+    say('👂 듣고 있어… 말해 줘!', { pose: 'up', ms: 9000 });
+    const r = await FPw.voskListen().catch(() => ({ text: '' })); txt = (r && r.text || '').trim();
+  }
+  if (!txt) { if ((tries || 0) < 2) { say('잘 못 들었어 🥲 다시 말해 줘!', { ms: 2500 }); setTimeout(() => wakeHear((tries || 0) + 1), 1500); } else say('또 불러 줘! 🐾', { ms: 2500 }); return; }
+  say(`👂 "${esc(txt)}"`, { ms: 1800 }); if (typeof send === 'function') send(txt);
+};

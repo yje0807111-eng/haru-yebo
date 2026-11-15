@@ -150,6 +150,38 @@ public class HaruWake {
         } catch (Exception e) { return false; }
     }
 
+    // 11-15: 잠금 화면에서는 구글 받아쓰기가 막힘 → 폰 안 인식(Vosk)으로 명령 한 번 듣기
+    interface Got { void on(String text); }
+    static void listenOnce(Context c, Got cb) {
+        new Thread(() -> {
+            String out = ""; AudioRecord ar = null; org.vosk.Recognizer r = null;
+            try {
+                if (!hasModel(c)) { cb.on(""); return; }
+                if (model == null) model = new org.vosk.Model(modelDir(c).getAbsolutePath());
+                int sr = 16000, frame = 1600; short[] buf = new short[frame];
+                ar = new AudioRecord(MediaRecorder.AudioSource.VOICE_RECOGNITION, sr, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT, Math.max(AudioRecord.getMinBufferSize(sr, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT), frame * 4));
+                r = new org.vosk.Recognizer((org.vosk.Model) model, 16000f);
+                ar.startRecording();
+                long start = System.currentTimeMillis(), lastVoice = 0; double floor = 300; boolean spoke = false; StringBuilder sb = new StringBuilder();
+                while (true) {
+                    int n = ar.read(buf, 0, frame); if (n <= 0) continue;
+                    double sum = 0; for (int i = 0; i < n; i++) sum += (double) buf[i] * buf[i]; double rms = Math.sqrt(sum / n);
+                    long now = System.currentTimeMillis();
+                    if (!spoke && now - start < 600) floor = Math.max(200, rms);   // 처음 0.6초로 바탕 소리 재기
+                    if (rms > Math.max(450, floor * 2.5)) { spoke = true; lastVoice = now; }
+                    if (r.acceptWaveForm(buf, n)) { String t = new org.json.JSONObject(r.getResult()).optString("text", ""); if (!t.isEmpty()) sb.append(t).append(' '); }
+                    if (spoke && now - lastVoice > 1200) break;   // 말이 끝남
+                    if (!spoke && now - start > 6000) break;    // 6초 동안 말이 없음
+                    if (now - start > 9000) break;
+                }
+                String t = new org.json.JSONObject(r.getFinalResult()).optString("text", ""); sb.append(t);
+                out = sb.toString().trim().replaceAll("\\s+", " ");
+            } catch (Throwable e) { Log.e(TAG, "listenOnce", e); }
+            finally { if (ar != null) { try { ar.stop(); ar.release(); } catch (Exception ignored) { } } if (r != null) { try { r.close(); } catch (Exception ignored) { } } }
+            final String res = out; new Handler(Looper.getMainLooper()).post(() -> cb.on(res));
+        }).start();
+    }
+
     // ── 이름이 들리면: 화면 켜기 → 잠금 화면 위에 하루 → 바로 받아쓰기
     static void wake(Context c) {
         try {

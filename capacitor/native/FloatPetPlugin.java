@@ -504,6 +504,8 @@ public class FloatPetPlugin extends Plugin {
         call.resolve();
     }
     @PluginMethod
+    public void voskListen(PluginCall call) { HaruWake.listenOnce(getContext(), t -> { JSObject r = new JSObject(); r.put("text", t); call.resolve(r); }); }
+    @PluginMethod
     public void wakeState(PluginCall call) { android.content.Context c = getContext(); JSObject r = new JSObject(); r.put("on", HaruWake.wanted(c)); r.put("model", HaruWake.hasModel(c)); r.put("running", HaruWake.running); call.resolve(r); }
     // 📞 통화 (11-09): 스피커로 듣기 켜기·끄기 · 통화 모드
     @PluginMethod
