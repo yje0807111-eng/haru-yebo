@@ -59,6 +59,7 @@ jobs:
           sed -i 's#</application>#<service android:name=".HaruNotiListener" android:exported="true" android:label="하루 예보 카톡 알림" android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE"><intent-filter><action android:name="android.service.notification.NotificationListenerService"/></intent-filter></service></application>#' $M
           sed -i 's#</application>#<receiver android:name=".HaruAlarmReceiver" android:exported="false"/></application>#' $M
           sed -i 's#</manifest>#<uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT"/></manifest>#' $M
+          sed -i 's#</manifest>#<uses-permission android:name="android.permission.WAKE_LOCK"/><uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS"/><uses-permission android:name="android.permission.TURN_SCREEN_ON"/></manifest>#' $M
           grep -c FloatPetService $M
           # 아이콘
           for d in mdpi hdpi xhdpi xxhdpi xxxhdpi; do
@@ -70,6 +71,7 @@ jobs:
           # 늘 같은 서명 열쇠로 (덮어 깔기가 되게)
           printf '\nandroid { signingConfigs { debug { storeFile file(System.getenv("HOME") + "/haru-key/debug.keystore"); storePassword "android"; keyAlias "androiddebugkey"; keyPassword "android" } } }\n' >> android/app/build.gradle
           printf '\ndependencies { implementation "com.google.mlkit:text-recognition-korean:16.0.0" }\n' >> android/app/build.gradle   # 🧾 영수증 글자 읽기
+          printf '\ndependencies { implementation "com.alphacephei:vosk-android:0.3.47@aar"; implementation "net.java.dev.jna:jna:5.13.0@aar" }\n' >> android/app/build.gradle   # 🎤 이름 부르면 깨우기 (폰 안 음성 인식)
           cd android
           chmod +x gradlew
           for i in 1 2 3; do ./gradlew assembleDebug --no-daemon -q && break; echo "다시 해 보기 $i"; sleep 20; done   # 내려받기 오류면 3번까지

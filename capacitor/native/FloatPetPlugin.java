@@ -488,6 +488,20 @@ public class FloatPetPlugin extends Plugin {
         r.put("how", "sms".equals(kind) ? HaruSend.sms(getContext(), call.getString("num", ""), text) : HaruSend.kakao(getContext(), call.getString("who", ""), text));
         call.resolve(r);
     }
+    // 🎤 11-15: 이름 부르면 깨우기 — on 이면 모델(약 80MB) 받고 듣기 시작, 배터리 최적화 예외 화면도 한 번 열어 줌
+    @PluginMethod
+    public void wakeSetup(PluginCall call) {
+        android.content.Context c = getContext(); boolean on = Boolean.TRUE.equals(call.getBoolean("on", false));
+        c.getSharedPreferences("pet", 0).edit().putBoolean("wakeOn", on).apply();
+        if (!on) { HaruWake.stop(); call.resolve(); return; }
+        try { if (android.os.Build.VERSION.SDK_INT >= 23 && c.checkSelfPermission(android.Manifest.permission.RECORD_AUDIO) != android.content.pm.PackageManager.PERMISSION_GRANTED && getActivity() != null) androidx.core.app.ActivityCompat.requestPermissions(getActivity(), new String[] { android.Manifest.permission.RECORD_AUDIO }, 7); } catch (Exception ignored) { }
+        try { android.os.PowerManager pm = (android.os.PowerManager) c.getSystemService(android.content.Context.POWER_SERVICE);
+            if (android.os.Build.VERSION.SDK_INT >= 23 && !pm.isIgnoringBatteryOptimizations(c.getPackageName())) { android.content.Intent i = new android.content.Intent(android.provider.Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS, android.net.Uri.parse("package:" + c.getPackageName())); i.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK); c.startActivity(i); } } catch (Exception ignored) { }
+        HaruWake.download(c, (pct, st) -> { JSObject d = new JSObject(); d.put("pct", pct); d.put("st", st); fire("wakeModel", d); if ("ok".equals(st)) HaruWake.start(c); });
+        call.resolve();
+    }
+    @PluginMethod
+    public void wakeState(PluginCall call) { android.content.Context c = getContext(); JSObject r = new JSObject(); r.put("on", HaruWake.wanted(c)); r.put("model", HaruWake.hasModel(c)); r.put("running", HaruWake.running); call.resolve(r); }
     // 📞 통화 (11-09): 스피커로 듣기 켜기·끄기 · 통화 모드
     @PluginMethod
     public void speaker(PluginCall call) {

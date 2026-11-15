@@ -100,6 +100,7 @@ public class FloatPetService extends Service {
     public int onStartCommand(Intent intent, int flags, int startId) {
         me = this;
         Log.i("HaruPet", "start shown=" + wantShown);
+        HaruWake.start(this);   // 11-15: 🎤 이름 부르면 깨우기 (켜 둔 사람만)
         SharedPreferences sp = getSharedPreferences("pet", 0);
         sizePct = sp.getInt("size", 100);
         act = sp.getInt("act", 2);
