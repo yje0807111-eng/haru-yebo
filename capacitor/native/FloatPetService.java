@@ -821,6 +821,15 @@ public class FloatPetService extends Service {
         arSr = null; micRed(false); h.postDelayed(() -> beepRestore(FloatPetService.this), 900);
     }
     static void autoReplyStopStatic() { if (me != null) me.h.post(me::arStop); }
+    // 11-15: 이름으로 불렀을 때 — 팻 울음소리 한 번 → 바로 듣기 (터치 없이)
+    void wakeListen() {
+        if (listening) return;
+        if (!wantShown) setShown(true);
+        float v = getSharedPreferences("pet", 0).getFloat("vol", 0.5f);
+        bark(false, Math.max(0.6f, v));   // 소리 크기를 0으로 해 둬도 부를 때는 대답 소리
+        if (pet != null && idle != null && idle.length > 2 && idle[2] != null) pet.setImageBitmap(idle[2]);
+        h.postDelayed(this::listen, 900);   // 울음소리가 받아쓰기에 들어가지 않게 조금 뒤에
+    }
     void listen() {
         if (alarmOn) { stopAlarmByTap(); return; }   // 알람 울리는 중이면 누르면 그만
         if (arOn) arStop();

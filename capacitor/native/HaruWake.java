@@ -157,11 +157,11 @@ public class HaruWake {
             @SuppressWarnings("deprecation") PowerManager.WakeLock wl = pm.newWakeLock(PowerManager.SCREEN_BRIGHT_WAKE_LOCK | PowerManager.ACQUIRE_CAUSES_WAKEUP | PowerManager.ON_AFTER_RELEASE, "haru:wake");
             wl.acquire(15000);
         } catch (Exception e) { Log.e(TAG, "wakelock", e); }
-        paused = true;   // 앱이 마이크를 쓰도록 놓아 줌 (앱이 뒤로 가면 다시 들음)
-        Intent i = new Intent(c, MainActivity.class);
-        i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_REORDER_TO_FRONT | Intent.FLAG_ACTIVITY_SINGLE_TOP);
-        i.putExtra("haruWake", true);
-        c.startActivity(i);
-        new Handler(Looper.getMainLooper()).postDelayed(() -> FloatPetPlugin.tapped("wake"), 900);
+        // 11-15 사용자: 앱(팻창)을 열지 말고, 켜진 화면 위의 팻이 그대로 대답 — 울음소리 + "듣고 있어… 말해 줘!" + 바로 받아쓰기
+        paused = true;   // 받아쓰기가 마이크를 쓰도록 잠깐 놓아 줌 (받아쓰기가 끝나면 다시 이름 듣기)
+        FloatPetService s = FloatPetService.me;
+        if (s == null) { paused = false; return; }
+        s.wakeListen();
+        new Handler(Looper.getMainLooper()).postDelayed(() -> paused = false, 2500);
     }
 }
