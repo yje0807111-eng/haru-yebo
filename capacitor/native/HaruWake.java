@@ -215,6 +215,9 @@ public class HaruWake {
         // 11-15 사용자: 팻창(하루 앱의 팻만 보이는 화면)이 잠금 화면 위에도 바로 뜸 → 팻이 울고 "듣고 있어… 말해 줘!" → 말로만 명령
         //  잠금을 풀 필요 없음 · "끝"이나 뒤로 가기 = 하루를 뒤로 보내고 바탕 화면(팻은 계속 떠 있음)
         paused = true;   // 앱이 마이크를 쓰도록 놓아 줌 (앱이 듣기를 마치면 wakePause(false) 로 다시 이름 듣기)
+        // 🧪 11-16 시험: 다른 기능 없이 깨움 전용 화면만 (듣기→전화·문자). 성공하면 다시 팻창과 잇기
+        if (!WakeTestActivity.active) { Intent t = new Intent(c, WakeTestActivity.class); t.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK); c.startActivity(t); }
+        if (true) return;
         if (MainActivity.visible) { FloatPetPlugin.tapped("wake"); return; }   // 다른 앱을 쓰는 중이면 → 하루 팻창이 그 위에 떠서 대답 ("끝"이면 쓰던 앱으로 돌아감)   // 앱(팻창)이 이미 떠 있으면 그 자리에서 바로 대답
         Intent i = new Intent(c, MainActivity.class);
         i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_REORDER_TO_FRONT | Intent.FLAG_ACTIVITY_SINGLE_TOP);

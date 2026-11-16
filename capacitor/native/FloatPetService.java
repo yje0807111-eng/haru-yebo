@@ -485,7 +485,7 @@ public class FloatPetService extends Service {
     boolean maybeFacts(long now) {
         SharedPreferences sp = getSharedPreferences("pet", 0);
         if (!sp.getBoolean("factsOn", true)) return false;
-        if (listening || HaruBall.on || !screenOn() || !onHome) return true;
+        if (listening || HaruBall.on || !screenOn() || !onHome || WakeTestActivity.active) return true;
         if (factQ.size() < 10) loadFacts();
         if (nextFact == 0) { nextFact = now + 4000; return true; }
         if (now < nextFact) return true;
@@ -498,6 +498,7 @@ public class FloatPetService extends Service {
     }
     // 11-10: 혼자 운동하기 (축구·농구·야구·테니스·줄넘기·태권도·훌라후프·자전거 중 하나)
     boolean playSport() {
+        if (WakeTestActivity.active) return false;
         String s = getSharedPreferences("pet", 0).getString("sports", "");
         if (s == null || s.isEmpty()) return false;
         String[] g = s.split(";"); String one = g[(int) (Math.random() * g.length)];
@@ -934,7 +935,7 @@ public class FloatPetService extends Service {
     // 11-07: 화면이 꺼져 있으면(어두우면) 짖지 않기 — 알람만 예외. 다시 켜면 greet() 가 인사
     boolean screenOn() { try { return ((android.os.PowerManager) getSystemService(POWER_SERVICE)).isInteractive(); } catch (Exception e) { return true; } }
     void bark(boolean happy, float vol) {
-        if (listening || HaruBall.on || (vol <= 0.01f && !alarmOn)) return;   // 11-10: 소리 0이면 조용히   // 듣는 중·게임 중엔 짖지 않기 (게임 중에도 말을 잘 알아듣게)
+        if (listening || HaruBall.on || WakeTestActivity.active || (vol <= 0.01f && !alarmOn)) return;   // 11-10: 소리 0이면 조용히   // 듣는 중·게임 중엔 짖지 않기 (게임 중에도 말을 잘 알아듣게)
         if (!alarmOn && !screenOn()) return;
         try {
             String cv = getSharedPreferences("pet", 0).getString(happy ? "sndH" : "sndC", ""); String[] list = cv != null && !cv.isEmpty() ? cv.split("\\|") : happy ? new String[] { "dog_happy1", "dog_happy2", "dog_happy3" } : new String[] { "dog_bark1", "dog_bark2", "dog_bark3", "dog_bark4" };
