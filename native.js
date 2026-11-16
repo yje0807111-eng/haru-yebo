@@ -51,7 +51,8 @@
     if (FP0 && FP0.micQuiet) await FP0.micQuiet({ level: S.talk.micBeep ?? 1 }).catch(() => {});
     window.__srBusy = (window.__srBusy || 0) + 1;
     try { await SR.stop(); } catch { }   // 11-16: 남아 있던 받아쓰기 끄기 (안 끄면 마이크를 붙잡아 다음부터 못 들음)
-    let r; try { r = await Promise.race([SR.start({ language: 'ko-KR', maxResults: 1, partialResults: false, popup: false }), new Promise(res => setTimeout(() => res({ matches: [], timeout: 1 }), 9000))]); if (r && r.timeout) { try { await SR.stop(); } catch { } } } finally { if (FP0 && FP0.micRestore) setTimeout(() => FP0.micRestore().catch(() => {}), 900); window.__srBusy = Math.max(0, (window.__srBusy || 1) - 1); if (FP0 && FP0.wakePause) setTimeout(() => { if (!window.__srBusy) FP0.wakePause({ on: false }).catch(() => {}); }, 2500); }
+    window.__srWhy = '';
+    let r; try { r = await Promise.race([SR.start({ language: 'ko-KR', maxResults: 1, partialResults: false, popup: false }), new Promise(res => setTimeout(() => res({ matches: [], timeout: 1 }), 9000))]); if (r && r.timeout) { window.__srWhy = '9초 동안 말이 안 들림'; try { await SR.stop(); } catch { } } } catch (e) { window.__srWhy = String((e && (e.message || e.code)) || e || '').slice(0, 60); throw e; } finally { if (FP0 && FP0.micRestore) setTimeout(() => FP0.micRestore().catch(() => {}), 900); window.__srBusy = Math.max(0, (window.__srBusy || 1) - 1); if (FP0 && FP0.wakePause) setTimeout(() => { if (!window.__srBusy) FP0.wakePause({ on: false }).catch(() => {}); }, 2500); }
     return (r.matches || [])[0] || '';
   };
   // 🔄 새 버전: 하루 한 번 확인 → "바꿀까?" → [응] 이면 받아서 바로 설치 화면
@@ -186,7 +187,7 @@ window.wakeHear = async function (tries) {
   if (!txt && Date.now() - t0 < 2500 && FPw && FPw.voskListen) {
     const r = await FPw.voskListen().catch(() => ({ text: '' })); txt = (r && r.text || '').trim(); if (txt) eng = '📱';
   }
-  if (!txt) { if ((tries || 0) < 2) { say('잘 못 들었어 🥲 다시 말해 줘!', { ms: 2500 }); setTimeout(() => wakeHear((tries || 0) + 1), 1500); return; } say('또 불러 줘! "똑똑아" 🐾', { ms: 2500 }); if (FPw && FPw.wakePause) FPw.wakePause({ on: false }).catch(() => { }); return; }
+  if (!txt) { if ((tries || 0) < 2) { say(`잘 못 들었어 🥲 다시 말해 줘!${window.__srWhy ? `<br><span class="small">(이유: ${esc(window.__srWhy)})</span>` : ''}`, { ms: 3500 }); setTimeout(() => wakeHear((tries || 0) + 1), 1500); return; } say('또 불러 줘! "똑똑아" 🐾', { ms: 2500 }); if (FPw && FPw.wakePause) FPw.wakePause({ on: false }).catch(() => { }); return; }
   say(`${eng} 👂 "${esc(txt)}"`, { ms: 2500 }); if (typeof send === 'function') setTimeout(() => send(txt), 900);   // 🅖 구글 · 📱 폰 안 인식 (어느 귀로 들었는지 — 시험용)
   setTimeout(() => { if (FPw && FPw.wakePause && !window.__srBusy) FPw.wakePause({ on: false }).catch(() => { }); }, 2500);   // 다시 "똑똑아" 듣기 (다른 받아쓰기 중이면 기다림)
 };

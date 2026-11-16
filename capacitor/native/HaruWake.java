@@ -119,7 +119,7 @@ public class HaruWake {
                 if (rms > Math.max(350, floor * 2.5)) voiceUntil = now + 1000;   // 11-16: 조금 더 예민하게 (멀리서 불러도)
                 if (now < voiceUntil) {
                     if (!inVoice) {   // 목소리 시작 → 알아듣기 켬 (앞 0.4초 포함)
-                        inVoice = true; rec = new org.vosk.Recognizer((org.vosk.Model) model, 16000f);
+                        inVoice = true; rec = makeRec(c);
                         for (int k = 1; k <= pre.length; k++) { short[] p = pre[(preI + k) % pre.length]; ((org.vosk.Recognizer) rec).acceptWaveForm(p, p.length); }
                     }
                     org.vosk.Recognizer r = (org.vosk.Recognizer) rec;
@@ -139,6 +139,14 @@ public class HaruWake {
         }
     }
 
+    // 11-16: 아무 말이나 받아 적지 말고 "똑똑 · 팻 이름 · 그 밖의 말([unk])" 중에서만 고르게 → 이름을 훨씬 정확하게
+    static org.vosk.Recognizer makeRec(Context c) throws java.io.IOException {
+        String pet = norm(c.getSharedPreferences("pet", 0).getString("name", ""));
+        org.json.JSONArray g = new org.json.JSONArray(); g.put("똑똑"); g.put("똑똑아"); g.put("똑똑이");
+        if (pet.length() >= 2) { g.put(pet); g.put(pet + "야"); g.put(pet + "아"); }
+        g.put("[unk]");
+        return new org.vosk.Recognizer((org.vosk.Model) model, 16000f, g.toString());
+    }
     static boolean check(Context c, String json) {
         try {
             org.json.JSONObject j = new org.json.JSONObject(json == null ? "{}" : json);
