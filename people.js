@@ -208,7 +208,7 @@ async function peopleTalk(text) {
   if (msgTalk(clean)) return true;   // ✉️💬 문자·카톡 보내기
   if (window.chatTalk && chatTalk(clean)) return true;   // 💬 대화방 · 📞 하루 통화
   const call = clean.match(/^(.{1,12}?)\s*(한테|에게|께|에)?\s*(전화|통화)\s*(좀\s*)?(걸어\s*(줘|줄래)?|해\s*(줘|줄래)|연결해?\s*(줘)?|하자|할래)?[!~.?\s]*$/);
-  if (call) { const c = findPerson(call[1]); const p = c && c.phones[0]; if (c) { if (!p) say(`${esc(c.name)} 번호가 없어 🥲`); else say(`📞 <b>${esc(c.name)}</b>  ${esc(p.num)}<br><span class="small">👉 말풍선을 누르면 전화 화면이 열려요. 초록 단추만 누르면 걸려요</span>`, { pose: 'joy', ms: 20000, telNum: p.num, tap: () => dialNum(p.num), buttons: [{ label: '📞 전화 화면 열기', tel: p.num }, { label: '아니', ghost: true }] }); return true; } }
+  if (call) { const c = findPerson(call[1]); const p = c && c.phones[0]; if (c) { if (!p) say(`${esc(c.name)} 번호가 없어 🥲`); else say(`📞 <b>${esc(c.name)}</b>에게 전화할까?<br>${esc(p.num)}<br><span class="small">🎤 "응·걸어 줘" 하면 걸고, "아니" 하면 안 걸어요</span>`, { pose: 'joy', ms: 20000, telNum: p.num, tap: () => dialNum(p.num), buttons: [{ label: '📞 걸기', tel: p.num }, { label: '아니', ghost: true }] }); if (window.voiceYesNo) voiceYesNo(() => dialNum(p.num)); return true; } }
   const m = clean.match(/^(.{1,12}?)\s*(한테|에게|께)\s*["“'‘]?(.+?)["”'’]?\s*(라고|이라고|고)?\s*(전해|보내|말해|알려)\s*(줘|줄래|주라)?[!~.?\s]*$/);
   if (m) { const c = findPerson(m[1]); if (c && c.pk) { await sendTo(c, m[3].trim()); return true; } if (c) { say(`${esc(c.name)}는 아직 하루 예보로 연결 전이야. 📞 연락처에서 🔗 초대해 줘!`, { ms: 5000 }); return true; } }
   const k = clean.match(/^(.{1,12}?)\s*(랑|이랑|하고|와|과)\s*(연결|이야기|얘기|대화|톡)/);

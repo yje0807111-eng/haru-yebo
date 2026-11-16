@@ -49,7 +49,9 @@
     await SR.requestPermissions();
     if (FP0 && FP0.wakePause) await FP0.wakePause({ on: true }).catch(() => {});   // 11-16: 어떤 받아쓰기든 "똑똑아" 귀가 마이크를 놓은 뒤에
     if (FP0 && FP0.micQuiet) await FP0.micQuiet({ level: S.talk.micBeep ?? 1 }).catch(() => {});
-    let r; try { r = await SR.start({ language: 'ko-KR', maxResults: 1, partialResults: false, popup: false }); } finally { if (FP0 && FP0.micRestore) setTimeout(() => FP0.micRestore().catch(() => {}), 900); if (FP0 && FP0.wakePause) setTimeout(() => FP0.wakePause({ on: false }).catch(() => {}), 2500); }
+    window.__srBusy = (window.__srBusy || 0) + 1;
+    try { await SR.stop(); } catch { }   // 11-16: 남아 있던 받아쓰기 끄기 (안 끄면 마이크를 붙잡아 다음부터 못 들음)
+    let r; try { r = await Promise.race([SR.start({ language: 'ko-KR', maxResults: 1, partialResults: false, popup: false }), new Promise(res => setTimeout(() => res({ matches: [], timeout: 1 }), 9000))]); if (r && r.timeout) { try { await SR.stop(); } catch { } } } finally { if (FP0 && FP0.micRestore) setTimeout(() => FP0.micRestore().catch(() => {}), 900); window.__srBusy = Math.max(0, (window.__srBusy || 1) - 1); if (FP0 && FP0.wakePause) setTimeout(() => { if (!window.__srBusy) FP0.wakePause({ on: false }).catch(() => {}); }, 2500); }
     return (r.matches || [])[0] || '';
   };
   // 🔄 새 버전: 하루 한 번 확인 → "바꿀까?" → [응] 이면 받아서 바로 설치 화면
@@ -179,12 +181,22 @@ window.wakeHear = async function (tries) {
   say('👂 듣고 있어… 말해 줘!', { pose: 'up', ms: 9000 });
   let txt = '', t0 = Date.now();
   // 구글 받아쓰기 먼저 (사람 이름까지 정확) — 잠금 화면 등에서 바로 거절되면(2.5초 안) 폰 안 인식으로
-  if (window.Native && Native.listen) { try { txt = await Promise.race([Native.listen().catch(() => ''), new Promise(r => setTimeout(() => r(''), 9000))]) || ''; } catch { } }
+  if (window.Native && Native.listen) { try { txt = (await Native.listen().catch(() => '')) || ''; } catch { } }
   let eng = txt ? '🅖' : '';
   if (!txt && Date.now() - t0 < 2500 && FPw && FPw.voskListen) {
     const r = await FPw.voskListen().catch(() => ({ text: '' })); txt = (r && r.text || '').trim(); if (txt) eng = '📱';
   }
   if (!txt) { if ((tries || 0) < 2) { say('잘 못 들었어 🥲 다시 말해 줘!', { ms: 2500 }); setTimeout(() => wakeHear((tries || 0) + 1), 1500); return; } say('또 불러 줘! "똑똑아" 🐾', { ms: 2500 }); if (FPw && FPw.wakePause) FPw.wakePause({ on: false }).catch(() => { }); return; }
   say(`${eng} 👂 "${esc(txt)}"`, { ms: 2500 }); if (typeof send === 'function') setTimeout(() => send(txt), 900);   // 🅖 구글 · 📱 폰 안 인식 (어느 귀로 들었는지 — 시험용)
-  setTimeout(() => { if (FPw && FPw.wakePause) FPw.wakePause({ on: false }).catch(() => { }); }, 2500);   // 다시 "똑똑아" 듣기
+  setTimeout(() => { if (FPw && FPw.wakePause && !window.__srBusy) FPw.wakePause({ on: false }).catch(() => { }); }, 2500);   // 다시 "똑똑아" 듣기 (다른 받아쓰기 중이면 기다림)
+};
+
+// 📞 11-16: 말로 "응/걸어 줘" · "아니/아냐/됐어" — 확인 말풍선 뒤에 한 번 들어서 실행
+window.voiceYesNo = async function (yes, no) {
+  if (!(window.Native && Native.listen)) return;
+  await new Promise(r => setTimeout(r, 1200));
+  let t = ''; try { t = (await Native.listen()) || ''; } catch { }
+  t = String(t).replace(/\s+/g, ' ').trim();
+  if (/^(응|어|네|예|그래|좋아|오케이|ok|걸어|걸어\s*줘|해\s*줘|보내|보내\s*줘|그렇게\s*해|부탁해|맞아)/i.test(t)) { hideBubble(); yes && yes(); }
+  else if (/(아니|아냐|아뇨|취소|됐어|하지\s*마|그만|싫어|나중에)/.test(t)) { hideBubble(); say('알았어, 안 할게 🙂', { ms: 2000 }); no && no(); }
 };
