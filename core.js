@@ -63,7 +63,7 @@ function go(v, fromNav) {
   if (v === 'talk' && window.drawTalk) safe(drawTalk, '톡');
   if (v === 'safe') safe(drawSafe, '지킴이');
   if (v === 'time') safe(drawTime, '시간');
-  if (v === 'set') { safe(drawSet, '설정'); if (window.floatStatus) floatStatus(); if (window.wakeStatus) wakeStatus(); }
+  if (v === 'set') { safe(drawSet, '설정'); if (window.floatStatus) floatStatus(); if (window.wakeStatus) wakeStatus(); if (window.usageStatus) setTimeout(usageStatus, 600); }
   if (v === 'music' && window.drawMusic) drawMusic(false);
   if (v === 'tv' && window.drawTV) drawTV();
   if (v !== 'route' && typeof fmOn !== 'undefined' && fmOn && typeof fmClose === 'function') fmClose();   // 다른 화면으로 가면 전체 화면 지도 닫기

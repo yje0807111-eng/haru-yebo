@@ -504,6 +504,11 @@ public class FloatPetPlugin extends Plugin {
         call.resolve();
     }
     // 11-16: 앱이 받아쓰기·통화로 마이크를 쓰는 동안 "똑똑아" 듣기 쉬기 · 잠금 화면인지
+    // 11-16: 팻을 바탕 화면에서만 보이게 하려면 "사용 정보 접근" 허락이 필요
+    @PluginMethod
+    public void usageState(PluginCall call) { JSObject r = new JSObject(); r.put("ok", FloatPetService.usageOk(getContext())); call.resolve(r); }
+    @PluginMethod
+    public void usageAsk(PluginCall call) { try { android.content.Intent i = new android.content.Intent(android.provider.Settings.ACTION_USAGE_ACCESS_SETTINGS); i.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK); getContext().startActivity(i); } catch (Exception ignored) { } call.resolve(); }
     @PluginMethod
     public void wakePause(PluginCall call) { HaruWake.pause(Boolean.TRUE.equals(call.getBoolean("on", false))); call.resolve(); }
     @PluginMethod

@@ -76,7 +76,8 @@ public class HaruWake {
         th = new Thread(() -> loop(c.getApplicationContext()), "HaruWake"); th.start();
     }
     static synchronized void stop() { running = false; }
-    static void pause(boolean p) { paused = p; }
+    static volatile long pausedAt = 0;
+    static void pause(boolean p) { paused = p; if (p) pausedAt = System.currentTimeMillis(); }   // 11-16: 쉬기는 길어야 25초 (멈춘 채로 남지 않게)
 
     static String norm(String s) { return s == null ? "" : s.replaceAll("[^가-힣a-zA-Z]", ""); }
     // 이름 맞추기: "다루" → 들린 말에 "다루" 가 있거나, 한 글자만 다르면(받아쓰기 실수) 맞음
@@ -98,6 +99,7 @@ public class HaruWake {
             short[][] pre = new short[4][frame]; int preI = 0;   // 목소리 시작 앞 0.4초도 같이 (첫 소리 놓치지 않게)
             double floor = 300; long voiceUntil = 0; boolean inVoice = false;
             while (running) {
+                if (paused && System.currentTimeMillis() - pausedAt > 25000) paused = false;
                 boolean busy = paused || (FloatPetService.me != null && FloatPetService.me.listening);
                 if (busy) {   // 앱을 보고 있거나 팻이 받아쓰는 중 → 마이크 놓아 주기
                     if (ar != null) { try { ar.stop(); ar.release(); } catch (Exception ignored) { } ar = null; }
@@ -114,7 +116,7 @@ public class HaruWake {
                 double rms = Math.sqrt(sum / n);
                 long now = System.currentTimeMillis();
                 if (!inVoice) floor = floor * 0.97 + Math.min(rms, floor * 2) * 0.03;   // 조용한 바탕 소리 크기를 천천히 따라감
-                if (rms > Math.max(500, floor * 3)) voiceUntil = now + 900;
+                if (rms > Math.max(350, floor * 2.5)) voiceUntil = now + 1000;   // 11-16: 조금 더 예민하게 (멀리서 불러도)
                 if (now < voiceUntil) {
                     if (!inVoice) {   // 목소리 시작 → 알아듣기 켬 (앞 0.4초 포함)
                         inVoice = true; rec = new org.vosk.Recognizer((org.vosk.Model) model, 16000f);
@@ -143,8 +145,11 @@ public class HaruWake {
             if (t.isEmpty()) return false;
             // 11-16 사용자: 깨우는 이름은 "똑똑"으로 고정 (된소리 두 번 — 폰 마이크로도 가장 또렷). 팻 이름은 대화에서만
             String n = norm(t);
-            if (n.matches(".*똑똑(하|해|한|했|히).*")) return false;   // "똑똑하다·똑똑해" 같은 평소 말에는 안 깸
-            if (!(n.contains("똑똑") || n.contains("똑똑이"))) return false;
+            // 11-16 사용자: "똑똑(아)" 와 사용자가 지은 팻 이름 둘 다 · 받아쓰기가 "톡톡·똑독"으로 적어도 맞음
+            String pet = c.getSharedPreferences("pet", 0).getString("name", "");
+            boolean ttok = n.contains("똑똑") || n.contains("톡톡") || n.contains("똑독") || n.contains("독똑") || n.contains("뚝뚝");
+            if (ttok && n.matches(".*똑똑(하다|합니다|해요|한사람|한아이).*")) ttok = false;   // "똑똑하다" 같은 평소 말
+            if (!ttok && !(pet != null && !pet.isEmpty() && heard(t, pet))) return false;
             long now = System.currentTimeMillis(); if (now - lastWake < 4000) return true; lastWake = now;
             Log.i(TAG, "heard: " + t);
             new Handler(Looper.getMainLooper()).post(() -> wake(c));
@@ -194,7 +199,7 @@ public class HaruWake {
         // 11-15 사용자: 팻창(하루 앱의 팻만 보이는 화면)이 잠금 화면 위에도 바로 뜸 → 팻이 울고 "듣고 있어… 말해 줘!" → 말로만 명령
         //  잠금을 풀 필요 없음 · "끝"이나 뒤로 가기 = 하루를 뒤로 보내고 바탕 화면(팻은 계속 떠 있음)
         paused = true;   // 앱이 마이크를 쓰도록 놓아 줌 (앱이 듣기를 마치면 wakePause(false) 로 다시 이름 듣기)
-        if (MainActivity.visible) { FloatPetPlugin.tapped("wake"); return; }   // 앱(팻창)이 이미 떠 있으면 그 자리에서 바로 대답
+        if (MainActivity.visible) { FloatPetPlugin.tapped("wake"); return; }   // 다른 앱을 쓰는 중이면 → 하루 팻창이 그 위에 떠서 대답 ("끝"이면 쓰던 앱으로 돌아감)   // 앱(팻창)이 이미 떠 있으면 그 자리에서 바로 대답
         Intent i = new Intent(c, MainActivity.class);
         i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_REORDER_TO_FRONT | Intent.FLAG_ACTIVITY_SINGLE_TOP);
         i.putExtra("haruWake", true);

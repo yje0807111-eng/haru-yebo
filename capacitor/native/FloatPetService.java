@@ -75,13 +75,31 @@ public class FloatPetService extends Service {
         if (me != null) me.h.post(() -> me.applyShown());
     }
 
+    // 11-16: 팻은 바탕 화면에서만 — 다른 앱을 쓰는 동안엔 숨김 (부르면 "똑똑아"로 언제든 나타남)
+    volatile boolean onHome = true; String fgLast = null, launcherPkg = null; long homeCheckAt = 0;
+    static boolean usageOk(android.content.Context c) { try { android.app.AppOpsManager ao = (android.app.AppOpsManager) c.getSystemService(APP_OPS_SERVICE); int m = Build.VERSION.SDK_INT >= 29 ? ao.unsafeCheckOpNoThrow(android.app.AppOpsManager.OPSTR_GET_USAGE_STATS, android.os.Process.myUid(), c.getPackageName()) : ao.checkOpNoThrow(android.app.AppOpsManager.OPSTR_GET_USAGE_STATS, android.os.Process.myUid(), c.getPackageName()); return m == android.app.AppOpsManager.MODE_ALLOWED; } catch (Exception e) { return false; } }
+    void checkHome(long now) {
+        if (now - homeCheckAt < 1200) return; homeCheckAt = now;
+        boolean h0 = onHome;
+        try {
+            if (!usageOk(this)) { onHome = true; }
+            else {
+                if (launcherPkg == null) { android.content.pm.ResolveInfo ri = getPackageManager().resolveActivity(new Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME), android.content.pm.PackageManager.MATCH_DEFAULT_ONLY); launcherPkg = ri != null && ri.activityInfo != null ? ri.activityInfo.packageName : ""; }
+                android.app.usage.UsageStatsManager um = (android.app.usage.UsageStatsManager) getSystemService(USAGE_STATS_SERVICE);
+                android.app.usage.UsageEvents ev = um.queryEvents(now - 15000, now); android.app.usage.UsageEvents.Event e = new android.app.usage.UsageEvents.Event();
+                while (ev.hasNextEvent()) { ev.getNextEvent(e); if (e.getEventType() == 1) fgLast = e.getPackageName(); }   // 1 = 화면에 나온 앱
+                onHome = fgLast == null || fgLast.equals(launcherPkg) || fgLast.equals(getPackageName()) || fgLast.equals("com.android.systemui");
+            }
+        } catch (Exception ex) { onHome = true; }
+        if (h0 != onHome) applyShown();
+    }
     void applyShown() {
         Log.i("HaruPet", "shown=" + wantShown + " pet=" + (pet != null) + " bar=" + (bar != null));
-        int vis = wantShown ? View.VISIBLE : View.GONE;
+        int vis = wantShown && onHome ? View.VISIBLE : View.GONE;
         if (wantShown) { SharedPreferences ps = getSharedPreferences("pet", 0); String k = ps.getString("sp", "dog") + "|" + ps.getString("walk", "") + ps.getString("up", ""); if (!k.equals(loadedSp)) loadLists(); }   // 고른 동물 다시 확인
         if (pet != null) pet.setVisibility(vis);
         if (bar != null) bar.setVisibility(View.GONE);
-        if (bub != null && !wantShown) bub.setVisibility(View.GONE);
+        if (bub != null && !(wantShown && onHome)) bub.setVisibility(View.GONE);
         if (!wantShown) endEdit();
     }
 
@@ -362,6 +380,7 @@ public class FloatPetService extends Service {
         public void run() {
             if (pet == null) return;
             long now = System.currentTimeMillis();
+            checkHome(now);
             try {
                 if (HaruBall.on && !wantShown && now - HaruBall.startedAt > 2500) HaruBall.stop(FloatPetService.this, false);   // 하루 예보를 열면 게임 끝
                 if (!held && wantShown && HaruBall.on && !listening) HaruBall.tick(FloatPetService.this, now);   // 듣는 동안엔 잠깐 멈춤   // 🎾 공 던지기 중
@@ -466,7 +485,7 @@ public class FloatPetService extends Service {
     boolean maybeFacts(long now) {
         SharedPreferences sp = getSharedPreferences("pet", 0);
         if (!sp.getBoolean("factsOn", true)) return false;
-        if (listening || HaruBall.on || !screenOn()) return true;
+        if (listening || HaruBall.on || !screenOn() || !onHome) return true;
         if (factQ.size() < 10) loadFacts();
         if (nextFact == 0) { nextFact = now + 4000; return true; }
         if (now < nextFact) return true;
@@ -895,7 +914,7 @@ public class FloatPetService extends Service {
             }
             bub.setText(text); bubKind = nextKind; nextKind = "";   // 보통 말풍선이 오면 카톡 표시는 풀림
             if (bubBg != null) bubBg.setColor(Color.parseColor(bubKind.isEmpty() ? "#FFFFFF" : "#FEE500"));   // 카톡 말풍선은 노랑
-            bub.setVisibility(wantShown ? View.VISIBLE : View.GONE);
+            bub.setVisibility(wantShown && onHome ? View.VISIBLE : View.GONE);
             bub.measure(View.MeasureSpec.makeMeasureSpec(sw() - dp(40), View.MeasureSpec.AT_MOST), View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED));
             int bw = bub.getMeasuredWidth(), bh = bub.getMeasuredHeight();
             int pw = lp != null ? lp.width : dp(120);

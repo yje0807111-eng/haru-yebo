@@ -60,6 +60,7 @@ jobs:
           sed -i 's#</application>#<receiver android:name=".HaruAlarmReceiver" android:exported="false"/></application>#' $M
           sed -i 's#</manifest>#<uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT"/></manifest>#' $M
           sed -i 's#</manifest>#<uses-permission android:name="android.permission.WAKE_LOCK"/><uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS"/><uses-permission android:name="android.permission.TURN_SCREEN_ON"/></manifest>#' $M
+          sed -i 's#</manifest>#<uses-permission android:name="android.permission.PACKAGE_USAGE_STATS" xmlns:tools="http://schemas.android.com/tools" tools:ignore="ProtectedPermissions"/></manifest>#' $M
           grep -c FloatPetService $M
           # 아이콘
           for d in mdpi hdpi xhdpi xxhdpi xxxhdpi; do
