@@ -168,7 +168,11 @@ public class HaruWake {
 
     // 11-15: 잠금 화면에서는 구글 받아쓰기가 막힘 → 폰 안 인식(Vosk)으로 명령 한 번 듣기
     interface Got { void on(String text); }
-    static void listenOnce(Context c, Got cb) {
+    static volatile boolean stopNow = false;
+    // 11-16: 폰 안 인식으로 한 번 듣기 — 말하는 대로 글자를 실시간으로 보내 줌(partial) · 조용해지면(1.6초) 끝
+    //  ★ 고친 것: 예전엔 처음 0.6초 소리를 '바탕 소음'으로 재서, 바로 말하면 목소리를 소음으로 알고 끝까지 못 들었음
+    static void listenOnce(Context c, Got partial, Got cb) {
+        stopNow = false;
         new Thread(() -> {
             String out = ""; AudioRecord ar = null; org.vosk.Recognizer r = null;
             try {
@@ -178,17 +182,20 @@ public class HaruWake {
                 ar = new AudioRecord(MediaRecorder.AudioSource.VOICE_RECOGNITION, sr, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT, Math.max(AudioRecord.getMinBufferSize(sr, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT), frame * 4));
                 r = new org.vosk.Recognizer((org.vosk.Model) model, 16000f);
                 ar.startRecording();
-                long start = System.currentTimeMillis(), lastVoice = 0; double floor = 300; boolean spoke = false; StringBuilder sb = new StringBuilder();
-                while (true) {
+                long start = System.currentTimeMillis(), lastVoice = 0, lastSend = 0; double floor = 250; boolean spoke = false; StringBuilder sb = new StringBuilder(); String lastShown = "";
+                while (!stopNow) {
                     int n = ar.read(buf, 0, frame); if (n <= 0) continue;
                     double sum = 0; for (int i = 0; i < n; i++) sum += (double) buf[i] * buf[i]; double rms = Math.sqrt(sum / n);
                     long now = System.currentTimeMillis();
-                    if (!spoke && now - start < 600) floor = Math.max(200, rms);   // 처음 0.6초로 바탕 소리 재기
-                    if (rms > Math.max(450, floor * 2.5)) { spoke = true; lastVoice = now; }
-                    if (r.acceptWaveForm(buf, n)) { String t = new org.json.JSONObject(r.getResult()).optString("text", ""); if (!t.isEmpty()) sb.append(t).append(' '); }
-                    if (spoke && now - lastVoice > 1200) break;   // 말이 끝남
-                    if (!spoke && now - start > 6000) break;    // 6초 동안 말이 없음
-                    if (now - start > 9000) break;
+                    if (rms < floor) floor = floor * 0.8 + rms * 0.2;   // 바탕 소음은 '작아질 때만' 따라감 (목소리를 소음으로 알지 않게)
+                    if (rms > Math.max(300, floor * 2.2)) { spoke = true; lastVoice = now; }
+                    String shown;
+                    if (r.acceptWaveForm(buf, n)) { String t = new org.json.JSONObject(r.getResult()).optString("text", ""); if (!t.isEmpty()) sb.append(t).append(' '); shown = sb.toString(); }
+                    else shown = sb + new org.json.JSONObject(r.getPartialResult()).optString("partial", "");
+                    if (partial != null && !shown.equals(lastShown) && now - lastSend > 120) { lastShown = shown; lastSend = now; final String sh = shown.trim(); new Handler(Looper.getMainLooper()).post(() -> partial.on(sh)); }
+                    if (spoke && now - lastVoice > 1600) break;   // 말이 끝남 (1.6초 조용)
+                    if (!spoke && now - start > 8000) break;    // 8초 동안 말이 없음
+                    if (now - start > 20000) break;
                 }
                 String t = new org.json.JSONObject(r.getFinalResult()).optString("text", ""); sb.append(t);
                 out = sb.toString().trim().replaceAll("\\s+", " ");

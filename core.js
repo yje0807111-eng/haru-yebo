@@ -434,6 +434,7 @@ $('#tFace').onclick = () => setMute(!S.talk.mute);
 $('#talk').classList.toggle('muted', !!S.talk.mute);
 { const f = $('#tFace'); if (f && CH && CH.sprites) f.onerror = () => { f.onerror = null; f.src = DIR() + CH.sprites['정면'].file; }; f.src = DIR() + '말창얼굴.webp'; }   // 말창 얼굴도 고른 동물로
 $('#micBtn').onclick = async () => {
+  if (window.voicePanel && window.Capacitor && Capacitor.Plugins && Capacitor.Plugins.FloatPet) { voicePanel(); return; }
   if (window.Native && Native.listen) { const FPm = window.Capacitor && Capacitor.Plugins && Capacitor.Plugins.FloatPet; if (FPm && FPm.wakePause) await FPm.wakePause({ on: true }).catch(() => { }); $('#micBtn').classList.add('rec'); say('👂 듣고 있어… 말해 줘!', { pose: 'up', ms: 6000 }); try { const txt = await Native.listen(); if (txt) { say(`👂 "${esc(txt)}"`, { ms: 1500 }); send(txt); } } catch { say(`잘 못 들었어 🥲 다시 해 볼래?${window.__srWhy ? `<br><span class="small">(이유: ${esc(window.__srWhy)})</span>` : ''}`, { ms: 4000 }); } $('#micBtn').classList.remove('rec'); setTimeout(() => { if (FPm && FPm.wakePause && !window.__srBusy) FPm.wakePause({ on: false }).catch(() => { }); }, 2500); return; }
   if (!SR) { say('이 휴대폰 브라우저는 말 알아듣기를 못 해 🥲 크롬에서 열어 줘!', { ms: 4000 }); return; }
   if (rec) { rec.stop(); return; }

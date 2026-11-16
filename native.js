@@ -176,21 +176,7 @@
 })();
 
 // 🎤 11-15: 이름으로 깨웠을 때 듣기 — 잠금 화면에선 구글 받아쓰기가 막히니 폰 안 인식(Vosk)으로 이어서
-window.wakeHear = async function (tries) {
-  const FPw = window.Capacitor && Capacitor.Plugins && Capacitor.Plugins.FloatPet;
-  if (FPw && FPw.wakePause) await FPw.wakePause({ on: true }).catch(() => { });   // "똑똑아" 귀가 마이크를 완전히 놓을 때까지 기다림
-  say('👂 듣고 있어… 말해 줘!', { pose: 'up', ms: 9000 });
-  let txt = '', t0 = Date.now();
-  // 구글 받아쓰기 먼저 (사람 이름까지 정확) — 잠금 화면 등에서 바로 거절되면(2.5초 안) 폰 안 인식으로
-  if (window.Native && Native.listen) { try { txt = (await Native.listen().catch(() => '')) || ''; } catch { } }
-  let eng = txt ? '🅖' : '';
-  if (!txt && Date.now() - t0 < 2500 && FPw && FPw.voskListen) {
-    const r = await FPw.voskListen().catch(() => ({ text: '' })); txt = (r && r.text || '').trim(); if (txt) eng = '📱';
-  }
-  if (!txt) { if ((tries || 0) < 2) { say(`잘 못 들었어 🥲 다시 말해 줘!${window.__srWhy ? `<br><span class="small">(이유: ${esc(window.__srWhy)})</span>` : ''}`, { ms: 3500 }); setTimeout(() => wakeHear((tries || 0) + 1), 1500); return; } say('또 불러 줘! "똑똑아" 🐾', { ms: 2500 }); if (FPw && FPw.wakePause) FPw.wakePause({ on: false }).catch(() => { }); return; }
-  say(`${eng} 👂 "${esc(txt)}"`, { ms: 2500 }); if (typeof send === 'function') setTimeout(() => send(txt), 900);   // 🅖 구글 · 📱 폰 안 인식 (어느 귀로 들었는지 — 시험용)
-  setTimeout(() => { if (FPw && FPw.wakePause && !window.__srBusy) FPw.wakePause({ on: false }).catch(() => { }); }, 2500);   // 다시 "똑똑아" 듣기 (다른 받아쓰기 중이면 기다림)
-};
+window.wakeHear = function () { if (window.voicePanel) voicePanel(); };
 
 // 📞 11-16: 말로 "응/걸어 줘" · "아니/아냐/됐어" — 확인 말풍선 뒤에 한 번 들어서 실행
 window.voiceYesNo = async function (yes, no) {
@@ -201,3 +187,59 @@ window.voiceYesNo = async function (yes, no) {
   if (/^(응|어|네|예|그래|좋아|오케이|ok|걸어|걸어\s*줘|해\s*줘|보내|보내\s*줘|그렇게\s*해|부탁해|맞아)/i.test(t)) { hideBubble(); yes && yes(); }
   else if (/(아니|아냐|아뇨|취소|됐어|하지\s*마|그만|싫어|나중에)/.test(t)) { hideBubble(); say('알았어, 안 할게 🙂', { ms: 2000 }); no && no(); }
 };
+
+// 🎤 11-16 녹음 판: 빨간 단추가 깜빡이며 듣는 중 · 말하는 대로 글자가 실시간으로 적힘 · "다시/그게 아니고" = 지우고 다시
+//  조용해지면 "실행해?" → "응/그래" 실행 · "아니/다시" 다시 듣기 · 폰 안 인식이라 잠금 화면에서도 됨
+(function () {
+  const FPv = () => window.Capacitor && Capacitor.Plugins && Capacitor.Plugins.FloatPet;
+  let ui, busy = false;
+  function make() {
+    if (ui) return ui;
+    const st = document.createElement('style');
+    st.textContent = `#vp{position:fixed;left:0;right:0;bottom:0;z-index:70;background:#fff;border-radius:22px 22px 0 0;box-shadow:0 -4px 20px #0003;padding:18px 18px 26px;text-align:center;font-family:inherit}
+#vp .vpBtn{width:84px;height:84px;border-radius:50%;border:0;background:#e53935;color:#fff;font-size:34px;box-shadow:0 0 0 0 #e5393588;animation:vpP 1.2s infinite}
+#vp.ask .vpBtn{background:#43a047;animation:none}#vp.idle .vpBtn{background:#9e9e9e;animation:none}
+@keyframes vpP{0%{box-shadow:0 0 0 0 #e5393577}70%{box-shadow:0 0 0 22px #e5393500}100%{box-shadow:0 0 0 0 #e5393500}}
+#vp .vpSt{font-weight:800;margin:10px 0 6px;font-size:17px}#vp .vpTx{min-height:56px;font-size:24px;font-weight:700;color:#222;word-break:keep-all;line-height:1.35}
+#vp .vpHint{color:#888;font-size:13px;margin-top:8px}#vp .vpRow{display:flex;gap:10px;justify-content:center;margin-top:12px}#vp .vpRow button{border:0;border-radius:14px;padding:10px 18px;font-size:16px;font-weight:700}`;
+    document.head.appendChild(st);
+    ui = document.createElement('div'); ui.id = 'vp'; ui.hidden = true;
+    ui.innerHTML = '<button class="vpBtn" id="vpBtn">🎤</button><div class="vpSt" id="vpSt"></div><div class="vpTx" id="vpTx"></div><div class="vpRow" id="vpRow" hidden><button id="vpYes" style="background:#43a047;color:#fff">✅ 실행</button><button id="vpAgain" style="background:#eee">🔄 다시</button><button id="vpX" style="background:#eee">✕ 닫기</button></div><div class="vpHint" id="vpHint">말이 끝나면 "실행해?" 하고 물어봐요 · 잘못 적히면 "다시"</div>';
+    document.body.appendChild(ui);
+    const F = FPv(); if (F && F.addListener) F.addListener('voskPartial', d => { if (!ui.hidden && ui.classList.contains('rec')) $('#vpTx').textContent = d.text || ''; });
+    $('#vpX').onclick = () => close();
+    return ui;
+  }
+  function close() { if (!ui) return; ui.hidden = true; busy = false; const F = FPv(); if (F && F.voskStop) F.voskStop().catch(() => { }); setTimeout(() => { if (F && F.wakePause) F.wakePause({ on: false }).catch(() => { }); }, 800); }
+  async function hear() {   // 한 번 듣기 (실시간 글자)
+    const F = FPv(); if (!F || !F.voskListen) return '';
+    ui.className = 'rec'; $('#vpSt').textContent = '🔴 듣는 중… 말해 줘!'; $('#vpTx').textContent = '';
+    const r = await F.voskListen().catch(() => ({ text: '' }));
+    return (r && r.text || '').replace(/\s+/g, ' ').trim();
+  }
+  const AGAIN = /^(다시|다시\s*해|다시\s*할게|그게\s*아니고|그게\s*아니야|아니\s*다시|틀렸어)/;
+  const YES = /^(응|어|네|예|그래|좋아|오케이|실행|실행해|해\s*줘|그렇게\s*해|맞아|보내|걸어)/;
+  const NO = /^(아니|아냐|아뇨|취소|됐어|하지\s*마|그만)/;
+  window.voicePanel = async function () {
+    if (busy) return; busy = true; make(); ui.hidden = false; $('#vpRow').hidden = true;
+    const F = FPv(); if (F && F.wakePause) await F.wakePause({ on: true }).catch(() => { });   // "똑똑아" 귀가 마이크를 놓을 때까지
+    let cmd = '';
+    for (let round = 0; round < 4 && !ui.hidden; round++) {
+      cmd = await hear(); if (ui.hidden) return;
+      if (!cmd) { $('#vpSt').textContent = '잘 못 들었어 🥲 다시 말해 줘!'; continue; }
+      if (AGAIN.test(cmd)) { $('#vpSt').textContent = '🔄 지웠어! 다시 말해 줘'; cmd = ''; continue; }
+      // 확인: "실행해?"
+      ui.className = 'ask'; $('#vpTx').textContent = cmd; $('#vpSt').textContent = '✅ 이대로 실행해?'; $('#vpRow').hidden = false;
+      const ans = await new Promise(async res => {
+        $('#vpYes').onclick = () => res('응'); $('#vpAgain').onclick = () => res('다시');
+        const a = await (F && F.voskListen ? F.voskListen().catch(() => ({ text: '' })) : Promise.resolve({ text: '' }));
+        res((a && a.text || '').trim());
+      });
+      $('#vpRow').hidden = true; if (F && F.voskStop) F.voskStop().catch(() => { });
+      if (YES.test(ans) && !NO.test(ans)) { close(); say(`👂 "${esc(cmd)}"`, { ms: 1500 }); if (typeof send === 'function') setTimeout(() => send(cmd), 300); return; }
+      if (NO.test(ans) && !AGAIN.test(ans)) { close(); say('알았어, 안 할게 🙂', { ms: 1800 }); return; }
+      $('#vpSt').textContent = '🔄 다시 말해 줘'; cmd = '';
+    }
+    close(); say('또 불러 줘! "똑똑아" 🐾', { ms: 2500 });
+  };
+})();

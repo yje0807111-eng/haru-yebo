@@ -518,7 +518,9 @@ public class FloatPetPlugin extends Plugin {
     @PluginMethod
     public void isLocked(PluginCall call) { JSObject r = new JSObject(); try { r.put("locked", ((android.app.KeyguardManager) getContext().getSystemService(android.content.Context.KEYGUARD_SERVICE)).isKeyguardLocked()); } catch (Exception e) { r.put("locked", false); } call.resolve(r); }
     @PluginMethod
-    public void voskListen(PluginCall call) { HaruWake.listenOnce(getContext(), t -> { JSObject r = new JSObject(); r.put("text", t); call.resolve(r); }); }
+    public void voskListen(PluginCall call) { HaruWake.listenOnce(getContext(), p -> { JSObject d = new JSObject(); d.put("text", p); fire("voskPartial", d); }, t -> { JSObject r = new JSObject(); r.put("text", t); call.resolve(r); }); }
+    @PluginMethod
+    public void voskStop(PluginCall call) { HaruWake.stopNow = true; call.resolve(); }
     @PluginMethod
     public void wakeState(PluginCall call) { android.content.Context c = getContext(); JSObject r = new JSObject(); r.put("on", HaruWake.wanted(c)); r.put("model", HaruWake.hasModel(c)); r.put("running", HaruWake.running); call.resolve(r); }
     // 📞 통화 (11-09): 스피커로 듣기 켜기·끄기 · 통화 모드
