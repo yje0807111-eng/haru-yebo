@@ -85,14 +85,58 @@ public class WakeTestActivity extends Activity {
     }
     void beep() { try { new ToneGenerator(AudioManager.STREAM_MUSIC, 70).startTone(ToneGenerator.TONE_PROP_BEEP, 150); } catch (Exception ignored) { } }
 
-    // 마이크가 "똑똑아" 귀에서 풀릴 때까지 기다렸다가 듣기
+    // 11-16: 받아쓰기는 구글 인식(예전에 "대충 말해도 다 알아듣던" 그것) — 폰 안 인식(Vosk 작은 모델)은 엉뚱한 글자를 적어서 이름 부르기에만 씀
+    //  연락처 이름을 미리 알려 주고(힌트), 후보 5개 중 연락처 이름이 든 것을 고름 · 안 되면 그때만 폰 안 인식
+    android.speech.SpeechRecognizer sr;
     void hear(HaruWake.Got cb) {
         HaruWake.pause(true);
         h.postDelayed(new Runnable() { int n = 0; public void run() {
             if (HaruWake.recOpen && n++ < 20) { h.postDelayed(this, 100); return; }
             busy = true; blink(true, 0xFFE53935); beep();
-            HaruWake.listenOnce(WakeTestActivity.this, p -> { if (!done) tx.setText(p); }, t -> { busy = false; blink(false, 0xFF9E9E9E); if (!done) cb.on(t == null ? "" : t.trim()); });
+            h.postDelayed(() -> google(cb), 250);
         } }, 50);
+    }
+    void vosk(HaruWake.Got cb) {
+        st.setText("🔴 듣는 중… (폰 안 인식)");
+        HaruWake.listenOnce(this, p -> { if (!done) tx.setText(p); }, t -> { busy = false; blink(false, 0xFF9E9E9E); if (!done) cb.on(t == null ? "" : t.trim()); });
+    }
+    void google(HaruWake.Got cb) {
+        if (!android.speech.SpeechRecognizer.isRecognitionAvailable(this)) { vosk(cb); return; }
+        try { if (sr != null) sr.destroy(); } catch (Exception ignored) { }
+        sr = android.speech.SpeechRecognizer.createSpeechRecognizer(this);
+        Intent i = new Intent(android.speech.RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
+        i.putExtra(android.speech.RecognizerIntent.EXTRA_LANGUAGE_MODEL, android.speech.RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
+        i.putExtra(android.speech.RecognizerIntent.EXTRA_LANGUAGE, "ko-KR");
+        i.putExtra(android.speech.RecognizerIntent.EXTRA_PARTIAL_RESULTS, true);
+        i.putExtra(android.speech.RecognizerIntent.EXTRA_MAX_RESULTS, 5);
+        i.putExtra(android.speech.RecognizerIntent.EXTRA_CALLING_PACKAGE, getPackageName());
+        ArrayList<String> hint = new ArrayList<>(); for (String[] p : people) if (!hint.contains(p[2]) && hint.size() < 300) hint.add(p[2]);
+        hint.add("전화 걸어 줘"); hint.add("문자 보내 줘");
+        i.putStringArrayListExtra("android.speech.extra.BIASING_STRINGS", hint);
+        final boolean[] fin = { false };
+        sr.setRecognitionListener(new android.speech.RecognitionListener() {
+            public void onReadyForSpeech(Bundle b) { st.setText("🔴 듣는 중… 말해 줘!\n(예: 엄마 전화 걸어 줘 · 아들 문자 밥 먹었어)"); }
+            public void onBeginningOfSpeech() { }
+            public void onRmsChanged(float v) { }
+            public void onBufferReceived(byte[] b) { }
+            public void onEndOfSpeech() { st.setText("⏳ 알아듣는 중…"); }
+            public void onEvent(int t, Bundle b) { }
+            public void onPartialResults(Bundle b) { ArrayList<String> r = b.getStringArrayList(android.speech.SpeechRecognizer.RESULTS_RECOGNITION); if (r != null && !r.isEmpty() && !done) tx.setText(r.get(0)); }
+            public void onResults(Bundle b) {
+                if (fin[0]) return; fin[0] = true; busy = false; blink(false, 0xFF9E9E9E);
+                ArrayList<String> r = b.getStringArrayList(android.speech.SpeechRecognizer.RESULTS_RECOGNITION);
+                String best = r == null || r.isEmpty() ? "" : r.get(0);
+                if (r != null) for (String c : r) if (who(c.replace(" ", "")) != null) { best = c; break; }   // 후보 중 연락처 이름이 든 것
+                if (!done) { tx.setText(best); cb.on(best.trim()); }
+            }
+            public void onError(int e) {
+                if (fin[0]) return; fin[0] = true;
+                if (e == android.speech.SpeechRecognizer.ERROR_NO_MATCH || e == android.speech.SpeechRecognizer.ERROR_SPEECH_TIMEOUT) { busy = false; blink(false, 0xFF9E9E9E); if (!done) cb.on(""); return; }
+                // 구글이 막히면(잠금 화면·인터넷 등) → 폰 안 인식으로
+                tx.setText("(구글 인식 안 됨: " + e + ")"); vosk(cb);
+            }
+        });
+        sr.startListening(i);
     }
 
     int tries = 0;
@@ -159,6 +203,7 @@ public class WakeTestActivity extends Activity {
 
     void end() {
         if (done) return; done = true; active = false;
+        try { if (sr != null) sr.destroy(); } catch (Exception ignored) { }
         HaruWake.stopNow = true;
         h.postDelayed(() -> { HaruWake.pause(false); HaruWake.start(getApplicationContext()); }, 600);
         finish();
