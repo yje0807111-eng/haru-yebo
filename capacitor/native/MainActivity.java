@@ -5,6 +5,7 @@ import androidx.activity.OnBackPressedCallback;
 import com.getcapacitor.BridgeActivity;
 
 public class MainActivity extends BridgeActivity {
+    static volatile boolean visible = false;
     @Override
     public void onCreate(Bundle savedInstanceState) {
         registerPlugin(FloatPetPlugin.class);   // 화면 위 팻
@@ -49,7 +50,7 @@ public class MainActivity extends BridgeActivity {
         super.onResume();
         FloatPetService.setShown(false);
         FloatPetService.maybeStart(this);
-        HaruWake.pause(true);   // 앱을 보는 동안엔 마이크를 앱에 양보
+        visible = true; HaruWake.start(this);   // 11-16: 앱이 떠 있어도 "똑똑아" 듣기 (앱이 받아쓰는 동안만 쉼)
     }
 
     // 앱을 닫거나 바탕화면으로 가면 → 화면 위에 팻과 말창 다시 보이기
@@ -58,7 +59,7 @@ public class MainActivity extends BridgeActivity {
         super.onStop();
         android.util.Log.i("HaruPet", "activity stop, service=" + (FloatPetService.me != null));
         FloatPetService.setShown(true);
-        HaruWake.pause(false); HaruWake.start(this);   // 앱을 닫으면 다시 이름 듣기
+        visible = false; HaruWake.pause(false); HaruWake.start(this);   // 앱을 닫으면 다시 이름 듣기
         if (android.os.Build.VERSION.SDK_INT >= 27) { setShowWhenLocked(false); setTurnScreenOn(false); }
         getWindow().clearFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         if (FloatPetService.me == null) FloatPetService.maybeStart(this);

@@ -239,6 +239,7 @@ async function callPeer() {
   return pc;
 }
 async function callStart(cid) {
+  { const F = window.Capacitor && Capacitor.Plugins && Capacitor.Plugins.FloatPet; if (F && F.wakePause) F.wakePause({ on: true }).catch(() => { }); }   // 통화 중엔 "똑똑아" 듣기 쉬기
   const c = S.contacts.find(x => x.id === cid); if (!c) return;
   if (!c.pk) return chatNotLinked(c);
   if (CALL) { callUI(); return; }
@@ -290,6 +291,7 @@ async function callAnswer() {
 function callReject() { if (!CALL) return; nsend(CALL.pk, 'call-no', '', { call: CALL.id }); callEnd('', false, '📞 받지 않은 통화'); }
 function callHang() { if (!CALL) return; nsend(CALL.pk, 'call-end', '', { call: CALL.id }); callEnd('', false); }
 function callEnd(msg, tellPeer, log) {
+  { const F = window.Capacitor && Capacitor.Plugins && Capacitor.Plugins.FloatPet; if (F && F.wakePause) F.wakePause({ on: false }).catch(() => { }); }
   if (!CALL) return;
   const C = CALL; CALL = null;
   clearTimeout(C.timer); clearInterval(callTick); ringStop();

@@ -193,7 +193,8 @@ public class HaruWake {
         } catch (Exception e) { Log.e(TAG, "wakelock", e); }
         // 11-15 사용자: 팻창(하루 앱의 팻만 보이는 화면)이 잠금 화면 위에도 바로 뜸 → 팻이 울고 "듣고 있어… 말해 줘!" → 말로만 명령
         //  잠금을 풀 필요 없음 · "끝"이나 뒤로 가기 = 하루를 뒤로 보내고 바탕 화면(팻은 계속 떠 있음)
-        paused = true;   // 앱이 마이크를 쓰도록 놓아 줌 (앱이 뒤로 가면 다시 이름 듣기)
+        paused = true;   // 앱이 마이크를 쓰도록 놓아 줌 (앱이 듣기를 마치면 wakePause(false) 로 다시 이름 듣기)
+        if (MainActivity.visible) { FloatPetPlugin.tapped("wake"); return; }   // 앱(팻창)이 이미 떠 있으면 그 자리에서 바로 대답
         Intent i = new Intent(c, MainActivity.class);
         i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_REORDER_TO_FRONT | Intent.FLAG_ACTIVITY_SINGLE_TOP);
         i.putExtra("haruWake", true);

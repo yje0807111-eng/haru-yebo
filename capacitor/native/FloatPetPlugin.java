@@ -503,6 +503,11 @@ public class FloatPetPlugin extends Plugin {
         HaruWake.download(c, (pct, st) -> { JSObject d = new JSObject(); d.put("pct", pct); d.put("st", st); fire("wakeModel", d); if ("ok".equals(st)) HaruWake.start(c); });
         call.resolve();
     }
+    // 11-16: 앱이 받아쓰기·통화로 마이크를 쓰는 동안 "똑똑아" 듣기 쉬기 · 잠금 화면인지
+    @PluginMethod
+    public void wakePause(PluginCall call) { HaruWake.pause(Boolean.TRUE.equals(call.getBoolean("on", false))); call.resolve(); }
+    @PluginMethod
+    public void isLocked(PluginCall call) { JSObject r = new JSObject(); try { r.put("locked", ((android.app.KeyguardManager) getContext().getSystemService(android.content.Context.KEYGUARD_SERVICE)).isKeyguardLocked()); } catch (Exception e) { r.put("locked", false); } call.resolve(r); }
     @PluginMethod
     public void voskListen(PluginCall call) { HaruWake.listenOnce(getContext(), t -> { JSObject r = new JSObject(); r.put("text", t); call.resolve(r); }); }
     @PluginMethod
