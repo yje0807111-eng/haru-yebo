@@ -141,8 +141,10 @@ public class HaruWake {
             org.json.JSONObject j = new org.json.JSONObject(json == null ? "{}" : json);
             String t = j.optString("text", j.optString("partial", ""));
             if (t.isEmpty()) return false;
-            String name = c.getSharedPreferences("pet", 0).getString("name", "다루");
-            if (!heard(t, name)) return false;
+            // 11-16 사용자: 깨우는 이름은 "똑똑"으로 고정 (된소리 두 번 — 폰 마이크로도 가장 또렷). 팻 이름은 대화에서만
+            String n = norm(t);
+            if (n.matches(".*똑똑(하|해|한|했|히).*")) return false;   // "똑똑하다·똑똑해" 같은 평소 말에는 안 깸
+            if (!(n.contains("똑똑") || n.contains("똑똑이"))) return false;
             long now = System.currentTimeMillis(); if (now - lastWake < 4000) return true; lastWake = now;
             Log.i(TAG, "heard: " + t);
             new Handler(Looper.getMainLooper()).post(() -> wake(c));

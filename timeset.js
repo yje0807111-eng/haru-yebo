@@ -46,7 +46,7 @@ function drawSet() {
     <p class="note" style="margin:8px 0 4px">연령대 <span class="small">(나이에 맞는 상식을 알려 줘요)</span></p><div class="seg" id="s_age" style="flex-wrap:wrap">${[[10, '10대'], [20, '20대'], [30, '30대'], [40, '40대'], [50, '50대'], [60, '60대'], [70, '70대 이상']].map(([k, n]) => `<button data-age="${k}" class="${(S.me.age || 0) === k ? 'on' : ''}">${n}</button>`).join('')}</div>
     <label class="chk"><input type="checkbox" id="s_senior" ${S.me.senior ? 'checked' : ''}> 👴 만 65세 이상 (길찾기에서 지하철을 무료로 계산)</label>
     <label class="note">팻 이름 <input id="s_bname" value="${esc(S.me.buddyName)}" placeholder="예: 사랑이"></label></div>
-${window.Native ? `<div class="card"><h3>🎤 이름 부르면 깨우기</h3><label class="chk"><input type="checkbox" id="s_wake"> 화면이 꺼져 있어도 "${esc(S.me.buddyName || '다루')}야" 하고 부르면 대답해요</label><p class="note small" id="s_wakeSt">확인 중…</p><p class="note small">처음 켤 때 한국어 알아듣기 자료(약 80MB)를 한 번 받아요. 소리는 폰 안에서만 쓰고 어디에도 보내지 않아요. 켜 두면 마이크 표시(초록 점)가 보이고 배터리를 조금 더 써요.</p></div>` : ''}
+${window.Native ? `<div class="card"><h3>🎤 이름 부르면 깨우기</h3><label class="chk"><input type="checkbox" id="s_wake"> 화면이 꺼져 있어도 "똑똑아!" 하고 부르면 대답해요</label><p class="note small" id="s_wakeSt">확인 중…</p><p class="note small">처음 켤 때 한국어 알아듣기 자료(약 80MB)를 한 번 받아요. 소리는 폰 안에서만 쓰고 어디에도 보내지 않아요. 켜 두면 마이크 표시(초록 점)가 보이고 배터리를 조금 더 써요.</p></div>` : ''}
 ${window.Native ? `<div class="card"><h3>🐶 화면 위 팻</h3><label class="chk"><input type="checkbox" id="s_float" ${S.floatOff ? '' : 'checked'}> 하루 예보를 닫아도 다른 앱 위에 팻 띄우기</label><p class="note small" id="s_floatSt"></p><p class="note small">팻을 끌어서 옮기고, 누르면 하루 예보가 열려요.</p><button class="btn ghost small" id="s_diag">🩺 팻 상태 보기</button><pre id="s_diagOut" style="white-space:pre-wrap;font-size:11px;max-height:300px;overflow:auto"></pre></div>` : ''}
   <div class="card"><h3>🐾 팻 모습</h3><p class="sub">종류</p><div class="seg" id="s_sp">${[['dog', '🐶 강아지'], ['cat', '🐱 고양이'], ['pig', '🐷 돼지']].map(([k, n]) => `<button data-sp="${k}" class="${(S.me.species || 'dog') === k ? 'on' : ''}">${n}</button>`).join('')}</div><p class="note small">누르면 바로 바뀌어요</p>
   <p class="sub">크기</p><p class="note small">10 = 아주 작게 · 100 = 크게</p><div class="sizes" id="s_size">${[10, 20, 30, 40, 50, 60, 70, 80, 90, 100].map(n => `<button data-sz="${n}" class="${(S.me.size || 100) === n ? 'on' : ''}">${n}</button>`).join('')}</div>
@@ -142,7 +142,7 @@ async function wakeStatus() {
   const el = $('#s_wakeSt'), cb = $('#s_wake'), F = window.Capacitor && Capacitor.Plugins && Capacitor.Plugins.FloatPet; if (!el || !F || !F.wakeState) return;
   const r = await F.wakeState().catch(() => null); if (!r) return;
   cb.checked = !!r.on;
-  el.textContent = !r.on ? '꺼져 있어요' : !r.model ? '알아듣기 자료를 받는 중이에요…' : r.running ? `✅ 듣고 있어요 — 화면이 꺼져 있어도 "${S.me.buddyName || '다루'}야" 하고 불러 보세요` : '✅ 켜져 있어요 (하루를 닫으면 듣기 시작해요)';
+  el.textContent = !r.on ? '꺼져 있어요' : !r.model ? '알아듣기 자료를 받는 중이에요…' : r.running ? `✅ 듣고 있어요 — 화면이 꺼져 있어도 "똑똑아!" 하고 불러 보세요` : '✅ 켜져 있어요 (하루를 닫으면 듣기 시작해요)';
 }
 document.addEventListener('change', async e => {
   if (e.target.id !== 's_wake') return;
