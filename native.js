@@ -180,10 +180,11 @@ window.wakeHear = async function (tries) {
   let txt = '', t0 = Date.now();
   // 구글 받아쓰기 먼저 (사람 이름까지 정확) — 잠금 화면 등에서 바로 거절되면(2.5초 안) 폰 안 인식으로
   if (window.Native && Native.listen) { try { txt = await Promise.race([Native.listen().catch(() => ''), new Promise(r => setTimeout(() => r(''), 9000))]) || ''; } catch { } }
+  let eng = txt ? '🅖' : '';
   if (!txt && Date.now() - t0 < 2500 && FPw && FPw.voskListen) {
-    const r = await FPw.voskListen().catch(() => ({ text: '' })); txt = (r && r.text || '').trim();
+    const r = await FPw.voskListen().catch(() => ({ text: '' })); txt = (r && r.text || '').trim(); if (txt) eng = '📱';
   }
   if (!txt) { if ((tries || 0) < 2) { say('잘 못 들었어 🥲 다시 말해 줘!', { ms: 2500 }); setTimeout(() => wakeHear((tries || 0) + 1), 1500); return; } say('또 불러 줘! "똑똑아" 🐾', { ms: 2500 }); if (FPw && FPw.wakePause) FPw.wakePause({ on: false }).catch(() => { }); return; }
-  say(`👂 "${esc(txt)}"`, { ms: 1800 }); if (typeof send === 'function') send(txt);
+  say(`${eng} 👂 "${esc(txt)}"`, { ms: 2500 }); if (typeof send === 'function') setTimeout(() => send(txt), 900);   // 🅖 구글 · 📱 폰 안 인식 (어느 귀로 들었는지 — 시험용)
   setTimeout(() => { if (FPw && FPw.wakePause) FPw.wakePause({ on: false }).catch(() => { }); }, 2500);   // 다시 "똑똑아" 듣기
 };
