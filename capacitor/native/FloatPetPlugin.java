@@ -510,7 +510,11 @@ public class FloatPetPlugin extends Plugin {
     @PluginMethod
     public void usageAsk(PluginCall call) { try { android.content.Intent i = new android.content.Intent(android.provider.Settings.ACTION_USAGE_ACCESS_SETTINGS); i.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK); getContext().startActivity(i); } catch (Exception ignored) { } call.resolve(); }
     @PluginMethod
-    public void wakePause(PluginCall call) { HaruWake.pause(Boolean.TRUE.equals(call.getBoolean("on", false))); call.resolve(); }
+    public void wakePause(PluginCall call) {
+        boolean on = Boolean.TRUE.equals(call.getBoolean("on", false)); HaruWake.pause(on);
+        if (!on) { call.resolve(); return; }
+        new Thread(() -> { long t0 = System.currentTimeMillis(); while (HaruWake.recOpen && System.currentTimeMillis() - t0 < 1500) { try { Thread.sleep(50); } catch (Exception ignored) { } } try { Thread.sleep(120); } catch (Exception ignored) { } call.resolve(); }).start();   // 11-16: 받아쓰기와 마이크를 같이 잡으면 소리가 끊겨 엉뚱하게 들림
+    }
     @PluginMethod
     public void isLocked(PluginCall call) { JSObject r = new JSObject(); try { r.put("locked", ((android.app.KeyguardManager) getContext().getSystemService(android.content.Context.KEYGUARD_SERVICE)).isKeyguardLocked()); } catch (Exception e) { r.put("locked", false); } call.resolve(r); }
     @PluginMethod

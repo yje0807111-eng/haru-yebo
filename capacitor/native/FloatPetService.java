@@ -850,6 +850,7 @@ public class FloatPetService extends Service {
         h.postDelayed(this::listen, 900);   // 울음소리가 받아쓰기에 들어가지 않게 조금 뒤에
     }
     void listen() {
+        HaruWake.pause(true);   // 11-16: "똑똑아" 귀가 마이크를 놓게 (받아쓰기 소리가 끊기지 않게)
         if (alarmOn) { stopAlarmByTap(); return; }   // 알람 울리는 중이면 누르면 그만
         if (arOn) arStop();
         if (Build.VERSION.SDK_INT >= 23 && checkSelfPermission(android.Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) { open("mic"); return; }

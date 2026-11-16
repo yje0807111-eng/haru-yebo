@@ -27,7 +27,7 @@ import java.util.zip.ZipInputStream;
 public class HaruWake {
     static final String MODEL_URL = "https://alphacephei.com/vosk/models/vosk-model-small-ko-0.22.zip";
     static final String TAG = "HaruWake";
-    static volatile boolean running = false, paused = false;
+    static volatile boolean running = false, paused = false, recOpen = false;   // recOpen: 지금 마이크를 잡고 있음
     static Thread th;
     static Object model;   // org.vosk.Model (한 번만 읽어 둠)
     static long lastWake = 0;
@@ -100,15 +100,15 @@ public class HaruWake {
             double floor = 300; long voiceUntil = 0; boolean inVoice = false;
             while (running) {
                 if (paused && System.currentTimeMillis() - pausedAt > 25000) paused = false;
-                boolean busy = paused || (FloatPetService.me != null && FloatPetService.me.listening);
+                boolean busy = paused || (FloatPetService.me != null && (FloatPetService.me.listening || FloatPetService.me.arOn));
                 if (busy) {   // 앱을 보고 있거나 팻이 받아쓰는 중 → 마이크 놓아 주기
                     if (ar != null) { try { ar.stop(); ar.release(); } catch (Exception ignored) { } ar = null; }
-                    Thread.sleep(500); continue;
+                    recOpen = false; Thread.sleep(150); continue;
                 }
                 if (ar == null) {
                     ar = new AudioRecord(MediaRecorder.AudioSource.VOICE_RECOGNITION, sr, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT, Math.max(min, frame * 4));
                     if (ar.getState() != AudioRecord.STATE_INITIALIZED) { ar.release(); ar = null; Thread.sleep(3000); continue; }
-                    ar.startRecording(); inVoice = false;
+                    ar.startRecording(); inVoice = false; recOpen = true;
                 }
                 int n = ar.read(buf, 0, frame);
                 if (n <= 0) { Thread.sleep(100); continue; }
@@ -133,6 +133,7 @@ public class HaruWake {
         } catch (Throwable t) { Log.e(TAG, "loop", t); }
         finally {
             if (ar != null) { try { ar.stop(); ar.release(); } catch (Exception ignored) { } }
+            recOpen = false;
             if (rec != null) { try { ((org.vosk.Recognizer) rec).close(); } catch (Exception ignored) { } }
             running = false;
         }

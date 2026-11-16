@@ -47,8 +47,9 @@
     const SR = Pl.SpeechRecognition; if (!SR) return null;
     const ok = await SR.available(); if (!ok.available) return null;
     await SR.requestPermissions();
+    if (FP0 && FP0.wakePause) await FP0.wakePause({ on: true }).catch(() => {});   // 11-16: 어떤 받아쓰기든 "똑똑아" 귀가 마이크를 놓은 뒤에
     if (FP0 && FP0.micQuiet) await FP0.micQuiet({ level: S.talk.micBeep ?? 1 }).catch(() => {});
-    let r; try { r = await SR.start({ language: 'ko-KR', maxResults: 1, partialResults: false, popup: false }); } finally { if (FP0 && FP0.micRestore) setTimeout(() => FP0.micRestore().catch(() => {}), 900); }
+    let r; try { r = await SR.start({ language: 'ko-KR', maxResults: 1, partialResults: false, popup: false }); } finally { if (FP0 && FP0.micRestore) setTimeout(() => FP0.micRestore().catch(() => {}), 900); if (FP0 && FP0.wakePause) setTimeout(() => FP0.wakePause({ on: false }).catch(() => {}), 2500); }
     return (r.matches || [])[0] || '';
   };
   // 🔄 새 버전: 하루 한 번 확인 → "바꿀까?" → [응] 이면 받아서 바로 설치 화면
@@ -174,14 +175,12 @@
 // 🎤 11-15: 이름으로 깨웠을 때 듣기 — 잠금 화면에선 구글 받아쓰기가 막히니 폰 안 인식(Vosk)으로 이어서
 window.wakeHear = async function (tries) {
   const FPw = window.Capacitor && Capacitor.Plugins && Capacitor.Plugins.FloatPet;
-  if (FPw && FPw.wakePause) await FPw.wakePause({ on: true }).catch(() => { });   // 받아쓰는 동안 "똑똑아" 듣기 쉬기
+  if (FPw && FPw.wakePause) await FPw.wakePause({ on: true }).catch(() => { });   // "똑똑아" 귀가 마이크를 완전히 놓을 때까지 기다림
   say('👂 듣고 있어… 말해 줘!', { pose: 'up', ms: 9000 });
-  let txt = '', locked = false;
-  try { locked = !!((FPw && FPw.isLocked) ? (await FPw.isLocked()).locked : false); } catch { }
-  // 잠금 화면이면 구글 받아쓰기가 막힘 → 바로 폰 안 인식 · 잠금이 아니면 구글 먼저(더 정확), 안 되면 폰 안 인식
-  if (!locked && window.Native && Native.listen) { try { txt = await Promise.race([Native.listen().catch(() => ''), new Promise(r => setTimeout(() => r(''), 8000))]) || ''; } catch { } }
-  if (!txt && FPw && FPw.voskListen) {
-    if (!locked) { try { const P = window.Capacitor.Plugins.SpeechRecognition; if (P && P.stop) await P.stop().catch(() => { }); } catch { } say('👂 한 번만 더 말해 줘!', { pose: 'up', ms: 9000 }); }
+  let txt = '', t0 = Date.now();
+  // 구글 받아쓰기 먼저 (사람 이름까지 정확) — 잠금 화면 등에서 바로 거절되면(2.5초 안) 폰 안 인식으로
+  if (window.Native && Native.listen) { try { txt = await Promise.race([Native.listen().catch(() => ''), new Promise(r => setTimeout(() => r(''), 9000))]) || ''; } catch { } }
+  if (!txt && Date.now() - t0 < 2500 && FPw && FPw.voskListen) {
     const r = await FPw.voskListen().catch(() => ({ text: '' })); txt = (r && r.text || '').trim();
   }
   if (!txt) { if ((tries || 0) < 2) { say('잘 못 들었어 🥲 다시 말해 줘!', { ms: 2500 }); setTimeout(() => wakeHear((tries || 0) + 1), 1500); return; } say('또 불러 줘! "똑똑아" 🐾', { ms: 2500 }); if (FPw && FPw.wakePause) FPw.wakePause({ on: false }).catch(() => { }); return; }

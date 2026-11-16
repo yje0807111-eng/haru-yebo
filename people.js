@@ -186,7 +186,12 @@ const findPerson = nm => {
   const all = S.contacts;
   const exact = all.filter(c => c.name === nm || (c.alias || []).includes(nm));
   const loose = nm.length >= 2 ? all.filter(c => c.name.includes(nm) || nm.includes(c.name) || (c.alias || []).some(a => a.includes(nm))) : [];
-  const cand = exact.length ? exact : loose;
+  let cand = exact.length ? exact : loose;
+  if (!cand.length && nm.length >= 2 && typeof jamo === 'function' && typeof editDist === 'function') {   // 11-16: '김철수'를 '김철주'로 받아써도 찾기
+    const jn = jamo(nm); let best = null;
+    for (const x of all) for (const nmx of [x.name, ...(x.alias || [])]) { if (!nmx) continue; const d = editDist(jn, jamo(nmx)), lim = Math.max(1, Math.floor(jn.length / 4)); if (d <= lim && (!best || d < best.d)) best = { d, x }; }
+    if (best) cand = [best.x];
+  }
   let c = cand.find(x => x.pk) || cand[0] || null;
   if (c && !c.pk) {
     const ph = (c.phones || []).map(p => phoneKey(p.num)).filter(Boolean);
